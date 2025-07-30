@@ -1,8 +1,6 @@
 <h1>kikwiflow 🐣</h1>
 <p align="center">
-<a href="#"><img alt="Build Status" src="https://img.shields.io/badge/build-passing-34d399?style=for-the-badge"></a>
 <a href="#"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-0ea5e9?style=for-the-badge"></a>
-<a href="#"><img alt="Version" src="https://img.shields.io/badge/version-0.1.0--SNAPSHOT-4c1d95?style=for-the-badge"></a>
 </p>
 
 <h3 align="center">Uma engine de orquestração de processos moderna, leve e embarcável para a JVM.</h3>
