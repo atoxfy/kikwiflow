@@ -5,14 +5,14 @@
 
 <h3 align="center">Uma engine de orquestração de processos moderna, leve e embarcável para a JVM.</h3>
 
-O Manifesto: Acreditamos no Código, Acreditamos no Brasil.
+## O Manifesto: Acreditamos no Código, Acreditamos no Brasil.
 O kikwi-flow nasceu de uma convicção: a de que a engenharia brasileira tem o talento, a criatividade e a garra para criar tecnologia de classe mundial. Este projeto é a nossa resposta ao status quo, uma prova de que podemos construir ferramentas de software que não apenas competem, mas definem o futuro da tecnologia global.
 
 Não estamos aqui para replicar, mas para inovar. Para questionar arquiteturas legadas e propor soluções mais inteligentes, mais rápidas e mais alinhadas com as necessidades do desenvolvedor moderno.
 
 Este é um convite aberto a todos os talentos brasileiros que partilham desta visão.
 
-O que é o kikwi-flow?
+## O que é o kikwi-flow?
 O kikwi-flow é uma engine de processos open-source, escrita em Java, projetada para orquestrar a lógica de negócio diretamente dentro das suas aplicações.
 
 Diferente das soluções tradicionais que operam como um servidor centralizado e pesado, o kikwi-flow é uma biblioteca leve e embarcável. Ele vive junto com o seu código, eliminando a complexidade de infraestrutura, reduzindo a latência e oferecendo uma experiência de desenvolvimento fluida e integrada.
@@ -25,7 +25,7 @@ Simplicidade Arquitetural: Ao ser embarcado, o kikwi-flow simplifica drasticamen
 
 Experiência do Desenvolvedor: Com uma integração nativa com Spring Boot e compatibilidade com padrões de mercado como o JavaDelegate do Camunda, queremos que os desenvolvedores se sintam em casa.
 
-Roadmap de Alto Nível
+## Roadmap de Alto Nível
 Nosso desenvolvimento está focado em duas grandes entregas estratégicas:
 
 🚀 Entrega 1: A Engine Completa (Compatibilidade e Performance)
