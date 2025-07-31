@@ -14,18 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.bpmn;
+package io.kikwiflow.bpmn.model.elements;
 
-import io.kikwiflow.bpmn.model.ProcessDefinition;
-
-/**
- * Responsible for read and convert bpmn (xml) file
- * into java objects and create the execution model graph
- * @author Emiliano Fagundes
- */
-public class BpmnParser {
-    public ProcessDefinition parse(String bpmnXml){
-        //TODO implment a xml parser to process definition graph
-        return new ProcessDefinition();
-    }
+public class ServiceTask {
+    //TODO
 }
