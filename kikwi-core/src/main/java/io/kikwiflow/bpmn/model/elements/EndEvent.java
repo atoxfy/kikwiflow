@@ -16,7 +16,6 @@
  */
 package io.kikwiflow.bpmn.model.elements;
 
-public class EndEvent  {
+import io.kikwiflow.bpmn.model.FlowNode;
 
-    //TODO
-}
+public class EndEvent extends FlowNode {}

@@ -16,18 +16,22 @@
  */
 package io.kikwiflow.bpmn.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class FlowNode {
     private String id;
     private String name;
     private String description;
-    private List<SequenceFlow> outgoing;
+    private List<SequenceFlow> outgoing = new ArrayList<>();
 
     public String getId() {
         return id;
     }
 
+    public void  addOutgoing(SequenceFlow sequenceFlow){
+        this.outgoing.add(sequenceFlow);
+    }
     public void setId(String id) {
         this.id = id;
     }
@@ -52,7 +56,4 @@ public class FlowNode {
         return outgoing;
     }
 
-    public void setOutgoing(List<SequenceFlow> outgoing) {
-        this.outgoing = outgoing;
-    }
 }

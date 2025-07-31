@@ -16,6 +16,6 @@
  */
 package io.kikwiflow.bpmn.model.elements;
 
-public class StartEvent {
-    //TODO
-}
+import io.kikwiflow.bpmn.model.FlowNode;
+
+public class StartEvent extends FlowNode {}

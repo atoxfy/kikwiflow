@@ -18,14 +18,14 @@ package io.kikwiflow.bpmn;
 
 import io.kikwiflow.bpmn.model.ProcessDefinition;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.InputStream;
+
 /**
  * Responsible for read and convert bpmn (xml) file
  * into java objects and create the execution model graph
  * @author Emiliano Fagundes
  */
-public class BpmnParser {
-    public ProcessDefinition parse(String bpmnXml){
-        //TODO implment a xml parser to process definition graph
-        return new ProcessDefinition();
-    }
+public interface BpmnParser {
+    public ProcessDefinition parse(InputStream bpmnFileStream) throws Exception;
 }

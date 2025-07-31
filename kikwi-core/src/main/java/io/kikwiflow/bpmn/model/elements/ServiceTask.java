@@ -16,6 +16,16 @@
  */
 package io.kikwiflow.bpmn.model.elements;
 
-public class ServiceTask {
-    //TODO
+import io.kikwiflow.bpmn.model.FlowNode;
+
+public class ServiceTask extends FlowNode {
+    private String delegateExpression;
+
+    public String getDelegateExpression() {
+        return delegateExpression;
+    }
+
+    public void setDelegateExpression(String delegateExpression) {
+        this.delegateExpression = delegateExpression;
+    }
 }

@@ -16,12 +16,13 @@
  */
 package io.kikwiflow.bpmn.model;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class ProcessDefinition {
     private String id;
     private String name;
-    private Map<String, FlowNode> flowNodes;
+    private Map<String, FlowNode> flowNodes = new HashMap<>();
 
     public String getId() {
         return id;
@@ -43,7 +44,6 @@ public class ProcessDefinition {
         return flowNodes;
     }
 
-    public void setFlowNodes(Map<String, FlowNode> flowNodes) {
-        this.flowNodes = flowNodes;
-    }
+    public void addFlowNode(FlowNode node) { this.flowNodes.put(node.getId(), node); }
+
 }

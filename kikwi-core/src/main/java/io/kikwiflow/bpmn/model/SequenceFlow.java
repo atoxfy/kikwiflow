@@ -17,11 +17,17 @@
 package io.kikwiflow.bpmn.model;
 
 public class SequenceFlow {
+    private String id;
     private String condition;
-    private Boolean isDefault;
-    private String description;
-    private String sourceId;
-    private String targetId;
+    private String targetNodeId;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getCondition() {
         return condition;
@@ -31,35 +37,11 @@ public class SequenceFlow {
         this.condition = condition;
     }
 
-    public Boolean getDefault() {
-        return isDefault;
+    public String getTargetNodeId() {
+        return targetNodeId;
     }
 
-    public void setDefault(Boolean aDefault) {
-        isDefault = aDefault;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getSourceId() {
-        return sourceId;
-    }
-
-    public void setSourceId(String sourceId) {
-        this.sourceId = sourceId;
-    }
-
-    public String getTargetId() {
-        return targetId;
-    }
-
-    public void setTargetId(String targetId) {
-        this.targetId = targetId;
+    public void setTargetNodeId(String targetNodeId) {
+        this.targetNodeId = targetNodeId;
     }
 }
