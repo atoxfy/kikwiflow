@@ -29,7 +29,7 @@ public class DefaultBpmnParser implements BpmnParser {
 
         Element processElement = (Element) doc.getElementsByTagName("bpmn:process").item(0);
         if (processElement == null) {
-            throw new RuntimeException("Tag <bpmn:process> não encontrada no ficheiro.");
+            throw new RuntimeException("Tag <bpmn:process> não encontrada no arquivo.");
         }
 
         ProcessDefinition processDefinition = new ProcessDefinition();
