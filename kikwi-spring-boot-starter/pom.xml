@@ -8,7 +8,7 @@
         <artifactId>kikwiflow-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>kikwi-core</artifactId>
+    <artifactId>kikwi-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
     <name>kikwiflow :: Spring Boot Starter</name>
     <dependencies>

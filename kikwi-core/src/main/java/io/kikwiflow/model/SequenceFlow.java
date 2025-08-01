@@ -14,8 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.bpmn.model.elements;
+package io.kikwiflow.model;
 
-import io.kikwiflow.bpmn.model.FlowNode;
+public class SequenceFlow {
+    private String id;
+    private String condition;
+    private String targetNodeId;
 
-public class StartEvent extends FlowNode {}
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getCondition() {
+        return condition;
+    }
+
+    public void setCondition(String condition) {
+        this.condition = condition;
+    }
+
+    public String getTargetNodeId() {
+        return targetNodeId;
+    }
+
+    public void setTargetNodeId(String targetNodeId) {
+        this.targetNodeId = targetNodeId;
+    }
+}

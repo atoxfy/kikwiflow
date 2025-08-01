@@ -1,12 +1,28 @@
+/*
+ * Copyright Atoxfy and/or licensed to Atoxfy
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Atoxfy licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.kikwiflow.bpmn.impl;
 
 import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.bpmn.model.FlowNode;
-import io.kikwiflow.bpmn.model.ProcessDefinition;
-import io.kikwiflow.bpmn.model.SequenceFlow;
-import io.kikwiflow.bpmn.model.elements.EndEvent;
-import io.kikwiflow.bpmn.model.elements.ServiceTask;
-import io.kikwiflow.bpmn.model.elements.StartEvent;
+import io.kikwiflow.model.FlowNode;
+import io.kikwiflow.bpmn.model.ProcessDefinitionDeploy;
+import io.kikwiflow.model.SequenceFlow;
+import io.kikwiflow.model.bpmn.elements.end.EndEvent;
+import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
+import io.kikwiflow.model.bpmn.elements.start.StartEvent;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -20,21 +36,20 @@ public class DefaultBpmnParser implements BpmnParser {
     private static final String CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn";
 
     @Override
-    public ProcessDefinition parse(InputStream bpmnXmlFileStream) throws Exception {
+    public ProcessDefinitionDeploy parse(InputStream bpmnXmlFileStream) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc = builder.parse(bpmnXmlFileStream);
-
 
         Element processElement = (Element) doc.getElementsByTagName("bpmn:process").item(0);
         if (processElement == null) {
             throw new RuntimeException("Tag <bpmn:process> não encontrada no arquivo.");
         }
 
-        ProcessDefinition processDefinition = new ProcessDefinition();
-        processDefinition.setId(processElement.getAttribute("id"));
-        processDefinition.setName(processElement.getAttribute("name"));
+        ProcessDefinitionDeploy processDefinitionDeploy = new ProcessDefinitionDeploy();
+        processDefinitionDeploy.setKey(processElement.getAttribute("id"));
+        processDefinitionDeploy.setName(processElement.getAttribute("name"));
 
         NodeList childNodes = processElement.getChildNodes();
         for (int i = 0; i < childNodes.getLength(); i++) {
@@ -56,7 +71,7 @@ public class DefaultBpmnParser implements BpmnParser {
                 }
 
                 if (flowNode != null) {
-                    processDefinition.addFlowNode(flowNode);
+                    processDefinitionDeploy.addFlowNode(flowNode);
                 }
             }
         }
@@ -66,14 +81,14 @@ public class DefaultBpmnParser implements BpmnParser {
             Element flowElement = (Element) sequenceFlows.item(i);
             String sourceRef = flowElement.getAttribute("sourceRef");
 
-            FlowNode sourceNode = processDefinition.getFlowNodes().get(sourceRef);
+            FlowNode sourceNode = processDefinitionDeploy.getFlowNodes().get(sourceRef);
             if (sourceNode != null) {
                 SequenceFlow sequenceFlow = parseSequenceFlow(flowElement);
                 sourceNode.addOutgoing(sequenceFlow);
             }
         }
 
-        return processDefinition;
+        return processDefinitionDeploy;
     }
 
     private FlowNode parseEvent(Element element, FlowNode node) {

@@ -14,22 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.bpmn.model;
+package io.kikwiflow.model.bpmn;
+
+import io.kikwiflow.model.FlowNode;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class ProcessDefinition {
+
     private String id;
+    private Integer version;
+    private String key;
     private String name;
+
     private Map<String, FlowNode> flowNodes = new HashMap<>();
 
-    public String getId() {
-        return id;
+    public String getKey() {
+        return key;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setKey(String key) {
+        this.key = key;
     }
 
     public String getName() {
@@ -44,6 +50,23 @@ public class ProcessDefinition {
         return flowNodes;
     }
 
-    public void addFlowNode(FlowNode node) { this.flowNodes.put(node.getId(), node); }
+    public String getId() {
+        return id;
+    }
 
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    public void setFlowNodes(Map<String, FlowNode> flowNodes) {
+        this.flowNodes = flowNodes;
+    }
 }

@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.bpmn.model;
+package io.kikwiflow.model;
+
+import io.kikwiflow.model.SequenceFlow;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,5 +57,4 @@ public class FlowNode {
     public List<SequenceFlow> getOutgoing() {
         return outgoing;
     }
-
 }

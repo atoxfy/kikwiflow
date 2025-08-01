@@ -14,17 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.bpmn;
+package io.kikwiflow.bpmn.model;
 
-import io.kikwiflow.bpmn.model.ProcessDefinitionDeploy;
+import io.kikwiflow.model.FlowNode;
 
-import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
-/**
- * Responsible for read and convert bpmn (xml) file
- * into java objects and create the execution model graph
- * @author Emiliano Fagundes
- */
-public interface BpmnParser {
-    public ProcessDefinitionDeploy parse(InputStream bpmnFileStream) throws Exception;
+public class ProcessDefinitionDeploy {
+    private String key;
+    private String name;
+
+    private Map<String, FlowNode> flowNodes = new HashMap<>();
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Map<String, FlowNode> getFlowNodes() {
+        return flowNodes;
+    }
+
+    public void addFlowNode(FlowNode node) { this.flowNodes.put(node.getId(), node); }
+
 }
