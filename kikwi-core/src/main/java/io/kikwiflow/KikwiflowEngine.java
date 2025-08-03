@@ -29,7 +29,6 @@ public class KikwiflowEngine {
         this.processDefinitionManager = new ProcessDefinitionManager();
     }
 
-
     public void startProcessByKey(String processDefinitionKey, String businessKey, Map<String, Object> variables){
         Optional<ProcessDefinition> processDefinition = processDefinitionManager.getByKey(processDefinitionKey);
     }
