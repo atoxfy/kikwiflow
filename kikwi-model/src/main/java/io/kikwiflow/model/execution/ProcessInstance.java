@@ -24,7 +24,7 @@ import java.util.Map;
 
 public class ProcessInstance {
     private String id;
-
+    private String businessKey;
     private ProcessInstanceStatus status;
     private String processDefinitionId;
 
@@ -39,6 +39,14 @@ public class ProcessInstance {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getBusinessKey() {
+        return businessKey;
+    }
+
+    public void setBusinessKey(String businessKey) {
+        this.businessKey = businessKey;
     }
 
     public ProcessInstanceStatus getStatus() {

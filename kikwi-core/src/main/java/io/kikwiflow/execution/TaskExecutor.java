@@ -16,10 +16,13 @@
  */
 package io.kikwiflow.execution;
 
+import io.kikwiflow.model.execution.ExecutableTask;
+
 public class TaskExecutor {
 
 
-    public void execute(){
+    public void execute(ExecutableTask executableTask){
+        //Execute the task based on its type (e.g. if delegate -> find the relative bean an execute)
 
 
     }
