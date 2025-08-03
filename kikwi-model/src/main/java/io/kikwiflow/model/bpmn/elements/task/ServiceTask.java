@@ -18,8 +18,9 @@ package io.kikwiflow.model.bpmn.elements.task;
 
 
 import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.execution.ExecutableTask;
 
-public class ServiceTask extends FlowNode {
+public class ServiceTask extends FlowNode implements ExecutableTask {
     private String delegateExpression;
 
     public String getDelegateExpression() {

@@ -20,25 +20,26 @@ import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
+import io.kikwiflow.persistence.ProcessExecutionRepository;
+import io.kikwiflow.persistence.ProcessExecutionRepositoryImpl;
 import io.kikwiflow.persistence.navigation.definition.ProcessDefinitionCache;
-import io.kikwiflow.persistence.navigation.definition.ProcessDefinitionRepository;
 
 import java.io.InputStream;
 
 public class ProcessDefinitionManager {
     private final BpmnParser bpmnParser;
-    private final ProcessDefinitionRepository processDefinitionRepository;
+    private final ProcessExecutionRepository processExecutionRepository;
     private final ProcessDefinitionCache processDefinitionCache;
 
     public ProcessDefinitionManager(){
         this.bpmnParser = new DefaultBpmnParser();
-        this.processDefinitionRepository = new ProcessDefinitionRepository();
+        this.processExecutionRepository = new ProcessExecutionRepositoryImpl();
         this.processDefinitionCache = new ProcessDefinitionCache();
     }
 
     public void deploy(InputStream inputStream) throws Exception {
         ProcessDefinitionDeploy processDefinitionDeploy = bpmnParser.parse(inputStream);
-        processDefinitionRepository.save(processDefinitionDeploy);
+        processExecutionRepository.save(processDefinitionDeploy);
     }
 
     /**
@@ -55,7 +56,7 @@ public class ProcessDefinitionManager {
         }
 
 
-        processDefinition = processDefinitionRepository.findByKey(processDefinitionKey);
+        processDefinition = processExecutionRepository.findByKey(processDefinitionKey);
         if(processDefinition == null){
             throw new RuntimeException("Não existe processo salvo: " + processDefinitionKey);
         }

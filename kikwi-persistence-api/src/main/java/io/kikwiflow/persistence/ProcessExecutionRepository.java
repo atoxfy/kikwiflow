@@ -16,7 +16,11 @@
  */
 package io.kikwiflow.persistence;
 
+import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
+import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
+import io.kikwiflow.model.execution.ExecutableTask;
+import io.kikwiflow.model.execution.ExecutableTaskEntity;
 import io.kikwiflow.model.execution.ProcessInstance;
 
 import java.util.Map;
@@ -36,7 +40,7 @@ public interface ProcessExecutionRepository {
      *
      * @param instance O objeto ProcessInstance a ser persistido.
      */
-    void save(ProcessInstance instance);
+    ProcessInstance save(ProcessInstance instance);
 
     /**
      * Encontra uma instância de processo pelo seu ID.
@@ -60,7 +64,7 @@ public interface ProcessExecutionRepository {
      *
      * @param task A tarefa executável a ser criada.
      */
-    void create(ServiceTask task);
+    ExecutableTaskEntity create(ExecutableTaskEntity task);
 
     /**
      * Atomicamente encontra, bloqueia e retorna a próxima tarefa executável
@@ -68,7 +72,7 @@ public interface ProcessExecutionRepository {
      *
      * @return Um Optional contendo a próxima tarefa, ou vazio se a fila estiver vazia.
      */
-    Optional<ServiceTask> acquireNext();
+    Optional<ExecutableTaskEntity> acquireNext();
 
 
     /**
@@ -77,6 +81,13 @@ public interface ProcessExecutionRepository {
      * @param completedTask A tarefa que foi executada com sucesso.
      */
     void moveToHistory(ServiceTask completedTask);
+
+
+    public ProcessDefinition save(ProcessDefinitionDeploy processDefinitionDeploy);
+
+    public ProcessDefinition findByKey(String processDefinitionKey);
+
+    public void addToHistory(ProcessDefinition processDefinition);
 
 }
 

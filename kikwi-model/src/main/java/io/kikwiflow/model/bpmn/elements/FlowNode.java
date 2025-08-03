@@ -23,6 +23,8 @@ public class FlowNode {
     private String id;
     private String name;
     private String description;
+    private Boolean commitAfter;
+    private Boolean commitBefore;
     private List<SequenceFlow> outgoing = new ArrayList<>();
 
     public String getId() {
@@ -54,5 +56,21 @@ public class FlowNode {
 
     public List<SequenceFlow> getOutgoing() {
         return outgoing;
+    }
+
+    public Boolean getCommitAfter() {
+        return commitAfter;
+    }
+
+    public void setCommitAfter(Boolean commitAfter) {
+        this.commitAfter = commitAfter;
+    }
+
+    public Boolean getCommitBefore() {
+        return commitBefore;
+    }
+
+    public void setCommitBefore(Boolean commitBefore) {
+        this.commitBefore = commitBefore;
     }
 }
