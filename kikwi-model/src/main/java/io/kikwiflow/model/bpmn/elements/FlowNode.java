@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.model;
-
-import io.kikwiflow.model.SequenceFlow;
+package io.kikwiflow.model.bpmn.elements;
 
 import java.util.ArrayList;
 import java.util.List;

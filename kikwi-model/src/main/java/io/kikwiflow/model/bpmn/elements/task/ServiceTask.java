@@ -14,22 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow;
+package io.kikwiflow.model.bpmn.elements.task;
 
-import io.kikwiflow.core.ProcessDefinitionManager;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
 
-import java.util.Map;
+import io.kikwiflow.model.bpmn.elements.FlowNode;
 
-public class KikwiflowEngine {
-    private final ProcessDefinitionManager processDefinitionManager;
+public class ServiceTask extends FlowNode {
+    private String delegateExpression;
 
-    public KikwiflowEngine(){
-        this.processDefinitionManager = new ProcessDefinitionManager();
+    public String getDelegateExpression() {
+        return delegateExpression;
     }
 
-
-    public void startProcessByKey(String processDefinitionKey, String businessKey, Map<String, Object> variables){
-        ProcessDefinition processDefinition = processDefinitionManager.getByKey(processDefinitionKey);
+    public void setDelegateExpression(String delegateExpression) {
+        this.delegateExpression = delegateExpression;
     }
 }

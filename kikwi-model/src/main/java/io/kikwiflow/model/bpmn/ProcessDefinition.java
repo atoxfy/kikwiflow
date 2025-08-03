@@ -16,7 +16,8 @@
  */
 package io.kikwiflow.model.bpmn;
 
-import io.kikwiflow.model.FlowNode;
+
+import io.kikwiflow.model.bpmn.elements.FlowNode;
 
 import java.util.HashMap;
 import java.util.Map;

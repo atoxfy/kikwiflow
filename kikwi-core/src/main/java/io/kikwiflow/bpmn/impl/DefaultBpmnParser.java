@@ -17,12 +17,13 @@
 package io.kikwiflow.bpmn.impl;
 
 import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.model.FlowNode;
-import io.kikwiflow.bpmn.model.ProcessDefinitionDeploy;
-import io.kikwiflow.model.SequenceFlow;
+
+import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.SequenceFlow;
 import io.kikwiflow.model.bpmn.elements.end.EndEvent;
 import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
 import io.kikwiflow.model.bpmn.elements.start.StartEvent;
+import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;

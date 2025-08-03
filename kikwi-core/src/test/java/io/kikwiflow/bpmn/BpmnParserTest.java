@@ -2,11 +2,11 @@ package io.kikwiflow.bpmn;
 
 
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
-import io.kikwiflow.model.FlowNode;
-import io.kikwiflow.bpmn.model.ProcessDefinitionDeploy;
+import io.kikwiflow.model.bpmn.elements.FlowNode;
 import io.kikwiflow.model.bpmn.elements.end.EndEvent;
 import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
 import io.kikwiflow.model.bpmn.elements.start.StartEvent;
+import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

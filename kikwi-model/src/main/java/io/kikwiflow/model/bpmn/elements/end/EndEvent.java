@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.model.bpmn.elements.start;
+package io.kikwiflow.model.bpmn.elements.end;
 
-import io.kikwiflow.model.FlowNode;
 
-public class StartEvent extends FlowNode {}
+import io.kikwiflow.model.bpmn.elements.FlowNode;
+
+public class EndEvent extends FlowNode {}

@@ -18,8 +18,8 @@ package io.kikwiflow.core;
 
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
-import io.kikwiflow.bpmn.model.ProcessDefinitionDeploy;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
 import io.kikwiflow.persistence.navigation.definition.ProcessDefinitionCache;
 import io.kikwiflow.persistence.navigation.definition.ProcessDefinitionRepository;
 
@@ -47,7 +47,7 @@ public class ProcessDefinitionManager {
      * @return processDefinition
      * @throws Exception if the requested processDefinition doesn't exist in cache or db
      */
-    public ProcessDefinition get(String processDefinitionKey){
+    public ProcessDefinition getByKey(String processDefinitionKey){
         ProcessDefinition processDefinition = processDefinitionCache.findByKey(processDefinitionKey);
 
         if(processDefinition != null){

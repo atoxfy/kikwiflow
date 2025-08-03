@@ -14,8 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.model.bpmn.elements.end;
+package io.kikwiflow.model.deploy;
 
-import io.kikwiflow.model.FlowNode;
 
-public class EndEvent extends FlowNode {}
+import io.kikwiflow.model.bpmn.elements.FlowNode;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ProcessDefinitionDeploy {
+    private String key;
+    private String name;
+
+    private Map<String, FlowNode> flowNodes = new HashMap<>();
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Map<String, FlowNode> getFlowNodes() {
+        return flowNodes;
+    }
+
+    public void addFlowNode(FlowNode node) { this.flowNodes.put(node.getId(), node); }
+
+}

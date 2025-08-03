@@ -16,8 +16,8 @@
  */
 package io.kikwiflow.persistence.navigation.definition;
 
-import io.kikwiflow.bpmn.model.ProcessDefinitionDeploy;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
 
 import java.util.HashMap;
 import java.util.Map;

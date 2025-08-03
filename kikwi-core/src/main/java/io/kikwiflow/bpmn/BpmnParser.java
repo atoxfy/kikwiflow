@@ -16,7 +16,8 @@
  */
 package io.kikwiflow.bpmn;
 
-import io.kikwiflow.bpmn.model.ProcessDefinitionDeploy;
+
+import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
 
 import java.io.InputStream;
 

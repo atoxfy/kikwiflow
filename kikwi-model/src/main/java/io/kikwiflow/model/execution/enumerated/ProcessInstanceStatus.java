@@ -14,22 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow;
+package io.kikwiflow.model.execution.enumerated;
 
-import io.kikwiflow.core.ProcessDefinitionManager;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
-
-import java.util.Map;
-
-public class KikwiflowEngine {
-    private final ProcessDefinitionManager processDefinitionManager;
-
-    public KikwiflowEngine(){
-        this.processDefinitionManager = new ProcessDefinitionManager();
-    }
-
-
-    public void startProcessByKey(String processDefinitionKey, String businessKey, Map<String, Object> variables){
-        ProcessDefinition processDefinition = processDefinitionManager.getByKey(processDefinitionKey);
-    }
+public enum ProcessInstanceStatus {
+    ACTIVE, CANCELLED, COMPLETED
 }

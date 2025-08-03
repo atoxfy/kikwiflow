@@ -14,18 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.model.bpmn.elements.task;
+package io.kikwiflow.execution;
 
-import io.kikwiflow.model.FlowNode;
+public class TaskExecutor {
 
-public class ServiceTask extends FlowNode {
-    private String delegateExpression;
 
-    public String getDelegateExpression() {
-        return delegateExpression;
+    public void execute(){
+
+
     }
 
-    public void setDelegateExpression(String delegateExpression) {
-        this.delegateExpression = delegateExpression;
-    }
 }
