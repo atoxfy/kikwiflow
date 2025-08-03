@@ -65,7 +65,7 @@ public class KikwiflowEngine {
         processInstance.setVariables(variables);
         processInstance.setProcessDefinitionId(processDefinition.getId());
         processInstance.setBusinessKey(businessKey);
-        ProcessInstance startedProcessInstance = processInstanceManager.start(processInstance);
+        ProcessInstance startedProcessInstance = processInstanceManager.create(processInstance);
 
         //TODO identify first node and delegate it execution to executor.
         //if is an commit before task, simply save task on the database

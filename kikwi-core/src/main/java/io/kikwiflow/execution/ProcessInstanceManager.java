@@ -11,7 +11,7 @@ public class ProcessInstanceManager {
     }
 
 
-    public ProcessInstance start(ProcessInstance processInstance){
+    public ProcessInstance create(ProcessInstance processInstance){
         //Todo check if has anoter processInstance with the same business key and processDefinition
         //if exists throw a duplicate key exception
         //else save the instance
