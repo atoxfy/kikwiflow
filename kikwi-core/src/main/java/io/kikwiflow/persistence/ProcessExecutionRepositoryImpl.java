@@ -100,8 +100,8 @@ public class ProcessExecutionRepositoryImpl implements ProcessExecutionRepositor
     }
 
     @Override
-    public ProcessDefinition findByKey(String processDefinitionKey){
-        return processDefinitionCollection.get(processDefinitionKey);
+    public Optional<ProcessDefinition> findByKey(String processDefinitionKey){
+        return Optional.ofNullable(processDefinitionCollection.get(processDefinitionKey));
     }
 
     @Override

@@ -20,6 +20,7 @@ import io.kikwiflow.core.ProcessDefinitionManager;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 
 import java.util.Map;
+import java.util.Optional;
 
 public class KikwiflowEngine {
     private final ProcessDefinitionManager processDefinitionManager;
@@ -30,6 +31,6 @@ public class KikwiflowEngine {
 
 
     public void startProcessByKey(String processDefinitionKey, String businessKey, Map<String, Object> variables){
-        ProcessDefinition processDefinition = processDefinitionManager.getByKey(processDefinitionKey);
+        Optional<ProcessDefinition> processDefinition = processDefinitionManager.getByKey(processDefinitionKey);
     }
 }

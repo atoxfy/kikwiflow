@@ -25,6 +25,7 @@ import io.kikwiflow.persistence.ProcessExecutionRepositoryImpl;
 import io.kikwiflow.persistence.navigation.definition.ProcessDefinitionCache;
 
 import java.io.InputStream;
+import java.util.Optional;
 
 public class ProcessDefinitionManager {
     private final BpmnParser bpmnParser;
@@ -48,20 +49,13 @@ public class ProcessDefinitionManager {
      * @return processDefinition
      * @throws Exception if the requested processDefinition doesn't exist in cache or db
      */
-    public ProcessDefinition getByKey(String processDefinitionKey){
-        ProcessDefinition processDefinition = processDefinitionCache.findByKey(processDefinitionKey);
+    public Optional<ProcessDefinition> getByKey(String processDefinitionKey){
+        return processDefinitionCache.findByKey(processDefinitionKey)
+                .or(() -> getAndLoadOnCacheByKey(processDefinitionKey));
+    }
 
-        if(processDefinition != null){
-            return processDefinition;
-        }
-
-
-        processDefinition = processExecutionRepository.findByKey(processDefinitionKey);
-        if(processDefinition == null){
-            throw new RuntimeException("Não existe processo salvo: " + processDefinitionKey);
-        }
-
-        processDefinitionCache.add(processDefinition);
-        return processDefinition;
+    private Optional<ProcessDefinition> getAndLoadOnCacheByKey(String processDefinitionKey){
+        return processExecutionRepository.findByKey(processDefinitionKey)
+                .map(processDefinitionCache::add);
     }
 }

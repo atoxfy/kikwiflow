@@ -20,6 +20,7 @@ import io.kikwiflow.model.bpmn.ProcessDefinition;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class ProcessDefinitionCache {
     private Map<String, ProcessDefinition> processDefinitionMap = new HashMap<String, ProcessDefinition>();
@@ -29,7 +30,7 @@ public class ProcessDefinitionCache {
         return processDefinition;
     }
 
-    public ProcessDefinition findByKey(String processDefinitionKey){
-        return processDefinitionMap.get(processDefinitionKey);
+    public Optional<ProcessDefinition> findByKey(String processDefinitionKey){
+        return Optional.ofNullable(processDefinitionMap.get(processDefinitionKey));
     }
 }

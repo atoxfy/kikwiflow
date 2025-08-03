@@ -85,7 +85,7 @@ public interface ProcessExecutionRepository {
 
     public ProcessDefinition save(ProcessDefinitionDeploy processDefinitionDeploy);
 
-    public ProcessDefinition findByKey(String processDefinitionKey);
+    public Optional<ProcessDefinition> findByKey(String processDefinitionKey);
 
     public void addToHistory(ProcessDefinition processDefinition);
 
