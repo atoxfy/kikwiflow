@@ -17,7 +17,6 @@
 package io.kikwiflow.model.execution;
 
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
 
 import java.time.Instant;
 import java.util.Map;

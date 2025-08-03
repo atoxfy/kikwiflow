@@ -19,14 +19,20 @@ package io.kikwiflow;
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
+import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessInstanceManager;
+import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.execution.Continuation;
 import io.kikwiflow.model.execution.ProcessInstance;
-import   io.kikwiflow.navigation.ProcessDefinitionManager;
+import io.kikwiflow.navigation.Navigator;
+import io.kikwiflow.navigation.ProcessDefinitionManager;
 import io.kikwiflow.persistence.ProcessExecutionRepository;
 import io.kikwiflow.persistence.ProcessExecutionRepositoryImpl;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -35,14 +41,18 @@ public class KikwiflowEngine {
     private final ProcessExecutionRepository processExecutionRepository;
     private final ProcessDefinitionManager processDefinitionManager;
     private final ProcessInstanceManager processInstanceManager;
+    private final Navigator navigator;
+    private final FlowNodeExecutor flowNodeExecutor;
 
     public KikwiflowEngine(){
         this.processExecutionRepository = new ProcessExecutionRepositoryImpl(); //just for test
         this.processInstanceManager = new ProcessInstanceManager(processExecutionRepository);
-
+        this.flowNodeExecutor = new FlowNodeExecutor(new TaskExecutor());
         //Create more parsers and allow other flow definitions?
         final BpmnParser bpmnParser = new DefaultBpmnParser();
         this.processDefinitionManager = new ProcessDefinitionManager(bpmnParser, processExecutionRepository);
+        this.navigator = new Navigator(processDefinitionManager);
+
     }
 
     public void deployDefinition(InputStream is) throws Exception {
@@ -73,6 +83,69 @@ public class KikwiflowEngine {
         //its simple: if haven't a  wait state, this thread need to process it
         // else, store the wait state on database.
 
+        FlowNode startPoint = navigator.findStartPoint(processDefinition);
+        Continuation nextContinuation = runWhileNotFindAStopPoint(startPoint, processInstance, processDefinition);
+
+        // Se o ciclo síncrono parou porque encontrou uma tarefa assíncrona,
+        // 'nextContinuation' não será nulo.
+        if (nextContinuation != null && nextContinuation.isAsynchronous()) {
+
+            for (FlowNode asyncNode : nextContinuation.getNextNodes()) {
+                //Criar as executable tasks (fazer em bulk)
+            }
+        }
         return processInstance;
+    }
+
+
+
+    private Continuation runWhileNotFindAStopPoint(FlowNode startPoint, ProcessInstance instance, ProcessDefinition processDefinition){
+        FlowNode currentNode = startPoint;
+
+        // O ciclo continua enquanto não encontrar ponto de parada
+        while (currentNode != null && !isWaitState(currentNode) && !isCommitBefore(currentNode)) {
+
+            // EXECUTA
+            flowNodeExecutor.execute(currentNode, instance);
+
+            //Deve parar?
+            if (isCommitAfter(currentNode)) {
+                // Determina proximo no e retorna
+                return navigator.determineNextContinuation(currentNode, instance, true);
+            }
+
+            // Determinha proximo no
+            Continuation continuation = navigator.determineNextContinuation(currentNode, processDefinition, false);
+
+            if (continuation == null || continuation.isAsynchronous()) {
+                // O processo terminou ou o próximo passo é assíncrono.
+                return continuation;
+            } else {
+                // O próximo passo também é síncrono, o loop continua.
+                // (Assumindo um fluxo linear para este exemplo)
+                currentNode = continuation.getNextNodes().get(0);
+            }
+        }
+
+        // Se saímos do loop, ou o processo terminou (currentNode == null) ou
+        // encontrámos um ponto de paragem (wait state ou commit before).
+        if (currentNode != null) {
+            return new Continuation(List.of(currentNode), true);
+        }
+
+        return null; // Processo terminou
+    }
+
+    private boolean isCommitAfter(FlowNode currentNode) {
+        return false;
+    }
+
+    private boolean isWaitState(FlowNode flowNode){
+        //TODO
+        return false;
+    }
+
+    private boolean isCommitBefore(FlowNode flowNode){
+        return false;
     }
 }

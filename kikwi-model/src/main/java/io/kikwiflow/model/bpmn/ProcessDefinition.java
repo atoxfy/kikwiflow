@@ -30,6 +30,15 @@ public class ProcessDefinition {
     private String name;
 
     private Map<String, FlowNode> flowNodes = new HashMap<>();
+    private FlowNode defaultStartPoint;
+
+    public FlowNode getDefaultStartPoint() {
+        return defaultStartPoint;
+    }
+
+    public void setDefaultStartPoint(FlowNode defaultStartPoint) {
+        this.defaultStartPoint = defaultStartPoint;
+    }
 
     public String getKey() {
         return key;

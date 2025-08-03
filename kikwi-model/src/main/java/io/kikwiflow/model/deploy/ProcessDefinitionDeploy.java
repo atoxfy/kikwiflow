@@ -26,10 +26,20 @@ public class ProcessDefinitionDeploy {
     private String key;
     private String name;
 
+    private FlowNode defaultStartPoint;
+
     private Map<String, FlowNode> flowNodes = new HashMap<>();
 
     public String getKey() {
         return key;
+    }
+
+    public FlowNode getDefaultStartPoint() {
+        return defaultStartPoint;
+    }
+
+    public void setDefaultStartPoint(FlowNode defaultStartPoint) {
+        this.defaultStartPoint = defaultStartPoint;
     }
 
     public void setKey(String key) {

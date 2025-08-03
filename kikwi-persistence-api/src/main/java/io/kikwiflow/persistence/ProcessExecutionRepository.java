@@ -19,7 +19,6 @@ package io.kikwiflow.persistence;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
 import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
-import io.kikwiflow.model.execution.ExecutableTask;
 import io.kikwiflow.model.execution.ExecutableTaskEntity;
 import io.kikwiflow.model.execution.ProcessInstance;
 

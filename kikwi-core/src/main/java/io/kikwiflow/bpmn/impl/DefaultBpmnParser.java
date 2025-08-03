@@ -17,12 +17,11 @@
 package io.kikwiflow.bpmn.impl;
 
 import io.kikwiflow.bpmn.BpmnParser;
-
 import io.kikwiflow.model.bpmn.elements.FlowNode;
 import io.kikwiflow.model.bpmn.elements.SequenceFlow;
 import io.kikwiflow.model.bpmn.elements.end.EndEvent;
-import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
 import io.kikwiflow.model.bpmn.elements.start.StartEvent;
+import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
 import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -58,10 +57,11 @@ public class DefaultBpmnParser implements BpmnParser {
             if (node instanceof Element) {
                 Element element = (Element) node;
                 FlowNode flowNode = null;
-
+                boolean isDefaultStartPoint = false;
                 switch (element.getTagName()) {
                     case "bpmn:startEvent":
                         flowNode = parseEvent(element, new StartEvent());
+                        isDefaultStartPoint = true;
                         break;
                     case "bpmn:endEvent":
                         flowNode = parseEvent(element, new EndEvent());
@@ -72,6 +72,7 @@ public class DefaultBpmnParser implements BpmnParser {
                 }
 
                 if (flowNode != null) {
+                    if(isDefaultStartPoint) processDefinitionDeploy.setDefaultStartPoint(flowNode);
                     processDefinitionDeploy.addFlowNode(flowNode);
                 }
             }
