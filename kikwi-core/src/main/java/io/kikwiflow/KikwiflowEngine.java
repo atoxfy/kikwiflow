@@ -66,7 +66,7 @@ public class KikwiflowEngine {
     }
 
     public ProcessDefinition deployDefinition(InputStream is) throws Exception {
-        processDefinitionManager.deploy(is);
+        return processDefinitionManager.deploy(is);
     }
 
     private ProcessDefinition getProcessDefinition(String processDefinitionKey){
