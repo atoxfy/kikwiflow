@@ -32,7 +32,7 @@ import java.util.Optional;
  * Esta interface abstrai a complexidade de interagir com as diversas coleções
  * (instâncias, tarefas executáveis, estados de espera, histórico).
  */
-public interface ProcessExecutionRepository {
+public interface KikwiflowEngineRepository {
 
     /**
      * Cria uma nova instância de processo na base de dados.

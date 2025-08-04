@@ -16,43 +16,65 @@
  */
 package io.kikwiflow;
 
+import io.kikwiflow.api.DefaultExecutionContext;
+import io.kikwiflow.api.ExecutionContext;
+import io.kikwiflow.api.JavaDelegate;
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
+import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
+import io.kikwiflow.execution.DelegateResolver;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessInstanceManager;
 import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.bpmn.elements.FlowNode;
 import io.kikwiflow.model.execution.Continuation;
+import io.kikwiflow.model.execution.CoverageSnapshot;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.enumerated.CoveredElementStatus;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionManager;
-import io.kikwiflow.persistence.ProcessExecutionRepository;
-import io.kikwiflow.persistence.ProcessExecutionRepositoryImpl;
+import io.kikwiflow.persistence.KikwiflowEngineRepository;
+import io.kikwiflow.persistence.StatsManager;
 
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 public class KikwiflowEngine {
-
-    private final ProcessExecutionRepository processExecutionRepository;
     private final ProcessDefinitionManager processDefinitionManager;
     private final ProcessInstanceManager processInstanceManager;
     private final Navigator navigator;
     private final FlowNodeExecutor flowNodeExecutor;
+    private final KikwiflowConfig kikwiflowConfig;
 
-    public KikwiflowEngine(){
-        this.processExecutionRepository = new ProcessExecutionRepositoryImpl(); //just for test
-        this.processInstanceManager = new ProcessInstanceManager(processExecutionRepository);
-        this.flowNodeExecutor = new FlowNodeExecutor(new TaskExecutor());
+    private final StatsManager statsManager;
+
+    public KikwiflowEngine(KikwiflowEngineRepository kikwiflowEngineRepository, KikwiflowConfig kikwiflowConfig){
+        this.processInstanceManager = new ProcessInstanceManager(kikwiflowEngineRepository);
+
+
+        DelegateResolver delegateResolver = new DelegateResolver() {
+            @Override
+            public JavaDelegate resolve(String beanName) {
+                //TODO just for tests
+                return null;
+            }
+        };
+
+
+        this.flowNodeExecutor = new FlowNodeExecutor(new TaskExecutor(delegateResolver));
+
+
         //Create more parsers and allow other flow definitions?
         final BpmnParser bpmnParser = new DefaultBpmnParser();
-        this.processDefinitionManager = new ProcessDefinitionManager(bpmnParser, processExecutionRepository);
+        this.processDefinitionManager = new ProcessDefinitionManager(bpmnParser, kikwiflowEngineRepository);
         this.navigator = new Navigator(processDefinitionManager);
-
+        this.kikwiflowConfig = kikwiflowConfig;//Just for test
+        this.statsManager = new StatsManager(kikwiflowConfig);
     }
 
     public void deployDefinition(InputStream is) throws Exception {
@@ -97,26 +119,42 @@ public class KikwiflowEngine {
         return processInstance;
     }
 
+    private Continuation executeAndGetContinuation(FlowNode flowNode, ProcessInstance processInstance, ProcessDefinition processDefinition){
 
+        Instant startedAt = Instant.now();
+        // EXECUTA
+        CoveredElementStatus coveredElementStatus = null;
+        try{
+            ExecutionContext executionContext = new DefaultExecutionContext(processInstance, processDefinition, flowNode);
+            flowNodeExecutor.execute(executionContext);
+            coveredElementStatus = CoveredElementStatus.SUCCESS;
+        }catch (Exception e){
+            //GERENCIAR ERROS
+            coveredElementStatus = CoveredElementStatus.ERROR;
+        }
+
+
+        Instant finishedAt = Instant.now();
+
+        if(kikwiflowConfig.isStatsEnabled()){
+            CoverageSnapshot coverageSnapshot = new CoverageSnapshot(flowNode, processDefinition, processInstance, startedAt, finishedAt, coveredElementStatus);
+            statsManager.registerCoverage(coverageSnapshot);
+        }
+
+        //Deve parar?
+        boolean isCommitAfter = isCommitAfter(flowNode);
+
+        // Determinha proximo noodo
+        Continuation continuation = navigator.determineNextContinuation(flowNode, processDefinition, isCommitAfter);
+        return continuation;
+    }
 
     private Continuation runWhileNotFindAStopPoint(FlowNode startPoint, ProcessInstance instance, ProcessDefinition processDefinition){
         FlowNode currentNode = startPoint;
 
         // O ciclo continua enquanto não encontrar ponto de parada
         while (currentNode != null && !isWaitState(currentNode) && !isCommitBefore(currentNode)) {
-
-            // EXECUTA
-            flowNodeExecutor.execute(currentNode, instance);
-
-            //Deve parar?
-            if (isCommitAfter(currentNode)) {
-                // Determina proximo no e retorna
-                return navigator.determineNextContinuation(currentNode, instance, true);
-            }
-
-            // Determinha proximo no
-            Continuation continuation = navigator.determineNextContinuation(currentNode, processDefinition, false);
-
+            Continuation continuation = executeAndGetContinuation(currentNode, instance, processDefinition);
             if (continuation == null || continuation.isAsynchronous()) {
                 // O processo terminou ou o próximo passo é assíncrono.
                 return continuation;
@@ -136,8 +174,8 @@ public class KikwiflowEngine {
         return null; // Processo terminou
     }
 
-    private boolean isCommitAfter(FlowNode currentNode) {
-        return false;
+    private boolean isCommitAfter(FlowNode flowNode) {
+        return flowNode.getCommitAfter();
     }
 
     private boolean isWaitState(FlowNode flowNode){
@@ -146,6 +184,6 @@ public class KikwiflowEngine {
     }
 
     private boolean isCommitBefore(FlowNode flowNode){
-        return false;
+        return flowNode.getCommitBefore();
     }
 }

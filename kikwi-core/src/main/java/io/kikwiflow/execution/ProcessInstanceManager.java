@@ -1,13 +1,13 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.persistence.ProcessExecutionRepository;
+import io.kikwiflow.persistence.KikwiflowEngineRepository;
 
 public class ProcessInstanceManager {
-    private final ProcessExecutionRepository processExecutionRepository;
+    private final KikwiflowEngineRepository kikwiflowEngineRepository;
 
-    public ProcessInstanceManager(ProcessExecutionRepository processExecutionRepository) {
-        this.processExecutionRepository = processExecutionRepository;
+    public ProcessInstanceManager(KikwiflowEngineRepository kikwiflowEngineRepository) {
+        this.kikwiflowEngineRepository = kikwiflowEngineRepository;
     }
 
 

@@ -16,9 +16,12 @@
  */
 package io.kikwiflow.execution;
 
+import io.kikwiflow.api.JavaDelegate;
+
 /**
  * Responsible for obtain delegate instances
  * @author Emiliano Fagundes
  */
-public class DelegateResolver {
+public interface DelegateResolver {
+    public JavaDelegate resolve(String beanName);
 }

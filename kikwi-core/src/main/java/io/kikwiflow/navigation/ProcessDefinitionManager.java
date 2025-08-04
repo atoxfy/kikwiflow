@@ -19,26 +19,26 @@ package io.kikwiflow.navigation;
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
-import io.kikwiflow.persistence.ProcessExecutionRepository;
-import io.kikwiflow.persistence.navigation.definition.ProcessDefinitionCache;
+import io.kikwiflow.persistence.KikwiflowEngineRepository;
+import io.kikwiflow.cache.ProcessDefinitionCache;
 
 import java.io.InputStream;
 import java.util.Optional;
 
 public class ProcessDefinitionManager {
     private final BpmnParser bpmnParser;
-    private final ProcessExecutionRepository processExecutionRepository;
+    private final KikwiflowEngineRepository kikwiflowEngineRepository;
     private final ProcessDefinitionCache processDefinitionCache;
 
-    public ProcessDefinitionManager(BpmnParser bpmnParser, ProcessExecutionRepository processExecutionRepository){
+    public ProcessDefinitionManager(BpmnParser bpmnParser, KikwiflowEngineRepository kikwiflowEngineRepository){
         this.bpmnParser =  bpmnParser;
-        this.processExecutionRepository = processExecutionRepository;
+        this.kikwiflowEngineRepository = kikwiflowEngineRepository;
         this.processDefinitionCache = new ProcessDefinitionCache();
     }
 
     public void deploy(InputStream inputStream) throws Exception {
         ProcessDefinitionDeploy processDefinitionDeploy = bpmnParser.parse(inputStream);
-        processExecutionRepository.save(processDefinitionDeploy);
+        kikwiflowEngineRepository.save(processDefinitionDeploy);
     }
 
     /**
@@ -52,8 +52,9 @@ public class ProcessDefinitionManager {
                 .or(() -> getAndLoadOnCacheByKey(processDefinitionKey));
     }
 
+
     private Optional<ProcessDefinition> getAndLoadOnCacheByKey(String processDefinitionKey){
-        return processExecutionRepository.findByKey(processDefinitionKey)
+        return kikwiflowEngineRepository.findByKey(processDefinitionKey)
                 .map(processDefinitionCache::add);
     }
 }

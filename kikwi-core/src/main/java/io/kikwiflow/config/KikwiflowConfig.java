@@ -21,4 +21,8 @@ package io.kikwiflow.config;
  * @author Emiliano Fagundes
  */
 public class KikwiflowConfig {
+
+    public boolean isStatsEnabled(){
+        return true;
+    }
 }

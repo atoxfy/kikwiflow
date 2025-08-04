@@ -24,6 +24,7 @@
         <module>kikwi-persistence-api</module>
         <module>kikwi-model</module>
         <module>kikwi-persistence-mongodb</module>
+        <module>kikwi-core-testinng</module>
     </modules>
 
 </project>

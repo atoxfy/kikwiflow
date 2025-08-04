@@ -14,11 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.api;
+package io.kikwiflow.cache;
 
-/**
- * Context object passed to java delegate, is a execution context.
- * @author Emiliano Fagundes
- */
-public class KikwiflowContext {
+import io.kikwiflow.model.bpmn.ProcessDefinition;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+public class ProcessDefinitionCache {
+    private Map<String, ProcessDefinition> processDefinitionMap = new HashMap<String, ProcessDefinition>();
+
+    public ProcessDefinition add(ProcessDefinition processDefinition){
+        this.processDefinitionMap.put(processDefinition.getKey(), processDefinition);
+        return processDefinition;
+    }
+
+    public Optional<ProcessDefinition> findByKey(String processDefinitionKey){
+        return Optional.ofNullable(processDefinitionMap.get(processDefinitionKey));
+    }
 }

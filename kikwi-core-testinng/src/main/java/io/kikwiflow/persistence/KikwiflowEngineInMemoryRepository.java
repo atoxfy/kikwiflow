@@ -28,13 +28,20 @@ import java.util.Optional;
 import java.util.UUID;
 
 //Temporary, just for logic test
-public class ProcessExecutionRepositoryImpl implements ProcessExecutionRepository {
+public class KikwiflowEngineInMemoryRepository implements KikwiflowEngineRepository {
 
     private Map<String, ProcessInstance> processInstanceCollection = new HashMap<>();
     private Map<String, ExecutableTaskEntity> executableTaskCollection = new HashMap<>();
     private Map<String, ProcessDefinition> processDefinitionCollection = new HashMap<String, ProcessDefinition>();
     private Map<String, Map<Integer, ProcessDefinition>> processDefinitionHistoryCollection= new HashMap<String, Map<Integer, ProcessDefinition>>();
 
+
+    public void reset(){
+        processDefinitionCollection.clear();
+        executableTaskCollection.clear();
+        processDefinitionCollection.clear();
+        processDefinitionHistoryCollection.clear();
+    }
 
     @Override
     public ProcessInstance save(ProcessInstance instance) {

@@ -18,5 +18,5 @@ package io.kikwiflow.api;
 
 
 public interface JavaDelegate {
-    public void execute(DelegateExecution execution);
+    public void execute(ExecutionContext execution);
 }

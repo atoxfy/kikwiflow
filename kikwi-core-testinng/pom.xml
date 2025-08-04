@@ -8,9 +8,10 @@
         <artifactId>kikwiflow-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>kikwi-core</artifactId>
     <packaging>jar</packaging>
-    <name>kikwiflow :: Core Engine</name>
+    <name>kikwiflow :: Testing</name>
+
+    <artifactId>kikwi-core-testinng</artifactId>
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>
@@ -22,23 +23,11 @@
             <artifactId>kikwi-persistence-api</artifactId>
             <version>0.1.0-SNAPSHOT</version>
         </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>5.10.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.10.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-core-testinng</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
 </project>
