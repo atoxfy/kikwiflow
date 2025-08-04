@@ -19,17 +19,22 @@ public class DefaultExecutionContext implements ExecutionContext {
 
     @Override
     public void setVariable(String variableName, Object value) {
+        processInstance.getVariables().put(variableName, value);
+    }
 
+    @Override
+    public void removeVariable(String variableName) {
+        processInstance.getVariables().remove(variableName);
     }
 
     @Override
     public Object getVariable(String variableName) {
-        return null;
+        return processInstance.getVariables().get(variableName);
     }
 
     @Override
     public String getProcessInstanceId() {
-        return null;
+        return processInstance.getId();
     }
 
     public ProcessInstance getProcessInstance() {

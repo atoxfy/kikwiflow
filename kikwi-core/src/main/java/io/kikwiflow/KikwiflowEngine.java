@@ -53,21 +53,9 @@ public class KikwiflowEngine {
 
     private final StatsManager statsManager;
 
-    public KikwiflowEngine(KikwiflowEngineRepository kikwiflowEngineRepository, KikwiflowConfig kikwiflowConfig){
+    public KikwiflowEngine(KikwiflowEngineRepository kikwiflowEngineRepository, KikwiflowConfig kikwiflowConfig, DelegateResolver delegateResolver){
         this.processInstanceManager = new ProcessInstanceManager(kikwiflowEngineRepository);
-
-
-        DelegateResolver delegateResolver = new DelegateResolver() {
-            @Override
-            public JavaDelegate resolve(String beanName) {
-                //TODO just for tests
-                return null;
-            }
-        };
-
-
         this.flowNodeExecutor = new FlowNodeExecutor(new TaskExecutor(delegateResolver));
-
 
         //Create more parsers and allow other flow definitions?
         final BpmnParser bpmnParser = new DefaultBpmnParser();
@@ -77,7 +65,7 @@ public class KikwiflowEngine {
         this.statsManager = new StatsManager(kikwiflowConfig);
     }
 
-    public void deployDefinition(InputStream is) throws Exception {
+    public ProcessDefinition deployDefinition(InputStream is) throws Exception {
         processDefinitionManager.deploy(is);
     }
 

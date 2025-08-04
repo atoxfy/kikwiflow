@@ -36,9 +36,9 @@ public class ProcessDefinitionManager {
         this.processDefinitionCache = new ProcessDefinitionCache();
     }
 
-    public void deploy(InputStream inputStream) throws Exception {
+    public ProcessDefinition deploy(InputStream inputStream) throws Exception {
         ProcessDefinitionDeploy processDefinitionDeploy = bpmnParser.parse(inputStream);
-        kikwiflowEngineRepository.save(processDefinitionDeploy);
+        return kikwiflowEngineRepository.save(processDefinitionDeploy);
     }
 
     /**
