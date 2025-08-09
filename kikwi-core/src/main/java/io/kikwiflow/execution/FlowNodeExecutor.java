@@ -78,7 +78,7 @@ public class FlowNodeExecutor {
             }
         }
 
-        finalizePath(processInstance, executionEvents);
+        commitExecutionPath(processInstance, executionEvents);
 
         // Se saímos do loop, ou o processo terminou (currentNode == null) ou
         // encontrámos um ponto de paragem (wait state ou commit before).
@@ -89,7 +89,7 @@ public class FlowNodeExecutor {
         return null; // Processo terminou
     }
 
-    private void finalizePath(ProcessInstance processInstance, List<ExecutionEvent> executionEvents){
+    private void commitExecutionPath(ProcessInstance processInstance, List<ExecutionEvent> executionEvents){
         processInstanceManager.update(processInstance);
         if(kikwiflowConfig.isStatsEnabled()){
             eventPublisher.publishEvents(executionEvents);
