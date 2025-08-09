@@ -1,53 +1,56 @@
-<h1>kikwiflow 🐣</h1>
+<div align="right">
+<a href="README-PT.md">Read in Portuguese</a>
+</div>
+
+<h1 align="center">kikwiflow 🐣</h1>
 <p align="center">
-<a href="#"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-0ea5e9?style=for-the-badge"></a>
+<img alt="Build Status" src="https://img.shields.io/badge/build-passing-34d399?style=for-the-badge">
+<img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-0ea5e9?style=for-the-badge">
+<img alt="Version" src="https://img.shields.io/badge/version-0.1.0--SNAPSHOT-4c1d95?style=for-the-badge">
 </p>
 
-<h3 align="center">Uma engine de orquestração de processos moderna, leve e embarcável para a JVM.</h3>
+<h3 align="center">A modern, lightweight, and embeddable process orchestration engine for the JVM.</h3>
 
-## O Manifesto: Acreditamos no Código, Acreditamos no Brasil.
-O kikwiflow nasceu de uma convicção: a de que a engenharia brasileira tem o talento, a criatividade e a garra para criar tecnologia de classe mundial. Este projeto é a nossa resposta ao status quo, uma prova de que podemos construir ferramentas de software que não apenas competem, mas definem o futuro da tecnologia global.
+The Manifesto: We Believe in **Code**, We Believe in **Brazil**.
 
-Não estamos aqui para replicar, mas para inovar. Para questionar arquiteturas legadas e propor soluções mais inteligentes, mais rápidas e mais alinhadas com as necessidades do desenvolvedor moderno.
+[Kikwiflow](https://kikwiflow.com/) was born from a conviction: that Brazilian engineering possesses the talent, creativity, and grit to create world-class technology. This project is our answer to the status quo, proof that we can build software tools that not only compete but define the future of global technology.
 
-Este é um convite aberto a todos os talentos brasileiros que partilham desta visão.
+We are not here to replicate, but to innovate. To question legacy architectures and propose smarter, faster solutions that are more aligned with the needs of the modern developer.
 
-## O que é o kikwiflow?
-O [Kikwiflow](https://kikwiflow.com/) é uma engine de processos open-source, escrita em Java, projetada para orquestrar a lógica de negócio diretamente dentro das suas aplicações.
+This is an open invitation to all Brazilian talents who share this vision.
 
-Diferente das soluções tradicionais que operam como um servidor centralizado e pesado, o [Kikwiflow](https://kikwiflow.com/)  é uma biblioteca leve e embarcável. Ele vive junto com o seu código, eliminando a complexidade de infraestrutura, reduzindo a latência e oferecendo uma experiência de desenvolvimento fluida e integrada.
+<h2>What is kikwiflow?</h2>
+[Kikwiflow](https://kikwiflow.com/) is an open-source process engine, written in Java, designed to orchestrate business logic directly within your applications.
 
-Nossa filosofia é focada em:
+Unlike traditional solutions that operate as heavy, centralized servers, [Kikwiflow](https://kikwiflow.com/) is a lightweight and embeddable library. It lives alongside your code, eliminating infrastructural complexity, reducing latency, and offering a fluid and integrated development experience.
 
-Performance Extrema: Utilizando uma stack moderna com Java 21+ (Virtual Threads) e MongoDB, somos construídos para alta vazão e baixa latência.
+**Our philosophy is focused on**:
 
-Simplicidade Arquitetural: Ao ser embarcado, o [Kikwiflow](https://kikwiflow.com/)  simplifica drasticamente o seu ambiente, reduzindo custos e pontos de falha.
+**Extreme Performance**: Using a modern stack with Java 21+ (Virtual Threads) and MongoDB, we are built for high throughput and low latency.
 
-Experiência do Desenvolvedor: Com uma integração nativa com Spring Boot e compatibilidade com padrões de mercado como o JavaDelegate do Camunda, queremos que os desenvolvedores se sintam em casa.
+**Architectural Simplicity**: By being embeddable, Kikwiflow drastically simplifies your environment, reducing costs and points of failure.
 
-## Roadmap de Alto Nível
-Nosso desenvolvimento está focado em duas grandes entregas estratégicas:
+**Developer Experience**: With native integration with Spring Boot and compatibility with market standards like Camunda's JavaDelegate, we want developers to feel right at home.
 
-🚀 Entrega 1: A Engine Completa (Compatibilidade e Performance)
+<h2>High-Level Roadmap</h2>
+Our development is focused on two major strategic deliveries:
 
-Objetivo: Lançar uma engine de processos open-source completa, com o objetivo de ser 100% retrocompatível com os principais elementos do Camunda BPM. Queremos oferecer uma alternativa de modernização real e de baixo atrito para a comunidade, com vantagens claras de performance e simplicidade.
+🚀 **Delivery 1**: The Complete Engine (Compatibility and Performance)
 
-🧠 Entrega 2: O Motor Preditivo (Plugins de Inteligência)
+Objective: To launch a complete, open-source process engine with the goal of being 100% backward compatible with the main elements of Camunda BPM. We aim to offer a real and low-friction modernization alternative for the community, with clear advantages in performance and simplicity.
 
-Objetivo: Após estabelecer a confiança do mercado, iremos introduzir nosso diferencial disruptivo: uma camada de plugins de IA. Estes módulos permitirão que a engine aprenda com as execuções, otimize processos de forma autônoma e forneça insights preditivos, transformando a automação em orquestração inteligente.
+🧠 **Delivery 2**: The Predictive Engine (Intelligence Plugins)
 
-## Status do Projeto
-O kikwiflow está em fase ativa de desenvolvimento. Estamos trabalhando arduamente na Entrega 1 e convidamos a comunidade a acompanhar o nosso progresso.
+Objective: After establishing market trust, we will introduce our disruptive differentiator: a layer of AI plugins. These modules will allow the engine to learn from executions, autonomously optimize processes, and provide predictive insights, transforming automation into intelligent orchestration.
 
-## Como Contribuir
-Ainda estamos a estruturar o nosso processo de contribuição, mas se a nossa visão ressoa consigo, sinta-se à vontade para abrir uma Issue para iniciar uma discussão. Todas as ideias são bem-vindas!
+<h2>Project Status</h2>
+[Kikwiflow](https://kikwiflow.com/) is in an active development phase. We are working hard on Delivery 1 and invite the community to follow our progress.
 
-## Mantenedora
-O kikwiflow é um projeto de código aberto orgulhosamente mantido pela [Atoxfy](https://atoxfy.com/).
+<h2>How to Contribute</h2>
+We are still structuring our contribution process, but if our vision resonates with you, feel free to open an Issue to start a discussion. All ideas are welcome!
 
+Maintainer
+[Kikwiflow](https://kikwiflow.com/) is an open-source project proudly maintained by [{Atoxfy}](https://atoxfy.com/).
 
-
-
-
-Licença
-Este projeto está licenciado sob a Apache License 2.0.
+<h2>License</h2>
+This project is licensed under the Apache License 2.0.

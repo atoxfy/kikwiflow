@@ -17,6 +17,7 @@
 package io.kikwiflow.navigation;
 
 import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
 import io.kikwiflow.model.bpmn.elements.FlowNode;
 import io.kikwiflow.model.bpmn.elements.SequenceFlow;
 import io.kikwiflow.model.execution.Continuation;
@@ -37,11 +38,11 @@ public class Navigator {
         this.processDefinitionManager = processDefinitionManager;
     }
 
-    public FlowNode findStartPoint(ProcessDefinition processDefinition){
-        return processDefinition.getDefaultStartPoint();
+    public FlowNode findStartPoint(ProcessDefinitionSnapshot processDefinition){
+        return processDefinition.defaultStartPoint();
     }
 
-    public Continuation determineNextContinuation(FlowNode completedNode, ProcessDefinition processDefinition, boolean forceAsync) {
+    public Continuation determineNextContinuation(FlowNode completedNode, ProcessDefinitionSnapshot processDefinition, boolean forceAsync) {
 
         List<SequenceFlow> outgoingFlows = completedNode.getOutgoing();
 
@@ -71,7 +72,7 @@ public class Navigator {
 
         //para nodos de uma saida só
         String targetNodeId = outgoingFlows.get(0).getTargetNodeId();
-        nextNodes.add(processDefinition.getFlowNodes().get(targetNodeId));
+        nextNodes.add(processDefinition.flowNodes().get(targetNodeId));
 
         /*
 
@@ -88,7 +89,7 @@ public class Navigator {
         } else {
             // Verificamos se o *próximo* nó pede para ser assíncrono.
             // (Simplificado para um fluxo linear, o primeiro nó da lista decide)
-            isAsync = nextNodes.get(0).getCommitBefore();
+            isAsync = Boolean.TRUE.equals(nextNodes.get(0).getCommitBefore());
         }
 
         return new Continuation(nextNodes, isAsync);

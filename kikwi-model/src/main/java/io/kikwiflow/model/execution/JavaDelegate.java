@@ -14,28 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.config;
+package io.kikwiflow.model.execution;
 
-/**
- * Configuration class
- * @author Emiliano Fagundes
- */
-public class KikwiflowConfig {
 
-    private Boolean isStatsEnabled;
-
-    public KikwiflowConfig() {
-    }
-
-    public void statsEnabled() {
-        isStatsEnabled = true;
-    }
-
-    public void statsDisabled(){
-        isStatsEnabled = false;
-    }
-
-    public boolean isStatsEnabled(){
-        return true;
-    }
+public interface JavaDelegate {
+    public void execute(ExecutionContext execution);
 }

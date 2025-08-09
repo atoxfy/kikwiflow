@@ -8,9 +8,9 @@
         <artifactId>kikwiflow-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>kikwi-core</artifactId>
     <packaging>jar</packaging>
-    <name>kikwiflow :: Core Engine</name>
+    <name>kikwiflow :: Testing</name>
+    <artifactId>kikwi-core-testing</artifactId>
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>
@@ -22,15 +22,15 @@
             <artifactId>kikwi-persistence-api</artifactId>
             <version>0.1.0-SNAPSHOT</version>
         </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-events-api</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
-        </dependency>
+
+
+
+        <!--Test dependencies -->
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-persistence-in-memory-addons</artifactId>
             <version>0.1.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -44,17 +44,24 @@
             <version>5.10.2</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-core-testing</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>5.12.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.12.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
 </project>

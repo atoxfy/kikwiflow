@@ -17,18 +17,18 @@
 package io.kikwiflow.persistence;
 
 import io.kikwiflow.model.bpmn.ProcessDefinition;
-import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
+import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
 import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
 import io.kikwiflow.model.execution.ExecutableTaskEntity;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.persistence.KikwiEngineRepository;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-//Temporary, just for logic test
-public class KikwiflowEngineInMemoryRepository implements KikwiflowEngineRepository {
+public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
     private Map<String, ProcessInstance> processInstanceCollection = new HashMap<>();
     private Map<String, ExecutableTaskEntity> executableTaskCollection = new HashMap<>();
@@ -44,53 +44,35 @@ public class KikwiflowEngineInMemoryRepository implements KikwiflowEngineReposit
     }
 
     @Override
-    public ProcessInstance save(ProcessInstance instance) {
+    public ProcessInstance saveProcessInstance(ProcessInstance instance) {
         instance.setId(UUID.randomUUID().toString());
         this.processInstanceCollection.put(instance.getId(), instance);
         return instance;
     }
 
     @Override
-    public Optional<ProcessInstance> findById(String processInstanceId) {
+    public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         return Optional.ofNullable(this.processInstanceCollection.get(processInstanceId));
     }
 
     @Override
     public void updateVariables(String processInstanceId, Map<String, Object> variables) {
-        findById(processInstanceId)
+        findProcessInstanceById(processInstanceId)
                 .ifPresent(processInstance -> processInstance.setVariables(variables));
     }
 
     @Override
-    public ExecutableTaskEntity create(ExecutableTaskEntity executableTask) {
+    public ExecutableTaskEntity createExecutableTask(ExecutableTaskEntity executableTask) {
         executableTask.setId(UUID.randomUUID().toString());
         this.executableTaskCollection.put(executableTask.getId(), executableTask);
         return executableTask;
     }
 
-    @Override
-    public Optional<ExecutableTaskEntity> acquireNext() {
-        return Optional.empty();
-    }
 
     @Override
-    public void moveToHistory(ServiceTask completedTask) {
+    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinition){
+        String key = processDefinition.getKey();
 
-    }
-
-    private ProcessDefinition mapToEntity(ProcessDefinitionDeploy processDefinitionDeploy){
-        ProcessDefinition processDefinition = new ProcessDefinition();
-        processDefinition.setKey(processDefinitionDeploy.getKey());
-        processDefinition.setName(processDefinitionDeploy.getName());
-        processDefinition.setFlowNodes(processDefinitionDeploy.getFlowNodes());
-        return processDefinition;
-    }
-
-    @Override
-    public ProcessDefinition save(ProcessDefinitionDeploy processDefinitionDeploy){
-        String key = processDefinitionDeploy.getKey();
-
-        ProcessDefinition processDefinition = mapToEntity(processDefinitionDeploy);
         ProcessDefinition lastProcessDefinition = processDefinitionCollection.get(key);
 
         //TODO separar responsabilidades
@@ -101,17 +83,16 @@ public class KikwiflowEngineInMemoryRepository implements KikwiflowEngineReposit
         }
 
         processDefinition.setId(UUID.randomUUID().toString());
-        this.processDefinitionCollection.put(processDefinitionDeploy.getKey(), processDefinition);
+        this.processDefinitionCollection.put(processDefinition.getKey(), processDefinition);
         this.addToHistory(processDefinition);
         return processDefinition;
     }
 
     @Override
-    public Optional<ProcessDefinition> findByKey(String processDefinitionKey){
+    public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey){
         return Optional.ofNullable(processDefinitionCollection.get(processDefinitionKey));
     }
 
-    @Override
     public void addToHistory(ProcessDefinition processDefinition){
         String key = processDefinition.getKey();
         Map<Integer, ProcessDefinition> processDefinitionVersionMap = processDefinitionHistoryCollection.get(key);
@@ -121,5 +102,16 @@ public class KikwiflowEngineInMemoryRepository implements KikwiflowEngineReposit
 
         processDefinitionVersionMap.put(processDefinition.getVersion(), processDefinition);
         processDefinitionHistoryCollection.put(key, processDefinitionVersionMap);
+    }
+
+    @Override
+    public ProcessInstance updateProcessInstance(ProcessInstance processInstance) {
+        this.processInstanceCollection.put(processInstance.getId(), processInstance);
+        return processInstance;
+    }
+
+    @Override
+    public void deleteProcessInstanceById(String processInstanceId) {
+        this.processInstanceCollection.remove(processInstanceId);
     }
 }

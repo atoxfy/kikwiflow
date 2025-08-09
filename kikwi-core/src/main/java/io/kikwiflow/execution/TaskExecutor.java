@@ -16,14 +16,11 @@
  */
 package io.kikwiflow.execution;
 
-import io.kikwiflow.api.DefaultExecutionContext;
-import io.kikwiflow.api.ExecutionContext;
-import io.kikwiflow.api.JavaDelegate;
+import io.kikwiflow.model.execution.ExecutionContext;
+import io.kikwiflow.model.execution.JavaDelegate;
 import io.kikwiflow.exception.BadDefinitionExecutionException;
 import io.kikwiflow.model.bpmn.elements.FlowNode;
 import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
-import io.kikwiflow.model.execution.ExecutableTask;
-import io.kikwiflow.model.execution.ProcessInstance;
 
 import java.util.Objects;
 
@@ -38,9 +35,7 @@ public class TaskExecutor {
         return Objects.nonNull(serviceTask.getDelegateExpression());
     }
 
-
     public void execute(ExecutionContext executionContext){
-        //Execute the task based on its type (e.g. if delegate -> find the relative bean an execute)
         FlowNode executableTask = executionContext.getFlowNode();
 
         if(executableTask instanceof ServiceTask){
@@ -48,8 +43,8 @@ public class TaskExecutor {
             if(isExecutableByDelegate(serviceTask)){
                 String delegateExpression = serviceTask.getDelegateExpression();
                 String beanName = delegateExpression.replace("${", "").replace("}", "");
-                JavaDelegate delegate = delegateResolver.resolve(beanName);
-
+                JavaDelegate delegate = delegateResolver.resolve(beanName)
+                        .orElseThrow(() -> new BadDefinitionExecutionException("JavaDelegate not found with name: " + beanName));
 
                 try {
                     delegate.execute(executionContext);
@@ -64,5 +59,4 @@ public class TaskExecutor {
 
          }
     }
-
 }

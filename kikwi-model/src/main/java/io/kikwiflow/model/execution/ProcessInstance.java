@@ -87,4 +87,42 @@ public class ProcessInstance {
     public void setEndedAt(Instant endedAt) {
         this.endedAt = endedAt;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String businessKey;
+        private String processDefinitionId;
+        private Map<String, Object> variables;
+
+        private Builder() {
+        }
+
+        public Builder businessKey(String businessKey) {
+            this.businessKey = businessKey;
+            return this;
+        }
+
+        public Builder processDefinitionId(String processDefinitionId) {
+            this.processDefinitionId = processDefinitionId;
+            return this;
+        }
+
+        public Builder variables(Map<String, Object> variables) {
+            this.variables = variables;
+            return this;
+        }
+
+        public ProcessInstance build() {
+            ProcessInstance instance = new ProcessInstance();
+            instance.setBusinessKey(this.businessKey);
+            instance.setProcessDefinitionId(this.processDefinitionId);
+            instance.setVariables(this.variables);
+            instance.setStatus(ProcessInstanceStatus.ACTIVE);
+            instance.setStartedAt(Instant.now());
+            return instance;
+        }
+    }
 }

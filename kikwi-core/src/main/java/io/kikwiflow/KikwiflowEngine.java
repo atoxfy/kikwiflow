@@ -16,9 +16,9 @@
  */
 package io.kikwiflow;
 
-import io.kikwiflow.api.DefaultExecutionContext;
-import io.kikwiflow.api.ExecutionContext;
-import io.kikwiflow.api.JavaDelegate;
+import io.kikwiflow.event.EventPublisher;
+import io.kikwiflow.event.ExecutionEventListener;
+import io.kikwiflow.execution.dto.StartableProcessRecord;
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
@@ -28,150 +28,144 @@ import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessInstanceManager;
 import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
+import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
 import io.kikwiflow.model.bpmn.elements.FlowNode;
 import io.kikwiflow.model.execution.Continuation;
-import io.kikwiflow.model.execution.CoverageSnapshot;
 import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.execution.enumerated.CoveredElementStatus;
+import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionManager;
-import io.kikwiflow.persistence.KikwiflowEngineRepository;
-import io.kikwiflow.persistence.StatsManager;
+import io.kikwiflow.persistence.KikwiEngineRepository;
 
 import java.io.InputStream;
-import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class KikwiflowEngine {
+
+    private final ExecutorService executorService;
     private final ProcessDefinitionManager processDefinitionManager;
     private final ProcessInstanceManager processInstanceManager;
     private final Navigator navigator;
     private final FlowNodeExecutor flowNodeExecutor;
     private final KikwiflowConfig kikwiflowConfig;
+    private final List<ExecutionEventListener> eventListeners;
+    private final EventPublisher eventPublisher;
 
-    private final StatsManager statsManager;
 
-    public KikwiflowEngine(KikwiflowEngineRepository kikwiflowEngineRepository, KikwiflowConfig kikwiflowConfig, DelegateResolver delegateResolver){
-        this.processInstanceManager = new ProcessInstanceManager(kikwiflowEngineRepository);
-        this.flowNodeExecutor = new FlowNodeExecutor(new TaskExecutor(delegateResolver));
+    public KikwiflowEngine(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, DelegateResolver delegateResolver, List<ExecutionEventListener> executionEventListeners){
+        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
+        this.eventPublisher = new EventPublisher(executorService);
+        registerListeners(executionEventListeners);
 
-        //Create more parsers and allow other flow definitions?
+        this.processInstanceManager = new ProcessInstanceManager(kikwiEngineRepository, eventPublisher);
+
         final BpmnParser bpmnParser = new DefaultBpmnParser();
-        this.processDefinitionManager = new ProcessDefinitionManager(bpmnParser, kikwiflowEngineRepository);
+        this.processDefinitionManager = new ProcessDefinitionManager(bpmnParser, kikwiEngineRepository);
         this.navigator = new Navigator(processDefinitionManager);
-        this.kikwiflowConfig = kikwiflowConfig;//Just for test
-        this.statsManager = new StatsManager(kikwiflowConfig);
+        this.flowNodeExecutor = new FlowNodeExecutor(new TaskExecutor(delegateResolver), navigator, kikwiflowConfig, eventPublisher, processInstanceManager);
+
+        this.kikwiflowConfig = kikwiflowConfig;
+        this.eventListeners = executionEventListeners;
+
     }
 
-    public ProcessDefinition deployDefinition(InputStream is) throws Exception {
+    private void registerListeners(List<ExecutionEventListener> executionEventListeners){
+        if(Objects.nonNull(executionEventListeners)){
+            executionEventListeners.forEach(eventPublisher::registerListener);
+        }
+    }
+
+    public ProcessDefinitionSnapshot deployDefinition(InputStream is) throws Exception {
         return processDefinitionManager.deploy(is);
     }
 
-    private ProcessDefinition getProcessDefinition(String processDefinitionKey){
-        return processDefinitionManager.getByKey(processDefinitionKey)
-                .orElseThrow(() -> new ProcessDefinitionNotFoundException("ProcessDefinition not found with key" + processDefinitionKey));
-    }
-
-    public ProcessInstance startProcessByKey(String processDefinitionKey, String businessKey, Map<String, Object> variables){
-        if(Objects.isNull(businessKey)){
-            throw new ProcessDefinitionNotFoundException("buisinessKey can't be null to start a process");
+    private ProcessInstanceSnapshot handleContinuation(ProcessInstance processInstance, Continuation continuation) {
+        // Caso 1: O processo parou em uma tarefa assíncrona (ou estado de espera).
+        if (continuation != null && continuation.isAsynchronous()) {
+            createAsynchronousTasks(continuation);
+            // Retorna o snapshot da instância em estado ATIVO, pois ela ainda não terminou.
+            // A instância pode ter sido modificada, então criamos um novo snapshot.
+            return ProcessInstanceMapper.toSnapshot(processInstance);
         }
 
-        ProcessDefinition processDefinition = getProcessDefinition(processDefinitionKey);
+        // Caso 2: O processo foi concluído de forma síncrona.
+        // Finaliza a instância, publica o evento e a remove do repositório de runtime.
+        return processInstanceManager.complete(processInstance);
+    }
 
-        ProcessInstance processInstance = new ProcessInstance();
-        processInstance.setVariables(variables);
-        processInstance.setProcessDefinitionId(processDefinition.getId());
-        processInstance.setBusinessKey(businessKey);
-        ProcessInstance startedProcessInstance = processInstanceManager.create(processInstance);
+    private void createAsynchronousTasks(Continuation continuation) {
+        // TODO: Implementar a criação (em lote) de ExecutableTaskEntity no repositório.
+        for (FlowNode asyncNode : continuation.getNextNodes()) {
+            System.out.println("TODO: Criar tarefa assíncrona para o nó: " + asyncNode.getId());
+        }
+    }
 
-        //TODO identify first node and delegate it execution to executor.
-        //if is an commit before task, simply save task on the database
-        //or else the executor need to execute tasks while not found a wait state
-        //its simple: if haven't a  wait state, this thread need to process it
-        // else, store the wait state on database.
+    /**
+     * Inicia a construção de uma nova instância de processo de forma fluente.
+     *
+     * @return Um builder {@link ProcessStarter} para configurar e executar a instância.
+     */
+    public ProcessStarter startProcess() {
+        return new ProcessStarter(this);
+    }
 
-        FlowNode startPoint = navigator.findStartPoint(processDefinition);
-        Continuation nextContinuation = runWhileNotFindAStopPoint(startPoint, processInstance, processDefinition);
+    /**
+     * Builder para configurar e iniciar uma nova instância de processo.
+     * Permite uma API fluente para definir os parâmetros de inicialização.
+     */
+    public class ProcessStarter {
+        private final KikwiflowEngine engine;
+        private String processDefinitionKey;
+        private String businessKey;
+        private Map<String, Object> variables = Collections.emptyMap();
 
-        // Se o ciclo síncrono parou porque encontrou uma tarefa assíncrona,
-        // 'nextContinuation' não será nulo.
-        if (nextContinuation != null && nextContinuation.isAsynchronous()) {
+        private ProcessStarter(KikwiflowEngine engine) {
+            this.engine = engine;
+        }
 
-            for (FlowNode asyncNode : nextContinuation.getNextNodes()) {
-                //Criar as executable tasks (fazer em bulk)
+        public ProcessStarter byKey(String key) {
+            this.processDefinitionKey = key;
+            return this;
+        }
+
+        public ProcessStarter withBusinessKey(String key) {
+            this.businessKey = key;
+            return this;
+        }
+
+        public ProcessStarter withVariables(Map<String, Object> vars) {
+            if (vars != null) {
+                this.variables = vars;
             }
-        }
-        return processInstance;
-    }
-
-    private Continuation executeAndGetContinuation(FlowNode flowNode, ProcessInstance processInstance, ProcessDefinition processDefinition){
-
-        Instant startedAt = Instant.now();
-        // EXECUTA
-        CoveredElementStatus coveredElementStatus = null;
-        try{
-            ExecutionContext executionContext = new DefaultExecutionContext(processInstance, processDefinition, flowNode);
-            flowNodeExecutor.execute(executionContext);
-            coveredElementStatus = CoveredElementStatus.SUCCESS;
-        }catch (Exception e){
-            //GERENCIAR ERROS
-            coveredElementStatus = CoveredElementStatus.ERROR;
+            return this;
         }
 
+        /**
+         * Executa a inicialização do processo com os parâmetros fornecidos.
+         *
+         * @return Um snapshot do estado da instância do processo após a execução inicial.
+         */
+        public ProcessInstanceSnapshot execute() {
+            Objects.requireNonNull(processDefinitionKey, "Process definition key cannot be null. Use byKey().");
+            Objects.requireNonNull(businessKey, "Business key cannot be null. Use withBusinessKey().");
 
-        Instant finishedAt = Instant.now();
+            // 1. Preparação: Encontra a definição e cria a instância de processo em estado inicial.
+            ProcessDefinitionSnapshot processDefinition = engine.processDefinitionManager.getByKeyOrElseThrow(processDefinitionKey);
+            ProcessInstance processInstance = engine.processInstanceManager.start(businessKey, processDefinition.id(), variables);
 
-        if(kikwiflowConfig.isStatsEnabled()){
-            CoverageSnapshot coverageSnapshot = new CoverageSnapshot(flowNode, processDefinition, processInstance, startedAt, finishedAt, coveredElementStatus);
-            statsManager.registerCoverage(coverageSnapshot);
+            // 2. Execução: Roda a parte síncrona do processo.
+            Continuation continuation = engine.flowNodeExecutor.startProcessExecution(
+                new StartableProcessRecord(processDefinition, processInstance)
+            );
+
+            // 3. Finalização: Lida com o resultado da execução.
+            return engine.handleContinuation(processInstance, continuation);
         }
-
-        //Deve parar?
-        boolean isCommitAfter = isCommitAfter(flowNode);
-
-        // Determinha proximo noodo
-        Continuation continuation = navigator.determineNextContinuation(flowNode, processDefinition, isCommitAfter);
-        return continuation;
-    }
-
-    private Continuation runWhileNotFindAStopPoint(FlowNode startPoint, ProcessInstance instance, ProcessDefinition processDefinition){
-        FlowNode currentNode = startPoint;
-
-        // O ciclo continua enquanto não encontrar ponto de parada
-        while (currentNode != null && !isWaitState(currentNode) && !isCommitBefore(currentNode)) {
-            Continuation continuation = executeAndGetContinuation(currentNode, instance, processDefinition);
-            if (continuation == null || continuation.isAsynchronous()) {
-                // O processo terminou ou o próximo passo é assíncrono.
-                return continuation;
-            } else {
-                // O próximo passo também é síncrono, o loop continua.
-                // (Assumindo um fluxo linear para este exemplo)
-                currentNode = continuation.getNextNodes().get(0);
-            }
-        }
-
-        // Se saímos do loop, ou o processo terminou (currentNode == null) ou
-        // encontrámos um ponto de paragem (wait state ou commit before).
-        if (currentNode != null) {
-            return new Continuation(List.of(currentNode), true);
-        }
-
-        return null; // Processo terminou
-    }
-
-    private boolean isCommitAfter(FlowNode flowNode) {
-        return flowNode.getCommitAfter();
-    }
-
-    private boolean isWaitState(FlowNode flowNode){
-        //TODO
-        return false;
-    }
-
-    private boolean isCommitBefore(FlowNode flowNode){
-        return flowNode.getCommitBefore();
     }
 }

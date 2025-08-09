@@ -14,28 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.config;
+package io.kikwiflow.model.execution;
+
+import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+
+import java.time.Instant;
+import java.util.Map;
 
 /**
- * Configuration class
- * @author Emiliano Fagundes
+ * An immutable snapshot of a ProcessInstance's state at a specific moment.
+ * Ideal for use in DTOs and events.
  */
-public class KikwiflowConfig {
-
-    private Boolean isStatsEnabled;
-
-    public KikwiflowConfig() {
-    }
-
-    public void statsEnabled() {
-        isStatsEnabled = true;
-    }
-
-    public void statsDisabled(){
-        isStatsEnabled = false;
-    }
-
-    public boolean isStatsEnabled(){
-        return true;
-    }
-}
+public record ProcessInstanceSnapshot(
+    String id, String businessKey, ProcessInstanceStatus status, String processDefinitionId,
+    Map<String, Object> variables, Instant startedAt, Instant endedAt
+) {}

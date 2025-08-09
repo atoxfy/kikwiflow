@@ -17,9 +17,12 @@
 package io.kikwiflow.navigation;
 
 import io.kikwiflow.bpmn.BpmnParser;
+import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
+import io.kikwiflow.execution.mapper.ProcessDefinitionMapper;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
 import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
-import io.kikwiflow.persistence.KikwiflowEngineRepository;
+import io.kikwiflow.persistence.KikwiEngineRepository;
 import io.kikwiflow.cache.ProcessDefinitionCache;
 
 import java.io.InputStream;
@@ -27,18 +30,19 @@ import java.util.Optional;
 
 public class ProcessDefinitionManager {
     private final BpmnParser bpmnParser;
-    private final KikwiflowEngineRepository kikwiflowEngineRepository;
+    private final KikwiEngineRepository kikwiEngineRepository;
     private final ProcessDefinitionCache processDefinitionCache;
 
-    public ProcessDefinitionManager(BpmnParser bpmnParser, KikwiflowEngineRepository kikwiflowEngineRepository){
+    public ProcessDefinitionManager(BpmnParser bpmnParser, KikwiEngineRepository kikwiEngineRepository){
         this.bpmnParser =  bpmnParser;
-        this.kikwiflowEngineRepository = kikwiflowEngineRepository;
+        this.kikwiEngineRepository = kikwiEngineRepository;
         this.processDefinitionCache = new ProcessDefinitionCache();
     }
 
-    public ProcessDefinition deploy(InputStream inputStream) throws Exception {
+    public ProcessDefinitionSnapshot deploy(InputStream inputStream) throws Exception {
         ProcessDefinitionDeploy processDefinitionDeploy = bpmnParser.parse(inputStream);
-        return kikwiflowEngineRepository.save(processDefinitionDeploy);
+        ProcessDefinition processDefinition = kikwiEngineRepository.saveProcessDefinition(ProcessDefinitionMapper.mapToEntity(processDefinitionDeploy));
+        return ProcessDefinitionMapper.toSnapshot(processDefinition);
     }
 
     /**
@@ -52,9 +56,15 @@ public class ProcessDefinitionManager {
                 .or(() -> getAndLoadOnCacheByKey(processDefinitionKey));
     }
 
+    public ProcessDefinitionSnapshot getByKeyOrElseThrow(String processDefinitionKey){
+        return getByKey(processDefinitionKey)
+                .map(ProcessDefinitionMapper::toSnapshot)
+                .orElseThrow(() -> new ProcessDefinitionNotFoundException("ProcessDefinition not found with key" + processDefinitionKey));
+    }
+
 
     private Optional<ProcessDefinition> getAndLoadOnCacheByKey(String processDefinitionKey){
-        return kikwiflowEngineRepository.findByKey(processDefinitionKey)
+        return kikwiEngineRepository.findProcessDefinitionByKey(processDefinitionKey)
                 .map(processDefinitionCache::add);
     }
 }

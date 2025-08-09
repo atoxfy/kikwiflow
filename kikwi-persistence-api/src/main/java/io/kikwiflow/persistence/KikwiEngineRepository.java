@@ -17,6 +17,7 @@
 package io.kikwiflow.persistence;
 
 import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
 import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
 import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
 import io.kikwiflow.model.execution.ExecutableTaskEntity;
@@ -32,14 +33,14 @@ import java.util.Optional;
  * Esta interface abstrai a complexidade de interagir com as diversas coleções
  * (instâncias, tarefas executáveis, estados de espera, histórico).
  */
-public interface KikwiflowEngineRepository {
+public interface KikwiEngineRepository {
 
     /**
      * Cria uma nova instância de processo na base de dados.
      *
      * @param instance O objeto ProcessInstance a ser persistido.
      */
-    ProcessInstance save(ProcessInstance instance);
+    ProcessInstance saveProcessInstance(ProcessInstance instance);
 
     /**
      * Encontra uma instância de processo pelo seu ID.
@@ -47,7 +48,7 @@ public interface KikwiflowEngineRepository {
      * @param processInstanceId O ID da instância a ser procurada.
      * @return Um Optional contendo a ProcessInstance se encontrada, ou vazio caso contrário.
      */
-    Optional<ProcessInstance> findById(String processInstanceId);
+    Optional<ProcessInstance> findProcessInstanceById(String processInstanceId);
 
     /**
      * Atualiza as variáveis de uma instância de processo existente.
@@ -57,36 +58,20 @@ public interface KikwiflowEngineRepository {
      */
     void updateVariables(String processInstanceId, Map<String, Object> variables);
 
-
     /**
      * Adiciona uma nova tarefa à fila de execução.
      *
      * @param task A tarefa executável a ser criada.
      */
-    ExecutableTaskEntity create(ExecutableTaskEntity task);
-
-    /**
-     * Atomicamente encontra, bloqueia e retorna a próxima tarefa executável
-     * da fila, pronta para ser processada.
-     *
-     * @return Um Optional contendo a próxima tarefa, ou vazio se a fila estiver vazia.
-     */
-    Optional<ExecutableTaskEntity> acquireNext();
+    ExecutableTaskEntity createExecutableTask(ExecutableTaskEntity task);
 
 
-    /**
-     * Move uma tarefa executável concluída da fila de execução para o histórico.
-     *
-     * @param completedTask A tarefa que foi executada com sucesso.
-     */
-    void moveToHistory(ServiceTask completedTask);
+    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy);
 
+    public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey);
 
-    public ProcessDefinition save(ProcessDefinitionDeploy processDefinitionDeploy);
+    public ProcessInstance updateProcessInstance(ProcessInstance processInstance);//TODO just for tests now
 
-    public Optional<ProcessDefinition> findByKey(String processDefinitionKey);
-
-    public void addToHistory(ProcessDefinition processDefinition);
-
+    public void deleteProcessInstanceById(String processInstanceId);
 }
 

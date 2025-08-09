@@ -1,11 +1,10 @@
 package io.kikwiflow.execution;
 
-import io.kikwiflow.api.JavaDelegate;
-import io.kikwiflow.execution.DelegateResolver;
+import io.kikwiflow.model.execution.JavaDelegate;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class TestDelegateResolver implements DelegateResolver {
     private final Map<String, JavaDelegate> delegatesMap = new HashMap<>();
@@ -16,7 +15,7 @@ public class TestDelegateResolver implements DelegateResolver {
     }
 
     @Override
-    public JavaDelegate resolve(String beanName) {
-        return null;
+    public Optional<JavaDelegate> resolve(String beanName) {
+        return Optional.ofNullable(delegatesMap.get(beanName));
     }
 }

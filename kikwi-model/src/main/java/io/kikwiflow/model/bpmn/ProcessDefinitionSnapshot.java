@@ -14,9 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.api;
+package io.kikwiflow.model.bpmn;
 
+import io.kikwiflow.model.bpmn.elements.FlowNode;
 
-public interface JavaDelegate {
-    public void execute(ExecutionContext execution);
+import java.util.Map;
+import java.util.Objects;
+
+public record ProcessDefinitionSnapshot(
+    String id, Integer version, String key, String name,
+    Map<String, FlowNode> flowNodes, FlowNode defaultStartPoint
+) {
+    public ProcessDefinitionSnapshot {
+        Objects.requireNonNull(id, "id cannot be null");
+        Objects.requireNonNull(key, "key cannot be null");
+        Objects.requireNonNull(flowNodes, "flowNodes cannot be null");
+        flowNodes = Map.copyOf(flowNodes);
+    }
 }
