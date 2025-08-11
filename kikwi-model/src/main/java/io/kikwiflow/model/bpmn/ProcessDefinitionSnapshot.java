@@ -16,14 +16,14 @@
  */
 package io.kikwiflow.model.bpmn;
 
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 
 import java.util.Map;
 import java.util.Objects;
 
 public record ProcessDefinitionSnapshot(
-    String id, Integer version, String key, String name,
-    Map<String, FlowNode> flowNodes, FlowNode defaultStartPoint
+        String id, Integer version, String key, String name,
+        Map<String, FlowNodeDefinition> flowNodes, FlowNodeDefinition defaultStartPoint
 ) {
     public ProcessDefinitionSnapshot {
         Objects.requireNonNull(id, "id cannot be null");

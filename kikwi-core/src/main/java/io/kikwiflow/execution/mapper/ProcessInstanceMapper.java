@@ -16,9 +16,11 @@
  */
 package io.kikwiflow.execution.mapper;
 
-import io.kikwiflow.event.model.ProcessInstanceFinishedEvent;
+import io.kikwiflow.event.model.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
 import io.kikwiflow.model.execution.ProcessInstance;
+
+import java.util.Map;
 
 public final class ProcessInstanceMapper {
 
@@ -26,25 +28,17 @@ public final class ProcessInstanceMapper {
         // Utility class
     }
 
-    public static ProcessInstanceFinishedEvent toFinishedEvent(final ProcessInstance instance) {
-        return ProcessInstanceFinishedEvent.builder()
-            .id(instance.getId())
-            .businessKey(instance.getBusinessKey())
-            .processDefinitionId(instance.getProcessDefinitionId())
-            .status(instance.getStatus())
-            .startedAt(instance.getStartedAt())
-            .endedAt(instance.getEndedAt())
-            .variables(instance.getVariables())
-            .build();
+    public static ProcessInstanceFinished toFinishedEvent(final ProcessInstanceSnapshot processInstanceSnapshot) {
+        return new ProcessInstanceFinished(processInstanceSnapshot);
     }
 
-    public static ProcessInstanceSnapshot toSnapshot(final ProcessInstance instance) {
+    public static ProcessInstanceSnapshot takeSnapshot(final ProcessInstance instance) {
         return new ProcessInstanceSnapshot(
             instance.getId(),
             instance.getBusinessKey(),
             instance.getStatus(),
             instance.getProcessDefinitionId(),
-            instance.getVariables(),
+            Map.copyOf(instance.getVariables()),
             instance.getStartedAt(),
             instance.getEndedAt()
         );

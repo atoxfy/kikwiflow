@@ -16,27 +16,25 @@
  */
 package io.kikwiflow;
 
-import io.kikwiflow.event.EventPublisher;
+import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.execution.dto.StartableProcessRecord;
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
-import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
 import io.kikwiflow.execution.DelegateResolver;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessInstanceManager;
 import io.kikwiflow.execution.TaskExecutor;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.Continuation;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionManager;
-import io.kikwiflow.persistence.KikwiEngineRepository;
+import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.io.InputStream;
 import java.util.Collections;
@@ -55,20 +53,20 @@ public class KikwiflowEngine {
     private final FlowNodeExecutor flowNodeExecutor;
     private final KikwiflowConfig kikwiflowConfig;
     private final List<ExecutionEventListener> eventListeners;
-    private final EventPublisher eventPublisher;
+    private final AsynchronousEventPublisher asynchronousEventPublisher;
 
 
     public KikwiflowEngine(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, DelegateResolver delegateResolver, List<ExecutionEventListener> executionEventListeners){
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
-        this.eventPublisher = new EventPublisher(executorService);
+        this.asynchronousEventPublisher = new AsynchronousEventPublisher(executorService);
         registerListeners(executionEventListeners);
 
-        this.processInstanceManager = new ProcessInstanceManager(kikwiEngineRepository, eventPublisher);
+        this.processInstanceManager = new ProcessInstanceManager(kikwiEngineRepository, asynchronousEventPublisher);
 
         final BpmnParser bpmnParser = new DefaultBpmnParser();
         this.processDefinitionManager = new ProcessDefinitionManager(bpmnParser, kikwiEngineRepository);
         this.navigator = new Navigator(processDefinitionManager);
-        this.flowNodeExecutor = new FlowNodeExecutor(new TaskExecutor(delegateResolver), navigator, kikwiflowConfig, eventPublisher, processInstanceManager);
+        this.flowNodeExecutor = new FlowNodeExecutor(new TaskExecutor(delegateResolver), navigator, kikwiflowConfig, asynchronousEventPublisher, processInstanceManager);
 
         this.kikwiflowConfig = kikwiflowConfig;
         this.eventListeners = executionEventListeners;
@@ -77,7 +75,7 @@ public class KikwiflowEngine {
 
     private void registerListeners(List<ExecutionEventListener> executionEventListeners){
         if(Objects.nonNull(executionEventListeners)){
-            executionEventListeners.forEach(eventPublisher::registerListener);
+            executionEventListeners.forEach(asynchronousEventPublisher::registerListener);
         }
     }
 
@@ -91,7 +89,7 @@ public class KikwiflowEngine {
             createAsynchronousTasks(continuation);
             // Retorna o snapshot da instância em estado ATIVO, pois ela ainda não terminou.
             // A instância pode ter sido modificada, então criamos um novo snapshot.
-            return ProcessInstanceMapper.toSnapshot(processInstance);
+            return ProcessInstanceMapper.takeSnapshot(processInstance);
         }
 
         // Caso 2: O processo foi concluído de forma síncrona.
@@ -101,7 +99,7 @@ public class KikwiflowEngine {
 
     private void createAsynchronousTasks(Continuation continuation) {
         // TODO: Implementar a criação (em lote) de ExecutableTaskEntity no repositório.
-        for (FlowNode asyncNode : continuation.getNextNodes()) {
+        for (FlowNodeDefinition asyncNode : continuation.getNextNodes()) {
             System.out.println("TODO: Criar tarefa assíncrona para o nó: " + asyncNode.getId());
         }
     }

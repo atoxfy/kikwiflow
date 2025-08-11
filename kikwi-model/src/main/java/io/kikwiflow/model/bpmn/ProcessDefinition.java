@@ -17,7 +17,7 @@
 package io.kikwiflow.model.bpmn;
 
 
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,14 +29,14 @@ public class ProcessDefinition {
     private String key;
     private String name;
 
-    private Map<String, FlowNode> flowNodes = new HashMap<>();
-    private FlowNode defaultStartPoint;
+    private Map<String, FlowNodeDefinition> flowNodes = new HashMap<>();
+    private FlowNodeDefinition defaultStartPoint;
 
-    public FlowNode getDefaultStartPoint() {
+    public FlowNodeDefinition getDefaultStartPoint() {
         return defaultStartPoint;
     }
 
-    public void setDefaultStartPoint(FlowNode defaultStartPoint) {
+    public void setDefaultStartPoint(FlowNodeDefinition defaultStartPoint) {
         this.defaultStartPoint = defaultStartPoint;
     }
 
@@ -56,7 +56,7 @@ public class ProcessDefinition {
         this.name = name;
     }
 
-    public Map<String, FlowNode> getFlowNodes() {
+    public Map<String, FlowNodeDefinition> getFlowNodes() {
         return flowNodes;
     }
 
@@ -76,7 +76,7 @@ public class ProcessDefinition {
         this.version = version;
     }
 
-    public void setFlowNodes(Map<String, FlowNode> flowNodes) {
+    public void setFlowNodes(Map<String, FlowNodeDefinition> flowNodes) {
         this.flowNodes = flowNodes;
     }
 }

@@ -1,27 +1,26 @@
 package io.kikwiflow.execution;
 
-import io.kikwiflow.event.EventPublisher;
-import io.kikwiflow.event.model.ProcessInstanceFinishedEvent;
-import io.kikwiflow.exception.ProcessInstanceNotFoundException;
+import io.kikwiflow.event.AsynchronousEventPublisher;
+import io.kikwiflow.event.model.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
-import io.kikwiflow.persistence.KikwiEngineRepository;
+import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
 import java.util.Map;
 
 import static io.kikwiflow.execution.mapper.ProcessInstanceMapper.toFinishedEvent;
-import static io.kikwiflow.execution.mapper.ProcessInstanceMapper.toSnapshot;
+import static io.kikwiflow.execution.mapper.ProcessInstanceMapper.takeSnapshot;
 
 public class ProcessInstanceManager {
 
     private final KikwiEngineRepository kikwiEngineRepository;
-    private final EventPublisher eventPublisher;
+    private final AsynchronousEventPublisher asynchronousEventPublisher;
 
-    public ProcessInstanceManager(KikwiEngineRepository kikwiEngineRepository, EventPublisher eventPublisher) {
+    public ProcessInstanceManager(KikwiEngineRepository kikwiEngineRepository, AsynchronousEventPublisher asynchronousEventPublisher) {
         this.kikwiEngineRepository = kikwiEngineRepository;
-        this.eventPublisher = eventPublisher;
+        this.asynchronousEventPublisher = asynchronousEventPublisher;
     }
 
 
@@ -46,10 +45,10 @@ public class ProcessInstanceManager {
         processInstance.setStatus(ProcessInstanceStatus.COMPLETED);
         processInstance.setEndedAt(Instant.now());
 
-        final ProcessInstanceFinishedEvent event = toFinishedEvent(processInstance);
-        eventPublisher.publishEvent(event);
+        final ProcessInstanceFinished event = toFinishedEvent(processInstance);
+        asynchronousEventPublisher.publishEvent(event);
         kikwiEngineRepository.deleteProcessInstanceById(processInstance.getId());
-        return toSnapshot(processInstance);
+        return takeSnapshot(processInstance);
     }
 
     public void update(ProcessInstance processInstance) {

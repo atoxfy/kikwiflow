@@ -27,5 +27,4 @@ import java.util.Map;
  */
 public record ProcessInstanceSnapshot(
     String id, String businessKey, ProcessInstanceStatus status, String processDefinitionId,
-    Map<String, Object> variables, Instant startedAt, Instant endedAt
-) {}
+    Map<String, Object> variables, Instant startedAt, Instant endedAt) {}

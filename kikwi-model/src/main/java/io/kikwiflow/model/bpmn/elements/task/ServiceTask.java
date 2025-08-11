@@ -17,10 +17,10 @@
 package io.kikwiflow.model.bpmn.elements.task;
 
 
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.ExecutableTask;
 
-public class ServiceTask extends FlowNode implements ExecutableTask {
+public class ServiceTask extends FlowNodeDefinition implements ExecutableTask {
     private String delegateExpression;
 
     public String getDelegateExpression() {

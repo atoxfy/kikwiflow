@@ -1,14 +1,14 @@
 package io.kikwiflow.model.execution;
 
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 
 import java.util.List;
 
 public class Continuation {
 
-    private List<FlowNode> nextNodes;
+    private List<FlowNodeDefinition> nextNodes;
     private boolean isAsynchronous;
-    public Continuation(List<FlowNode> n, boolean a) { this.nextNodes = n; this.isAsynchronous = a; }
+    public Continuation(List<FlowNodeDefinition> n, boolean a) { this.nextNodes = n; this.isAsynchronous = a; }
     public boolean isAsynchronous() { return isAsynchronous; }
-    public List<FlowNode> getNextNodes() { return nextNodes; }
+    public List<FlowNodeDefinition> getNextNodes() { return nextNodes; }
 }

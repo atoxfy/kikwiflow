@@ -19,7 +19,7 @@ package io.kikwiflow.execution;
 import io.kikwiflow.model.execution.ExecutionContext;
 import io.kikwiflow.model.execution.JavaDelegate;
 import io.kikwiflow.exception.BadDefinitionExecutionException;
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
 
 import java.util.Objects;
@@ -36,7 +36,7 @@ public class TaskExecutor {
     }
 
     public void execute(ExecutionContext executionContext){
-        FlowNode executableTask = executionContext.getFlowNode();
+        FlowNodeDefinition executableTask = executionContext.getFlowNode();
 
         if(executableTask instanceof ServiceTask){
             ServiceTask serviceTask = (ServiceTask) executableTask;

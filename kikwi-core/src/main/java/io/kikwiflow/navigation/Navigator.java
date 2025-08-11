@@ -18,7 +18,7 @@ package io.kikwiflow.navigation;
 
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.model.bpmn.elements.SequenceFlow;
 import io.kikwiflow.model.execution.Continuation;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -38,11 +38,11 @@ public class Navigator {
         this.processDefinitionManager = processDefinitionManager;
     }
 
-    public FlowNode findStartPoint(ProcessDefinitionSnapshot processDefinition){
+    public FlowNodeDefinition findStartPoint(ProcessDefinitionSnapshot processDefinition){
         return processDefinition.defaultStartPoint();
     }
 
-    public Continuation determineNextContinuation(FlowNode completedNode, ProcessDefinitionSnapshot processDefinition, boolean forceAsync) {
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinitionSnapshot processDefinition, boolean forceAsync) {
 
         List<SequenceFlow> outgoingFlows = completedNode.getOutgoing();
 
@@ -51,7 +51,7 @@ public class Navigator {
             return null;
         }
 
-        List<FlowNode> nextNodes = new ArrayList<>();
+        List<FlowNodeDefinition> nextNodes = new ArrayList<>();
 
         /*
         // Aqui futuramente adicionar logica por tipo de node
@@ -95,7 +95,7 @@ public class Navigator {
         return new Continuation(nextNodes, isAsync);
     }
 
-    public Continuation determineNextContinuation(FlowNode completedNode, ProcessInstance instance, boolean forceAsync) {
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessInstance instance, boolean forceAsync) {
 
         ProcessDefinition definition = processDefinitionManager.getByKey(instance.getProcessDefinitionId()).get();//todo
         return determineNextContinuation(completedNode, instance, forceAsync);

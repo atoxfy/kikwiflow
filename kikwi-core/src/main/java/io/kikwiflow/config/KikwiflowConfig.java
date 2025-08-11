@@ -19,6 +19,12 @@ package io.kikwiflow.config;
 /**
  * Configuration class
  * @author Emiliano Fagundes
+ *
+ *
+ * kikwi:
+ *   history:
+ *     enabled: true
+ *     fail-on-error: true
  */
 public class KikwiflowConfig {
 
@@ -26,6 +32,8 @@ public class KikwiflowConfig {
 
     public KikwiflowConfig() {
     }
+
+
 
     public void statsEnabled() {
         isStatsEnabled = true;

@@ -17,6 +17,6 @@
 package io.kikwiflow.model.bpmn.elements.start;
 
 
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 
-public class StartEvent extends FlowNode {}
+public class StartEvent extends FlowNodeDefinition {}

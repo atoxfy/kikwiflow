@@ -17,7 +17,7 @@
 package io.kikwiflow.model.deploy;
 
 
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,19 +26,19 @@ public class ProcessDefinitionDeploy {
     private String key;
     private String name;
 
-    private FlowNode defaultStartPoint;
+    private FlowNodeDefinition defaultStartPoint;
 
-    private Map<String, FlowNode> flowNodes = new HashMap<>();
+    private Map<String, FlowNodeDefinition> flowNodes = new HashMap<>();
 
     public String getKey() {
         return key;
     }
 
-    public FlowNode getDefaultStartPoint() {
+    public FlowNodeDefinition getDefaultStartPoint() {
         return defaultStartPoint;
     }
 
-    public void setDefaultStartPoint(FlowNode defaultStartPoint) {
+    public void setDefaultStartPoint(FlowNodeDefinition defaultStartPoint) {
         this.defaultStartPoint = defaultStartPoint;
     }
 
@@ -54,10 +54,10 @@ public class ProcessDefinitionDeploy {
         this.name = name;
     }
 
-    public Map<String, FlowNode> getFlowNodes() {
+    public Map<String, FlowNodeDefinition> getFlowNodes() {
         return flowNodes;
     }
 
-    public void addFlowNode(FlowNode node) { this.flowNodes.put(node.getId(), node); }
+    public void addFlowNode(FlowNodeDefinition node) { this.flowNodes.put(node.getId(), node); }
 
 }

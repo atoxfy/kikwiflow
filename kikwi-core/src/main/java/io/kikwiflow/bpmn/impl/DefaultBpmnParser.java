@@ -17,7 +17,7 @@
 package io.kikwiflow.bpmn.impl;
 
 import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.model.bpmn.elements.SequenceFlow;
 import io.kikwiflow.model.bpmn.elements.end.EndEvent;
 import io.kikwiflow.model.bpmn.elements.start.StartEvent;
@@ -56,24 +56,24 @@ public class DefaultBpmnParser implements BpmnParser {
             Node node = childNodes.item(i);
             if (node instanceof Element) {
                 Element element = (Element) node;
-                FlowNode flowNode = null;
+                FlowNodeDefinition flowNodeDefinition = null;
                 boolean isDefaultStartPoint = false;
                 switch (element.getTagName()) {
                     case "bpmn:startEvent":
-                        flowNode = parseEvent(element, new StartEvent());
+                        flowNodeDefinition = parseEvent(element, new StartEvent());
                         isDefaultStartPoint = true;
                         break;
                     case "bpmn:endEvent":
-                        flowNode = parseEvent(element, new EndEvent());
+                        flowNodeDefinition = parseEvent(element, new EndEvent());
                         break;
                     case "bpmn:serviceTask":
-                        flowNode = parseServiceTask(element);
+                        flowNodeDefinition = parseServiceTask(element);
                         break;
                 }
 
-                if (flowNode != null) {
-                    if(isDefaultStartPoint) processDefinitionDeploy.setDefaultStartPoint(flowNode);
-                    processDefinitionDeploy.addFlowNode(flowNode);
+                if (flowNodeDefinition != null) {
+                    if(isDefaultStartPoint) processDefinitionDeploy.setDefaultStartPoint(flowNodeDefinition);
+                    processDefinitionDeploy.addFlowNode(flowNodeDefinition);
                 }
             }
         }
@@ -83,7 +83,7 @@ public class DefaultBpmnParser implements BpmnParser {
             Element flowElement = (Element) sequenceFlows.item(i);
             String sourceRef = flowElement.getAttribute("sourceRef");
 
-            FlowNode sourceNode = processDefinitionDeploy.getFlowNodes().get(sourceRef);
+            FlowNodeDefinition sourceNode = processDefinitionDeploy.getFlowNodes().get(sourceRef);
             if (sourceNode != null) {
                 SequenceFlow sequenceFlow = parseSequenceFlow(flowElement);
                 sourceNode.addOutgoing(sequenceFlow);
@@ -93,7 +93,7 @@ public class DefaultBpmnParser implements BpmnParser {
         return processDefinitionDeploy;
     }
 
-    private FlowNode parseEvent(Element element, FlowNode node) {
+    private FlowNodeDefinition parseEvent(Element element, FlowNodeDefinition node) {
         node.setId(element.getAttribute("id"));
         node.setName(element.getAttribute("name"));
         return node;

@@ -2,19 +2,18 @@ package io.kikwiflow.api;
 
 import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
 import io.kikwiflow.model.execution.ExecutionContext;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 
 public class DefaultExecutionContext implements ExecutionContext {
     private final ProcessInstance processInstance;
     private final ProcessDefinitionSnapshot processDefinition;
-    private final FlowNode flowNode;
+    private final FlowNodeDefinition flowNodeDefinition;
 
-    public DefaultExecutionContext(ProcessInstance processInstance, ProcessDefinitionSnapshot processDefinition, FlowNode flowNode) {
+    public DefaultExecutionContext(ProcessInstance processInstance, ProcessDefinitionSnapshot processDefinition, FlowNodeDefinition flowNodeDefinition) {
         this.processInstance = processInstance;
         this.processDefinition = processDefinition;
-        this.flowNode = flowNode;
+        this.flowNodeDefinition = flowNodeDefinition;
     }
 
     @Override
@@ -51,7 +50,7 @@ public class DefaultExecutionContext implements ExecutionContext {
     }
 
     @Override
-    public FlowNode getFlowNode() {
-        return flowNode;
+    public FlowNodeDefinition getFlowNode() {
+        return flowNodeDefinition;
     }
 }

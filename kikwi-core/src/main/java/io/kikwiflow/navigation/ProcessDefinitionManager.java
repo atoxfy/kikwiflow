@@ -22,7 +22,7 @@ import io.kikwiflow.execution.mapper.ProcessDefinitionMapper;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
 import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
-import io.kikwiflow.persistence.KikwiEngineRepository;
+import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.cache.ProcessDefinitionCache;
 
 import java.io.InputStream;

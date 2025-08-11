@@ -1,6 +1,6 @@
 package io.kikwiflow.model.execution;
 
-import io.kikwiflow.model.bpmn.elements.FlowNode;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 
 public interface ExecutionContext {
     void setVariable(String variableName, Object value);
@@ -11,7 +11,7 @@ public interface ExecutionContext {
 
     String getProcessInstanceId();
 
-    FlowNode getFlowNode();
+    FlowNodeDefinition getFlowNode();
 
 
 }

@@ -21,12 +21,15 @@
         <module>kikwi-core</module>
         <module>kikwi-spring-boot-starter</module>
         <module>kikwi-example-app</module>
-        <module>kikwi-persistence-api</module>
+        <module>kikwi-runtime-persistence-api</module>
         <module>kikwi-model</module>
-        <module>kikwi-persistence-mongodb</module>
+        <module>kikwi-runtime-persistence-mongodb</module>
         <module>kikwi-core-testing</module>
         <module>kikwi-events-api</module>
-        <module>kikwi-persistence-in-memory-addons</module>
+        <module>kikwi-in-memory-addons</module>
+        <module>kikwi-history-api</module>
+        <module>kikwi-event-relay-api</module>
+        <module>kikwi-core-tests</module>
     </modules>
 
 </project>
