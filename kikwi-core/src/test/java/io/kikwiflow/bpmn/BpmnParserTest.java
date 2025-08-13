@@ -2,11 +2,11 @@ package io.kikwiflow.bpmn;
 
 
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.bpmn.elements.end.EndEvent;
-import io.kikwiflow.model.bpmn.elements.start.StartEvent;
-import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
-import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
+import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
+import io.kikwiflow.model.bpmn.elements.EndEventDefinitionSnapshot;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
+import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinitionSnapshot;
+import io.kikwiflow.model.bpmn.elements.StartEventDefinitionSnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,43 +32,43 @@ class BpmnParserTest {
         assertNotNull(bpmnStream);
 
         //Act
-        ProcessDefinitionDeploy processDefinitionDeploy = defaultBpmnParser.parse(bpmnStream);
+        ProcessDefinitionSnapshot processDefinitionDeploy = defaultBpmnParser.parse(bpmnStream);
 
 
         //Assert
         assertNotNull(processDefinitionDeploy, "A definição do processo não pode ser nula.");
-        assertEquals("Process_1nwhurl", processDefinitionDeploy.getKey(), "O ID do processo está incorreto.");
-        assertEquals("Processo Teste", processDefinitionDeploy.getName(), "O nome do processo está incorreto.");
+        assertEquals("Process_1nwhurl", processDefinitionDeploy.key(), "O ID do processo está incorreto.");
+        assertEquals("Processo Teste", processDefinitionDeploy.name(), "O nome do processo está incorreto.");
 
         // Check nodes
-        assertEquals(4, processDefinitionDeploy.getFlowNodes().size(), "O número de nós de fluxo está incorreto.");
+        assertEquals(4, processDefinitionDeploy.flowNodes().size(), "O número de nós de fluxo está incorreto.");
 
         //StartEvent
-        FlowNodeDefinition startEvent = processDefinitionDeploy.getFlowNodes().get("StartEvent_1");
+        FlowNodeDefinitionSnapshot startEvent = processDefinitionDeploy.flowNodes().get("StartEvent_1");
         assertNotNull(startEvent, "O StartEvent não foi encontrado.");
-        assertTrue(startEvent instanceof StartEvent, "O nó não é do tipo StartEventNode.");
-        assertEquals(1, startEvent.getOutgoing().size(), "O StartEvent deve ter uma saída.");
-        assertEquals("Activity_0wn4t7o", startEvent.getOutgoing().get(0).getTargetNodeId(), "A saída do StartEvent aponta para o nó errado.");
+        assertTrue(startEvent instanceof StartEventDefinitionSnapshot, "O nó não é do tipo StartEventNode.");
+        assertEquals(1, startEvent.outgoing().size(), "O StartEvent deve ter uma saída.");
+        assertEquals("Activity_0wn4t7o", startEvent.outgoing().get(0).targetNodeId(), "A saída do StartEvent aponta para o nó errado.");
 
         //ServiceTask 1
-        FlowNodeDefinition task1 = processDefinitionDeploy.getFlowNodes().get("Activity_0wn4t7o");
+        FlowNodeDefinitionSnapshot task1 = processDefinitionDeploy.flowNodes().get("Activity_0wn4t7o");
         assertNotNull(task1, "A primeira ServiceTask não foi encontrada.");
-        assertTrue(task1 instanceof ServiceTask, "O nó não é do tipo ServiceTaskNode.");
-        assertEquals("add variable", task1.getName(), "O nome da primeira tarefa está incorreto.");
-        assertEquals("${addVariableDelegate}", ((ServiceTask) task1).getDelegateExpression(), "A delegate expression da primeira tarefa está incorreta.");
-        assertEquals(1, task1.getOutgoing().size(), "A primeira tarefa deve ter uma saída.");
-        assertEquals("Activity_16ovgt4", task1.getOutgoing().get(0).getTargetNodeId(), "A saída da primeira tarefa aponta para o nó errado.");
+        assertTrue(task1 instanceof ServiceTaskDefinitionSnapshot, "O nó não é do tipo ServiceTaskNode.");
+        assertEquals("add variable", task1.name(), "O nome da primeira tarefa está incorreto.");
+        assertEquals("${addVariableDelegate}", ((ServiceTaskDefinitionSnapshot) task1).delegateExpression(), "A delegate expression da primeira tarefa está incorreta.");
+        assertEquals(1, task1.outgoing().size(), "A primeira tarefa deve ter uma saída.");
+        assertEquals("Activity_16ovgt4", task1.outgoing().get(0).targetNodeId(), "A saída da primeira tarefa aponta para o nó errado.");
 
         //ServiceTask 2
-        FlowNodeDefinition task2 = processDefinitionDeploy.getFlowNodes().get("Activity_16ovgt4");
+        FlowNodeDefinitionSnapshot task2 = processDefinitionDeploy.flowNodes().get("Activity_16ovgt4");
         assertNotNull(task2, "A segunda ServiceTask não foi encontrada.");
-        assertEquals("remove variable", task2.getName(), "O nome da segunda tarefa está incorreto.");
-        assertEquals("${removeVariableDelegate}", ((ServiceTask) task2).getDelegateExpression(), "A delegate expression da segunda tarefa está incorreta.");
+        assertEquals("remove variable", task2.name(), "O nome da segunda tarefa está incorreto.");
+        assertEquals("${removeVariableDelegate}", ((ServiceTaskDefinitionSnapshot) task2).delegateExpression(), "A delegate expression da segunda tarefa está incorreta.");
 
         //EndEvent
-        FlowNodeDefinition endEvent = processDefinitionDeploy.getFlowNodes().get("Event_0w1t1d3");
+        FlowNodeDefinitionSnapshot endEvent = processDefinitionDeploy.flowNodes().get("Event_0w1t1d3");
         assertNotNull(endEvent, "O EndEvent não foi encontrado.");
-        assertTrue(endEvent instanceof EndEvent, "O nó não é do tipo EndEventNode.");
-        assertTrue(endEvent.getOutgoing().isEmpty(), "O EndEvent não deve ter saídas.");
+        assertTrue(endEvent instanceof EndEventDefinitionSnapshot, "O nó não é do tipo EndEventNode.");
+        assertTrue(endEvent.outgoing().isEmpty(), "O EndEvent não deve ter saídas.");
     }
 }

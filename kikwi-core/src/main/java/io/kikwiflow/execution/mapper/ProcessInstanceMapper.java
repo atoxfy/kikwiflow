@@ -16,9 +16,10 @@
  */
 package io.kikwiflow.execution.mapper;
 
-import io.kikwiflow.event.model.ProcessInstanceFinished;
+import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
+import io.kikwiflow.persistence.api.data.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.execution.ProcessInstance;
 
 import java.util.Map;
 
@@ -29,7 +30,15 @@ public final class ProcessInstanceMapper {
     }
 
     public static ProcessInstanceFinished toFinishedEvent(final ProcessInstanceSnapshot processInstanceSnapshot) {
-        return new ProcessInstanceFinished(processInstanceSnapshot);
+        ProcessInstanceFinished processInstanceEntity = new ProcessInstanceFinished();
+        processInstanceEntity.setId(processInstanceSnapshot.id());
+        processInstanceEntity.setBusinessKey(processInstanceSnapshot.businessKey());
+        processInstanceEntity.setStatus(processInstanceSnapshot.status());
+        processInstanceEntity.setProcessDefinitionId(processInstanceSnapshot.processDefinitionId());
+        processInstanceEntity.setVariables(processInstanceSnapshot.variables());
+        processInstanceEntity.setStartedAt(processInstanceSnapshot.startedAt());
+        processInstanceEntity.setEndedAt(processInstanceSnapshot.endedAt());
+        return processInstanceEntity;
     }
 
     public static ProcessInstanceSnapshot takeSnapshot(final ProcessInstance instance) {
@@ -54,5 +63,29 @@ public final class ProcessInstanceMapper {
         processInstance.setStartedAt(processInstanceSnapshot.startedAt());
         processInstance.setEndedAt(processInstanceSnapshot.endedAt());
         return processInstance;
+    }
+
+    public static ProcessInstanceEntity mapToEntity(ProcessInstance processInstance) {
+        ProcessInstanceEntity processInstanceEntity = new ProcessInstanceEntity();
+        processInstanceEntity.setId(processInstance.getId());
+        processInstanceEntity.setBusinessKey(processInstance.getBusinessKey());
+        processInstanceEntity.setStatus(processInstance.getStatus());
+        processInstanceEntity.setProcessDefinitionId(processInstance.getProcessDefinitionId());
+        processInstanceEntity.setVariables(processInstance.getVariables());
+        processInstanceEntity.setStartedAt(processInstance.getStartedAt());
+        processInstanceEntity.setEndedAt(processInstance.getEndedAt());
+        return processInstanceEntity;
+    }
+
+    public static ProcessInstance toProcessInstance(ProcessInstanceEntity processInstance) {
+        ProcessInstance processInstanceEntity = new ProcessInstance();
+        processInstanceEntity.setId(processInstance.getId());
+        processInstanceEntity.setBusinessKey(processInstance.getBusinessKey());
+        processInstanceEntity.setStatus(processInstance.getStatus());
+        processInstanceEntity.setProcessDefinitionId(processInstance.getProcessDefinitionId());
+        processInstanceEntity.setVariables(processInstance.getVariables());
+        processInstanceEntity.setStartedAt(processInstance.getStartedAt());
+        processInstanceEntity.setEndedAt(processInstance.getEndedAt());
+        return processInstanceEntity;
     }
 }

@@ -18,6 +18,7 @@ package io.kikwiflow;
 
 import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
+import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.dto.StartableProcessRecord;
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
@@ -26,11 +27,12 @@ import io.kikwiflow.execution.DelegateResolver;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessInstanceManager;
 import io.kikwiflow.execution.TaskExecutor;
+import io.kikwiflow.execution.dto.UnitOfWorkResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.execution.Continuation;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
+import io.kikwiflow.execution.dto.Continuation;
+import io.kikwiflow.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionManager;
@@ -50,7 +52,7 @@ public class KikwiflowEngine {
     private final ProcessDefinitionManager processDefinitionManager;
     private final ProcessInstanceManager processInstanceManager;
     private final Navigator navigator;
-    private final FlowNodeExecutor flowNodeExecutor;
+    private final ProcessExecutionManager processExecutionManager;
     private final KikwiflowConfig kikwiflowConfig;
     private final List<ExecutionEventListener> eventListeners;
     private final AsynchronousEventPublisher asynchronousEventPublisher;
@@ -60,14 +62,11 @@ public class KikwiflowEngine {
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.asynchronousEventPublisher = new AsynchronousEventPublisher(executorService);
         registerListeners(executionEventListeners);
-
         this.processInstanceManager = new ProcessInstanceManager(kikwiEngineRepository, asynchronousEventPublisher);
-
         final BpmnParser bpmnParser = new DefaultBpmnParser();
         this.processDefinitionManager = new ProcessDefinitionManager(bpmnParser, kikwiEngineRepository);
         this.navigator = new Navigator(processDefinitionManager);
-        this.flowNodeExecutor = new FlowNodeExecutor(new TaskExecutor(delegateResolver), navigator, kikwiflowConfig, asynchronousEventPublisher, processInstanceManager);
-
+        this.processExecutionManager = new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(delegateResolver), navigator, kikwiflowConfig), kikwiEngineRepository, asynchronousEventPublisher);
         this.kikwiflowConfig = kikwiflowConfig;
         this.eventListeners = executionEventListeners;
 
@@ -99,8 +98,8 @@ public class KikwiflowEngine {
 
     private void createAsynchronousTasks(Continuation continuation) {
         // TODO: Implementar a criação (em lote) de ExecutableTaskEntity no repositório.
-        for (FlowNodeDefinition asyncNode : continuation.getNextNodes()) {
-            System.out.println("TODO: Criar tarefa assíncrona para o nó: " + asyncNode.getId());
+        for (FlowNodeDefinitionSnapshot asyncNode : continuation.nextNodes()) {
+            System.out.println("TODO: Criar tarefa assíncrona para o nó: " + asyncNode.id());
         }
     }
 
@@ -158,12 +157,12 @@ public class KikwiflowEngine {
             ProcessInstance processInstance = engine.processInstanceManager.start(businessKey, processDefinition.id(), variables);
 
             // 2. Execução: Roda a parte síncrona do processo.
-            Continuation continuation = engine.flowNodeExecutor.startProcessExecution(
+            UnitOfWorkResult unitOfWorkResult = engine.processExecutionManager.startProcessExecution(
                 new StartableProcessRecord(processDefinition, processInstance)
             );
 
             // 3. Finalização: Lida com o resultado da execução.
-            return engine.handleContinuation(processInstance, continuation);
+            return engine.handleContinuation(processInstance, unitOfWorkResult.continuation());
         }
     }
 }

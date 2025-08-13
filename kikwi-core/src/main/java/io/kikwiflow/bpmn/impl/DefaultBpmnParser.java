@@ -17,12 +17,16 @@
 package io.kikwiflow.bpmn.impl;
 
 import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.bpmn.elements.SequenceFlow;
-import io.kikwiflow.model.bpmn.elements.end.EndEvent;
-import io.kikwiflow.model.bpmn.elements.start.StartEvent;
-import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
-import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
+import io.kikwiflow.bpmn.mapper.FlowNodeMapper;
+import io.kikwiflow.bpmn.mapper.ProcessDefinitionMapper;
+import io.kikwiflow.bpmn.model.FlowNodeDefinition;
+import io.kikwiflow.bpmn.model.ProcessDefinition;
+import io.kikwiflow.bpmn.model.SequenceFlow;
+import io.kikwiflow.bpmn.model.end.EndEvent;
+import io.kikwiflow.bpmn.model.start.StartEvent;
+import io.kikwiflow.bpmn.model.task.ServiceTask;
+import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -36,7 +40,7 @@ public class DefaultBpmnParser implements BpmnParser {
     private static final String CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn";
 
     @Override
-    public ProcessDefinitionDeploy parse(InputStream bpmnXmlFileStream) throws Exception {
+    public ProcessDefinitionSnapshot parse(InputStream bpmnXmlFileStream) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
@@ -47,7 +51,7 @@ public class DefaultBpmnParser implements BpmnParser {
             throw new RuntimeException("Tag <bpmn:process> não encontrada no arquivo.");
         }
 
-        ProcessDefinitionDeploy processDefinitionDeploy = new ProcessDefinitionDeploy();
+        ProcessDefinition processDefinitionDeploy = new ProcessDefinition();
         processDefinitionDeploy.setKey(processElement.getAttribute("id"));
         processDefinitionDeploy.setName(processElement.getAttribute("name"));
 
@@ -90,7 +94,7 @@ public class DefaultBpmnParser implements BpmnParser {
             }
         }
 
-        return processDefinitionDeploy;
+        return ProcessDefinitionMapper.toSnapshot(processDefinitionDeploy);
     }
 
     private FlowNodeDefinition parseEvent(Element element, FlowNodeDefinition node) {

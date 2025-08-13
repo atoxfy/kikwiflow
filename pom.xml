@@ -25,10 +25,10 @@
         <module>kikwi-model</module>
         <module>kikwi-runtime-persistence-mongodb</module>
         <module>kikwi-core-testing</module>
-        <module>kikwi-events-api</module>
+        <module>kikwi-lightweight-events-api</module>
         <module>kikwi-in-memory-addons</module>
         <module>kikwi-history-api</module>
-        <module>kikwi-event-relay-api</module>
+        <module>kikwi-critical-event-relay-api</module>
         <module>kikwi-core-tests</module>
     </modules>
 

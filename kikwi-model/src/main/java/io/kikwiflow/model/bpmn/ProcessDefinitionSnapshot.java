@@ -16,19 +16,68 @@
  */
 package io.kikwiflow.model.bpmn;
 
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
 public record ProcessDefinitionSnapshot(
         String id, Integer version, String key, String name,
-        Map<String, FlowNodeDefinition> flowNodes, FlowNodeDefinition defaultStartPoint
+        Map<String, FlowNodeDefinitionSnapshot> flowNodes, FlowNodeDefinitionSnapshot defaultStartPoint
 ) {
     public ProcessDefinitionSnapshot {
-        Objects.requireNonNull(id, "id cannot be null");
         Objects.requireNonNull(key, "key cannot be null");
         Objects.requireNonNull(flowNodes, "flowNodes cannot be null");
         flowNodes = Map.copyOf(flowNodes);
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String id;
+        private Integer version;
+        private String key;
+        private String name;
+        private Map<String, FlowNodeDefinitionSnapshot> flowNodes = Collections.emptyMap();
+        private FlowNodeDefinitionSnapshot defaultStartPoint;
+
+        private Builder() {}
+
+        public Builder id(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder version(Integer version) {
+            this.version = version;
+            return this;
+        }
+
+        public Builder key(String key) {
+            this.key = key;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder flowNodes(Map<String, FlowNodeDefinitionSnapshot> flowNodes) {
+            this.flowNodes = flowNodes;
+            return this;
+        }
+
+        public Builder defaultStartPoint(FlowNodeDefinitionSnapshot defaultStartPoint) {
+            this.defaultStartPoint = defaultStartPoint;
+            return this;
+        }
+
+        public ProcessDefinitionSnapshot build() {
+            return new ProcessDefinitionSnapshot(id, version, key, name, flowNodes, defaultStartPoint);
+        }
     }
 }

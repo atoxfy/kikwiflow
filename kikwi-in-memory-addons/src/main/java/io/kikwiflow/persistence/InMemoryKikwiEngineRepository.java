@@ -16,10 +16,11 @@
  */
 package io.kikwiflow.persistence;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
-import io.kikwiflow.model.execution.ExecutableTaskEntity;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.persistence.api.model.OutboxEvent;
+import io.kikwiflow.persistence.api.data.ExecutableTaskEntity;
+import io.kikwiflow.persistence.api.data.ProcessDefinitionEntity;
+import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
+import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.data.event.OutboxEventEntity;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.util.HashMap;
@@ -27,17 +28,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
-    private Map<String, ProcessInstance> processInstanceCollection = new HashMap<>();
+    private Map<String, ProcessInstanceEntity> processInstanceCollection = new HashMap<>();
     private Map<String, ExecutableTaskEntity> executableTaskCollection = new HashMap<>();
-    private Map<String, ProcessDefinition> processDefinitionCollection = new HashMap<String, ProcessDefinition>();
-    private Map<String, Map<Integer, ProcessDefinition>> processDefinitionHistoryCollection= new HashMap<String, Map<Integer, ProcessDefinition>>();
-    private final Queue<OutboxEvent> outboxEventQueue;
+    private Map<String, ProcessDefinitionEntity> processDefinitionCollection = new HashMap<String, ProcessDefinitionEntity>();
+    private Map<String, Map<Integer, ProcessDefinitionEntity>> processDefinitionHistoryCollection= new HashMap<String, Map<Integer, ProcessDefinitionEntity>>();
+    private final Queue<OutboxEventEntity> outboxEventQueue;
 
-    public InMemoryKikwiEngineRepository(Queue<OutboxEvent> outboxEventQueue){
+    public InMemoryKikwiEngineRepository(Queue<OutboxEventEntity> outboxEventQueue){
         this.outboxEventQueue = outboxEventQueue;
     }
 
@@ -50,14 +50,14 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessInstance saveProcessInstance(ProcessInstance instance) {
+    public ProcessInstanceEntity saveProcessInstance(ProcessInstanceEntity instance) {
         instance.setId(UUID.randomUUID().toString());
         this.processInstanceCollection.put(instance.getId(), instance);
         return instance;
     }
 
     @Override
-    public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
+    public Optional<ProcessInstanceEntity> findProcessInstanceById(String processInstanceId) {
         return Optional.ofNullable(this.processInstanceCollection.get(processInstanceId));
     }
 
@@ -76,34 +76,34 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
 
     @Override
-    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinition){
+    public ProcessDefinitionEntity saveProcessDefinition(ProcessDefinitionEntity processDefinition){
         String key = processDefinition.getKey();
-
-        ProcessDefinition lastProcessDefinition = processDefinitionCollection.get(key);
-
+        ProcessDefinitionEntity lastProcessDefinition = processDefinitionCollection.get(key);
+        Integer version = 0;
         //TODO separar responsabilidades
-        if(lastProcessDefinition == null){
-            processDefinition.setVersion(1);
-        }else {
-            processDefinition.setVersion(lastProcessDefinition.getVersion() + 1);
+        if(lastProcessDefinition != null){
+            version = lastProcessDefinition.getVersion();
         }
 
-        processDefinition.setId(UUID.randomUUID().toString());
-        this.processDefinitionCollection.put(processDefinition.getKey(), processDefinition);
+        final String id = UUID.randomUUID().toString();
+        processDefinition.setId(id);
+        processDefinition.setVersion(version);
+
+        this.processDefinitionCollection.put(key, processDefinition);
         this.addToHistory(processDefinition);
         return processDefinition;
     }
 
     @Override
-    public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey){
+    public Optional<ProcessDefinitionEntity> findProcessDefinitionByKey(String processDefinitionKey){
         return Optional.ofNullable(processDefinitionCollection.get(processDefinitionKey));
     }
 
-    public void addToHistory(ProcessDefinition processDefinition){
+    public void addToHistory(ProcessDefinitionEntity processDefinition){
         String key = processDefinition.getKey();
-        Map<Integer, ProcessDefinition> processDefinitionVersionMap = processDefinitionHistoryCollection.get(key);
+        Map<Integer, ProcessDefinitionEntity> processDefinitionVersionMap = processDefinitionHistoryCollection.get(key);
         if(null == processDefinitionVersionMap){
-            processDefinitionVersionMap = new HashMap<Integer, ProcessDefinition>();
+            processDefinitionVersionMap = new HashMap<Integer, ProcessDefinitionEntity>();
         }
 
         processDefinitionVersionMap.put(processDefinition.getVersion(), processDefinition);
@@ -111,7 +111,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessInstance updateProcessInstance(ProcessInstance processInstance) {
+    public ProcessInstanceEntity updateProcessInstance(ProcessInstanceEntity processInstance) {
         this.processInstanceCollection.put(processInstance.getId(), processInstance);
         return processInstance;
     }
@@ -119,5 +119,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     @Override
     public void deleteProcessInstanceById(String processInstanceId) {
         this.processInstanceCollection.remove(processInstanceId);
+    }
+
+    @Override
+    public void commitWork(UnitOfWork unitOfWork) {
+        this.processInstanceCollection.put(unitOfWork.instanceToUpdate().getId(), unitOfWork.instanceToUpdate());
+        this.outboxEventQueue.addAll(unitOfWork.events());
     }
 }

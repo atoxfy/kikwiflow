@@ -29,14 +29,17 @@ package io.kikwiflow.config;
 public class KikwiflowConfig {
 
     private Boolean isStatsEnabled;
+    private Boolean isOutboxEventsEnabled;
+
 
     public KikwiflowConfig() {
     }
 
-
-
     public void statsEnabled() {
         isStatsEnabled = true;
+    }
+    public void outboxEventsEnabled() {
+        isOutboxEventsEnabled = true;
     }
 
     public void statsDisabled(){
@@ -44,6 +47,10 @@ public class KikwiflowConfig {
     }
 
     public boolean isStatsEnabled(){
-        return true;
+        return isStatsEnabled;
+    }
+
+    public Boolean isOutboxEventsEnabled() {
+        return isOutboxEventsEnabled;
     }
 }

@@ -30,7 +30,7 @@
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-events-api</artifactId>
+            <artifactId>kikwi-lightweight-events-api</artifactId>
             <version>0.1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -41,7 +41,7 @@
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-event-relay-api</artifactId>
+            <artifactId>kikwi-critical-event-relay-api</artifactId>
             <version>0.1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

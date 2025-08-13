@@ -3,92 +3,173 @@ package io.kikwiflow.execution;
 import io.kikwiflow.api.DefaultExecutionContext;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.AsynchronousEventPublisher;
-import io.kikwiflow.event.ExecutionEvent;
-import io.kikwiflow.event.model.FlowNodeExecuted;
+import io.kikwiflow.event.LightweightEvent;
+import io.kikwiflow.execution.dto.UnitOfWorkResult;
+import io.kikwiflow.persistence.api.data.event.CriticalEvent;
+import io.kikwiflow.persistence.api.data.event.FlowNodeExecuted;
+import io.kikwiflow.execution.dto.FlowNodeExecutionResult;
 import io.kikwiflow.execution.dto.StartableProcessRecord;
+import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.model.execution.Continuation;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
+import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.execution.ExecutionContext;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.ExecutableTask;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.FlowNodeExecutionSnapshot;
 import io.kikwiflow.model.execution.enumerated.NodeExecutionStatus;
 import io.kikwiflow.navigation.Navigator;
+import io.kikwiflow.persistence.api.data.event.OutboxEventEntity;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 public class FlowNodeExecutor {
 
     private final TaskExecutor taskExecutor;
     private final Navigator navigator;
     private final KikwiflowConfig kikwiflowConfig;
-    private final AsynchronousEventPublisher asynchronousEventPublisher;
-    private final ProcessInstanceManager processInstanceManager;
 
-    public FlowNodeExecutor(TaskExecutor taskExecutor, Navigator navigator, KikwiflowConfig kikwiflowConfig, AsynchronousEventPublisher asynchronousEventPublisher, ProcessInstanceManager processInstanceManager) {
+    public FlowNodeExecutor(TaskExecutor taskExecutor, Navigator navigator, KikwiflowConfig kikwiflowConfig) {
         this.taskExecutor = taskExecutor;
         this.navigator = navigator;
         this.kikwiflowConfig = kikwiflowConfig;
-        this.asynchronousEventPublisher = asynchronousEventPublisher;
-        this.processInstanceManager = processInstanceManager;
     }
 
-    private Continuation runWhileNotFindAStopPoint(FlowNodeDefinition startPoint, ProcessInstance processInstance, ProcessDefinitionSnapshot processDefinition){
-        FlowNodeDefinition currentNode = startPoint;
+    private class FlowNodeExecution{
+        private FlowNodeDefinitionSnapshot flowNodeDefinition;
+        private ProcessDefinitionSnapshot processDefinitionSnapshot;
+        private ProcessInstance processInstance;
+        private Instant startedAt;
+        private Instant finishedAt;
+        private NodeExecutionStatus nodeExecutionStatus;
+        private Continuation continuation;
+        private Supplier<Exception> errorSupplier;
 
-        List<ExecutionEvent> executionEvents = new ArrayList<>();
-        while (currentNode != null && !isWaitState(currentNode) && !isCommitBefore(currentNode)) {
+        public FlowNodeExecution(){
+        }
 
-            Instant startedAt = Instant.now();
-            NodeExecutionStatus nodeExecutionStatus = null;
-            Continuation continuation = null;
+        public FlowNodeExecution flowNode(FlowNodeDefinitionSnapshot flowNodeDefinition){
+            this.flowNodeDefinition = flowNodeDefinition;
+            return this;
+        }
+
+        public FlowNodeExecution processInstance(ProcessInstance processInstance){
+            this.processInstance = processInstance;
+            return this;
+        }
+
+        public FlowNodeExecution processDefinition(ProcessDefinitionSnapshot processDefinitionSnapshot){
+            this.processDefinitionSnapshot = processDefinitionSnapshot;
+            return this;
+        }
+
+        public FlowNodeExecution onError(Supplier<Exception> supplier){
+            this.errorSupplier = supplier;
+            return this;
+        }
+
+        public FlowNodeExecutionResult execute(){
 
             try{
-                continuation = executeAndGetContinuation(currentNode, processInstance, processDefinition);
-                nodeExecutionStatus = NodeExecutionStatus.SUCCESS;
+                this.startedAt = Instant.now();
+                this.continuation = executeAndGetContinuation(flowNodeDefinition, processInstance, processDefinitionSnapshot);
+                this.nodeExecutionStatus = NodeExecutionStatus.SUCCESS;
             }catch (Exception e){
-                nodeExecutionStatus = NodeExecutionStatus.ERROR;
+                this.nodeExecutionStatus = NodeExecutionStatus.ERROR;
+                if(Objects.nonNull(this.errorSupplier)){
+                    this.errorSupplier.get();
+                }
+
                 throw e;
-                //todo tratar erro
             }
 
-            Instant finishedAt = Instant.now();
+            this.finishedAt = Instant.now();
+
+            //todo
+            final FlowNodeExecutionSnapshot flowNodeExecutionSnapshot = kikwiflowConfig.isStatsEnabled()
+                    || kikwiflowConfig.isOutboxEventsEnabled() ? FlowNodeExecutionSnapshot.builder()
+                    .flowNodeDefinition(flowNodeDefinition)
+                    .processDefinitionSnapshot(processDefinitionSnapshot)
+                    .processInstanceSnapshot(ProcessInstanceMapper.takeSnapshot(processInstance))
+                    .startedAt(startedAt)
+                    .finishedAt(finishedAt)
+                    .nodeExecutionStatus(nodeExecutionStatus)
+                    .build() : null;
+
+            return new FlowNodeExecutionResult(flowNodeExecutionSnapshot, continuation);
+        }
+    }
+
+    public UnitOfWorkResult runWhileNotFindAStopPoint(FlowNodeDefinitionSnapshot startPoint, ProcessInstance processInstance, ProcessDefinitionSnapshot processDefinition){
+        FlowNodeDefinitionSnapshot currentNode = startPoint;
+
+        List<OutboxEventEntity> criticalEvents = new ArrayList<>();
+        boolean anyWorkWasDone = false;
+
+        while (currentNode != null && !isWaitState(currentNode) && !isCommitBefore(currentNode)) {
+            anyWorkWasDone = true;
+            FlowNodeExecutionResult flowNodeExecutionResult = new FlowNodeExecution()
+                    .processInstance(processInstance)
+                    .flowNode(currentNode)
+                    .processDefinition(processDefinition)
+                    .execute();
+
+            Continuation continuation = flowNodeExecutionResult.continuation();
+
             if(kikwiflowConfig.isStatsEnabled()){
-                FlowNodeExecuted flowNodeExecutedEvent =  FlowNodeExecuted();
-                executionEvents.add(flowNodeExecutedEvent);
+                FlowNodeExecutionSnapshot flowNodeExecutionSnapshot = flowNodeExecutionResult.flowNodeExecutionSnapshot();
+                FlowNodeExecuted flowNodeExecuted = new FlowNodeExecuted();
+                flowNodeExecuted.setFlowNodeDefinitionId(flowNodeExecutionSnapshot.flowNodeDefinition().id());
+                flowNodeExecuted.setProcessInstanceId(flowNodeExecutionSnapshot.processInstanceSnapshot().id());
+                flowNodeExecuted.setProcessDefinitionId(flowNodeExecutionSnapshot.processDefinitionSnapshot().id());
+                flowNodeExecuted.setNodeExecutionStatus(flowNodeExecutionSnapshot.nodeExecutionStatus());
+                flowNodeExecuted.setStartedAt(flowNodeExecutionSnapshot.startedAt());
+                flowNodeExecuted.setFinishedAt(flowNodeExecutionSnapshot.finishedAt());
+                OutboxEventEntity outboxEvent = new OutboxEventEntity(flowNodeExecuted);
+                criticalEvents.add(outboxEvent);
             }
 
 
             if (continuation == null || continuation.isAsynchronous()) {
-                // O processo terminou ou o próximo passo é assíncrono.
-                return continuation;
+                return new UnitOfWorkResult( new UnitOfWork(ProcessInstanceMapper.mapToEntity(processInstance),
+                        List.of(),
+                        List.of(),
+                        criticalEvents),
+                        continuation);
             } else {
                 //todo aqui devemos ver futuramente para os casos de processamento paralelo
-                currentNode = continuation.getNextNodes().get(0);
+                currentNode = continuation.nextNodes().get(0);
             }
         }
 
-        commitExecutionPath(processInstance, executionEvents);
 
         // Se saímos do loop, ou o processo terminou (currentNode == null) ou
         // encontrámos um ponto de paragem (wait state ou commit before).
         if (currentNode != null) {
-            return new Continuation(List.of(currentNode), true);
+            return new UnitOfWorkResult(
+                    new UnitOfWork(ProcessInstanceMapper.mapToEntity(processInstance),
+                            List.of(),
+                            List.of(),
+                            criticalEvents),
+                    new Continuation(List.of(currentNode), true));
         }
 
-        return null; // Processo terminou
+        return null;
     }
 
-    private void commitExecutionPath(ProcessInstance processInstance, List<ExecutionEvent> executionEvents){
-        processInstanceManager.update(processInstance);
+    private void commitExecutionPath(UnitOfWork unitOfWork){
+      //  processInstanceManager.update(unitOfWork.instanceToUpdate());
         if(kikwiflowConfig.isStatsEnabled()){
-            asynchronousEventPublisher.publishEvents(executionEvents);
+          //  asynchronousEventPublisher.publishEvents(lightweightEvents);
         }
     }
+
     private void execute(ExecutionContext executionContext) {
-        FlowNodeDefinition flowNodeDefinition = executionContext.getFlowNode();
+        FlowNodeDefinitionSnapshot flowNodeDefinition = executionContext.getFlowNode();
         if(flowNodeDefinition instanceof ExecutableTask){
             taskExecutor.execute(executionContext);
         }
@@ -96,12 +177,9 @@ public class FlowNodeExecutor {
         //think in history!!!!
     }
 
-    public Continuation startProcessExecution(StartableProcessRecord startableProcessRecord){
-        FlowNodeDefinition startPoint = navigator.findStartPoint(startableProcessRecord.processDefinition());
-        return runWhileNotFindAStopPoint(startPoint, startableProcessRecord.processInstance(), startableProcessRecord.processDefinition());
-    }
 
-    private Continuation executeAndGetContinuation(FlowNodeDefinition flowNodeDefinition, ProcessInstance processInstance, ProcessDefinitionSnapshot processDefinition){
+
+    private Continuation executeAndGetContinuation(FlowNodeDefinitionSnapshot flowNodeDefinition, ProcessInstance processInstance, ProcessDefinitionSnapshot processDefinition){
         // O ExecutionContext agora é criado com a instância mutável, permitindo que os delegates alterem seu estado.
         ExecutionContext executionContext = new DefaultExecutionContext(processInstance, processDefinition, flowNodeDefinition);
         execute(executionContext);
@@ -110,18 +188,16 @@ public class FlowNodeExecutor {
         return navigator.determineNextContinuation(flowNodeDefinition, processDefinition, isCommitAfter);
     }
 
-
-
-    private boolean isCommitAfter(FlowNodeDefinition flowNodeDefinition) {
-        return Boolean.TRUE.equals(flowNodeDefinition.getCommitAfter());
+    private boolean isCommitAfter(FlowNodeDefinitionSnapshot flowNodeDefinition) {
+        return Boolean.TRUE.equals(flowNodeDefinition.commitAfter());
     }
 
-    private boolean isWaitState(FlowNodeDefinition flowNodeDefinition){
+    private boolean isWaitState(FlowNodeDefinitionSnapshot flowNodeDefinition){
         //TODO
         return false;
     }
 
-    private boolean isCommitBefore(FlowNodeDefinition flowNodeDefinition){
-        return Boolean.TRUE.equals(flowNodeDefinition.getCommitBefore());
+    private boolean isCommitBefore(FlowNodeDefinitionSnapshot flowNodeDefinition){
+        return Boolean.TRUE.equals(flowNodeDefinition.commitBefore());
     }
 }

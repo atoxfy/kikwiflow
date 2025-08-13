@@ -1,8 +1,9 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.event.AsynchronousEventPublisher;
-import io.kikwiflow.event.model.ProcessInstanceFinished;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
+import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
+import io.kikwiflow.persistence.api.data.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
@@ -25,13 +26,13 @@ public class ProcessInstanceManager {
 
 
     public ProcessInstance start(String businessKey, String processDefinitionId, Map<String, Object> variables){
-        final ProcessInstance processInstance = ProcessInstance.builder()
+        final ProcessInstanceEntity processInstance = ProcessInstanceEntity.builder()
                 .businessKey(businessKey)
                 .processDefinitionId(processDefinitionId)
                 .variables(variables)
                 .build();
 
-        return kikwiEngineRepository.saveProcessInstance(processInstance);
+        return ProcessInstanceMapper.toProcessInstance(kikwiEngineRepository.saveProcessInstance(processInstance));
     }
 
     /**
@@ -44,14 +45,13 @@ public class ProcessInstanceManager {
     public ProcessInstanceSnapshot complete(ProcessInstance processInstance) {
         processInstance.setStatus(ProcessInstanceStatus.COMPLETED);
         processInstance.setEndedAt(Instant.now());
-
-        final ProcessInstanceFinished event = toFinishedEvent(processInstance);
-        asynchronousEventPublisher.publishEvent(event);
+        ProcessInstanceSnapshot processInstanceSnapshot = takeSnapshot(processInstance);
+        final ProcessInstanceFinished event = toFinishedEvent(processInstanceSnapshot);
         kikwiEngineRepository.deleteProcessInstanceById(processInstance.getId());
-        return takeSnapshot(processInstance);
+        return processInstanceSnapshot;
     }
 
     public void update(ProcessInstance processInstance) {
-        kikwiEngineRepository.updateProcessInstance(processInstance);
+        kikwiEngineRepository.updateProcessInstance(ProcessInstanceMapper.mapToEntity(processInstance));
     }
 }

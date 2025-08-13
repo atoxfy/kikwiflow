@@ -16,21 +16,22 @@
  */
 package io.kikwiflow.cache;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.bpmn.model.ProcessDefinition;
+import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class ProcessDefinitionCache {
-    private Map<String, ProcessDefinition> processDefinitionMap = new HashMap<String, ProcessDefinition>();
+    private Map<String, ProcessDefinitionSnapshot> processDefinitionMap = new HashMap<String, ProcessDefinitionSnapshot>();
 
-    public ProcessDefinition add(ProcessDefinition processDefinition){
-        this.processDefinitionMap.put(processDefinition.getKey(), processDefinition);
+    public ProcessDefinitionSnapshot add(ProcessDefinitionSnapshot processDefinition){
+        this.processDefinitionMap.put(processDefinition.key(), processDefinition);
         return processDefinition;
     }
 
-    public Optional<ProcessDefinition> findByKey(String processDefinitionKey){
+    public Optional<ProcessDefinitionSnapshot> findByKey(String processDefinitionKey){
         return Optional.ofNullable(processDefinitionMap.get(processDefinitionKey));
     }
 }

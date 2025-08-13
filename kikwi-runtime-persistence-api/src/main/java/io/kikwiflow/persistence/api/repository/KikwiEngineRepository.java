@@ -16,9 +16,10 @@
  */
 package io.kikwiflow.persistence.api.repository;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
-import io.kikwiflow.model.execution.ExecutableTaskEntity;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.persistence.api.data.ExecutableTaskEntity;
+import io.kikwiflow.persistence.api.data.ProcessDefinitionEntity;
+import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
+import io.kikwiflow.persistence.api.data.UnitOfWork;
 
 import java.util.Map;
 import java.util.Optional;
@@ -37,7 +38,7 @@ public interface KikwiEngineRepository {
      *
      * @param instance O objeto ProcessInstance a ser persistido.
      */
-    ProcessInstance saveProcessInstance(ProcessInstance instance);
+    ProcessInstanceEntity saveProcessInstance(ProcessInstanceEntity instance);
 
     /**
      * Encontra uma instância de processo pelo seu ID.
@@ -45,7 +46,7 @@ public interface KikwiEngineRepository {
      * @param processInstanceId O ID da instância a ser procurada.
      * @return Um Optional contendo a ProcessInstance se encontrada, ou vazio caso contrário.
      */
-    Optional<ProcessInstance> findProcessInstanceById(String processInstanceId);
+    Optional<ProcessInstanceEntity> findProcessInstanceById(String processInstanceId);
 
     /**
      * Atualiza as variáveis de uma instância de processo existente.
@@ -63,12 +64,14 @@ public interface KikwiEngineRepository {
     ExecutableTaskEntity createExecutableTask(ExecutableTaskEntity task);
 
 
-    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy);
+    public ProcessDefinitionEntity saveProcessDefinition(ProcessDefinitionEntity processDefinitionDeploy);
 
-    public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey);
+    public Optional<ProcessDefinitionEntity> findProcessDefinitionByKey(String processDefinitionKey);
 
-    public ProcessInstance updateProcessInstance(ProcessInstance processInstance);//TODO just for tests now
+    public ProcessInstanceEntity updateProcessInstance(ProcessInstanceEntity processInstance);//TODO just for tests now
 
     public void deleteProcessInstanceById(String processInstanceId);
+
+    public void commitWork(UnitOfWork unitOfWork);
 }
 

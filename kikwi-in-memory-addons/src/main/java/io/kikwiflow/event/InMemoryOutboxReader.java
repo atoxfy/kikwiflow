@@ -1,6 +1,6 @@
 package io.kikwiflow.event;
 
-import io.kikwiflow.persistence.api.model.OutboxEvent;
+import io.kikwiflow.persistence.api.data.event.OutboxEventEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,18 +8,18 @@ import java.util.Queue;
 
 public class InMemoryOutboxReader implements OutboxReader {
 
-    private final Queue<OutboxEvent> outboxQueue;
+    private final Queue<OutboxEventEntity> outboxQueue;
 
-    public InMemoryOutboxReader(Queue<OutboxEvent> outboxQueue) {
+    public InMemoryOutboxReader(Queue<OutboxEventEntity> outboxQueue) {
         this.outboxQueue = outboxQueue;
     }
 
     @Override
-    public List<OutboxEvent> readAndLockNextBatch(int batchSize) {
+    public List<OutboxEventEntity> readAndLockNextBatch(int batchSize) {
 
-        List<OutboxEvent> batch = new ArrayList<>();
+        List<OutboxEventEntity> batch = new ArrayList<>();
         for (int i = 0; i < batchSize; i++) {
-            OutboxEvent event = outboxQueue.poll();
+            OutboxEventEntity event = outboxQueue.poll();
             if (event == null) {
                 break;
             }
@@ -29,7 +29,7 @@ public class InMemoryOutboxReader implements OutboxReader {
     }
 
     @Override
-    public void confirmBatch(List<OutboxEvent> events) {
+    public void confirmBatch(List<OutboxEventEntity> events) {
         throw new RuntimeException("InMemoryOutboxReade don't implement confirmBatch");
     }
 }

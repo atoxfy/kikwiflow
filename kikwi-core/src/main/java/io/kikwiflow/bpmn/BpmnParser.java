@@ -17,7 +17,7 @@
 package io.kikwiflow.bpmn;
 
 
-import io.kikwiflow.model.deploy.ProcessDefinitionDeploy;
+import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
 
 import java.io.InputStream;
 
@@ -27,5 +27,5 @@ import java.io.InputStream;
  * @author Emiliano Fagundes
  */
 public interface BpmnParser {
-    public ProcessDefinitionDeploy parse(InputStream bpmnFileStream) throws Exception;
+    public ProcessDefinitionSnapshot parse(InputStream bpmnFileStream) throws Exception;
 }

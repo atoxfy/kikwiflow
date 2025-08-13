@@ -16,11 +16,13 @@
  */
 package io.kikwiflow.execution;
 
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
+import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinitionSnapshot;
 import io.kikwiflow.model.execution.ExecutionContext;
 import io.kikwiflow.model.execution.JavaDelegate;
 import io.kikwiflow.exception.BadDefinitionExecutionException;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.bpmn.elements.task.ServiceTask;
+import io.kikwiflow.bpmn.model.FlowNodeDefinition;
+import io.kikwiflow.bpmn.model.task.ServiceTask;
 
 import java.util.Objects;
 
@@ -31,17 +33,17 @@ public class TaskExecutor {
         this.delegateResolver = delegateResolver;
     }
 
-    private boolean isExecutableByDelegate(ServiceTask serviceTask){
-        return Objects.nonNull(serviceTask.getDelegateExpression());
+    private boolean isExecutableByDelegate(ServiceTaskDefinitionSnapshot serviceTask){
+        return Objects.nonNull(serviceTask.delegateExpression());
     }
 
     public void execute(ExecutionContext executionContext){
-        FlowNodeDefinition executableTask = executionContext.getFlowNode();
+        FlowNodeDefinitionSnapshot executableTask = executionContext.getFlowNode();
 
-        if(executableTask instanceof ServiceTask){
-            ServiceTask serviceTask = (ServiceTask) executableTask;
+        if(executableTask instanceof ServiceTaskDefinitionSnapshot){
+            ServiceTaskDefinitionSnapshot serviceTask = (ServiceTaskDefinitionSnapshot) executableTask;
             if(isExecutableByDelegate(serviceTask)){
-                String delegateExpression = serviceTask.getDelegateExpression();
+                String delegateExpression = serviceTask.delegateExpression();
                 String beanName = delegateExpression.replace("${", "").replace("}", "");
                 JavaDelegate delegate = delegateResolver.resolve(beanName)
                         .orElseThrow(() -> new BadDefinitionExecutionException("JavaDelegate not found with name: " + beanName));
@@ -54,9 +56,8 @@ public class TaskExecutor {
                 }
 
             }else {
-                throw new BadDefinitionExecutionException("Invalid execution method for task " + serviceTask.getId());
+                throw new BadDefinitionExecutionException("Invalid execution method for task " + serviceTask.id());
             }
-
          }
     }
 }

@@ -24,12 +24,12 @@ public class AsynchronousEventPublisher implements EventPublisher {
     }
 
     @Override
-    public void publishEvent(ExecutionEvent event) {
+    public void publishEvent(LightweightEvent event) {
         publishEvents(List.of(event));
     }
 
     @Override
-    public void publishEvents(List<ExecutionEvent> events){
+    public void publishEvents(List<LightweightEvent> events){
         for (ExecutionEventListener listener : listeners) {
             listenerExecutor.submit(() -> {
                 listener.onEvents(events);

@@ -16,12 +16,11 @@
  */
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.bpmn.elements.SequenceFlow;
-import io.kikwiflow.model.execution.Continuation;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
+import io.kikwiflow.model.bpmn.elements.SequenceFlowDefinitionSnapshot;
+import io.kikwiflow.execution.dto.Continuation;
+import io.kikwiflow.execution.ProcessInstance;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,20 +37,20 @@ public class Navigator {
         this.processDefinitionManager = processDefinitionManager;
     }
 
-    public FlowNodeDefinition findStartPoint(ProcessDefinitionSnapshot processDefinition){
+    public FlowNodeDefinitionSnapshot findStartPoint(ProcessDefinitionSnapshot processDefinition){
         return processDefinition.defaultStartPoint();
     }
 
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinitionSnapshot processDefinition, boolean forceAsync) {
+    public Continuation determineNextContinuation(FlowNodeDefinitionSnapshot completedNode, ProcessDefinitionSnapshot processDefinition, boolean forceAsync) {
 
-        List<SequenceFlow> outgoingFlows = completedNode.getOutgoing();
+        List<SequenceFlowDefinitionSnapshot> outgoingFlows = completedNode.outgoing();
 
         if (outgoingFlows.isEmpty()) {
             // É um EndEvent ou um nó sem saída, o processo termina aqui.
             return null;
         }
 
-        List<FlowNodeDefinition> nextNodes = new ArrayList<>();
+        List<FlowNodeDefinitionSnapshot> nextNodes = new ArrayList<>();
 
         /*
         // Aqui futuramente adicionar logica por tipo de node
@@ -71,7 +70,7 @@ public class Navigator {
         // }
 
         //para nodos de uma saida só
-        String targetNodeId = outgoingFlows.get(0).getTargetNodeId();
+        String targetNodeId = outgoingFlows.get(0).targetNodeId();
         nextNodes.add(processDefinition.flowNodes().get(targetNodeId));
 
         /*
@@ -89,15 +88,15 @@ public class Navigator {
         } else {
             // Verificamos se o *próximo* nó pede para ser assíncrono.
             // (Simplificado para um fluxo linear, o primeiro nó da lista decide)
-            isAsync = Boolean.TRUE.equals(nextNodes.get(0).getCommitBefore());
+            isAsync = Boolean.TRUE.equals(nextNodes.get(0).commitBefore());
         }
 
         return new Continuation(nextNodes, isAsync);
     }
 
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessInstance instance, boolean forceAsync) {
+    public Continuation determineNextContinuation(FlowNodeDefinitionSnapshot completedNode, ProcessInstance instance, boolean forceAsync) {
 
-        ProcessDefinition definition = processDefinitionManager.getByKey(instance.getProcessDefinitionId()).get();//todo
+        ProcessDefinitionSnapshot definition = processDefinitionManager.getByKey(instance.getProcessDefinitionId()).get();//todo
         return determineNextContinuation(completedNode, instance, forceAsync);
 
     }
