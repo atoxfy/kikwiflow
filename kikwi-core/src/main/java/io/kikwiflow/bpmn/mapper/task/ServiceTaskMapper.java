@@ -40,6 +40,7 @@ public final class ServiceTaskMapper {
     }
 
     public static ServiceTaskEntity toEntity(ServiceTaskDefinitionSnapshot serviceTask) {
+
         return ServiceTaskEntity.builder()
                 .id(serviceTask.id())
                 .name(serviceTask.name())

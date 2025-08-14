@@ -88,4 +88,16 @@ public final class ProcessInstanceMapper {
         processInstanceEntity.setEndedAt(processInstance.getEndedAt());
         return processInstanceEntity;
     }
+
+    public static ProcessInstanceSnapshot takeSnapshot(ProcessInstanceEntity processInstance) {
+        return new ProcessInstanceSnapshot(
+                processInstance.getId(),
+                processInstance.getBusinessKey(),
+                processInstance.getStatus(),
+                processInstance.getProcessDefinitionId(),
+                Map.copyOf(processInstance.getVariables()),
+                processInstance.getStartedAt(),
+                processInstance.getEndedAt()
+        );
+    }
 }

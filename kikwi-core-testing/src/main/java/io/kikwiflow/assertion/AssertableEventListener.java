@@ -26,12 +26,11 @@ public class AssertableEventListener {
         this.processInstanceSnapshotRepository = processInstanceSnapshotRepository;
     }
 
-    private void runOnce(){
-        for (int i = 0; i < outboxEventQueue.size(); i++) {
-            OutboxEventEntity outboxEvent = outboxEventQueue.poll();
-            if (outboxEvent == null) {
-                break;
-            }
+    public void runOnce(){
+        // A forma correta de esvaziar uma fila é usando um loop while com poll(),
+        // que remove o elemento e o retorna, ou retorna null se a fila estiver vazia.
+        OutboxEventEntity outboxEvent;
+        while ((outboxEvent = outboxEventQueue.poll()) != null) {
 
             CriticalEvent event = outboxEvent.getEvent();
             if(event instanceof FlowNodeExecuted flowNodeExecuted){

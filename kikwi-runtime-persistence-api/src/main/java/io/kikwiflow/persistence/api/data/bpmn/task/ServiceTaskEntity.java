@@ -60,7 +60,7 @@ public class ServiceTaskEntity extends FlowNodeDefinitionEntity implements Execu
             return this;
         }
 
-        public Builder outgoing(List<SequenceFlowEntity> description) {
+        public Builder outgoing(List<SequenceFlowEntity> outgoing) {
             this.outgoing = outgoing;
             return this;
         }

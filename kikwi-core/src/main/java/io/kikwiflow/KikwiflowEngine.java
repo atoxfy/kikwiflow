@@ -34,17 +34,28 @@ import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
+import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionManager;
+import io.kikwiflow.persistence.api.data.ExecutableTaskEntity;
+import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
+import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.data.event.CriticalEvent;
+import io.kikwiflow.persistence.api.data.event.OutboxEventEntity;
+import io.kikwiflow.persistence.api.data.event.ProcessInstanceFinished;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static io.kikwiflow.execution.mapper.ProcessInstanceMapper.takeSnapshot;
+import static io.kikwiflow.execution.mapper.ProcessInstanceMapper.toFinishedEvent;
 
 public class KikwiflowEngine {
 
@@ -56,9 +67,11 @@ public class KikwiflowEngine {
     private final KikwiflowConfig kikwiflowConfig;
     private final List<ExecutionEventListener> eventListeners;
     private final AsynchronousEventPublisher asynchronousEventPublisher;
+    private final KikwiEngineRepository kikwiEngineRepository;
 
 
     public KikwiflowEngine(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, DelegateResolver delegateResolver, List<ExecutionEventListener> executionEventListeners){
+        this.kikwiEngineRepository = kikwiEngineRepository;
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.asynchronousEventPublisher = new AsynchronousEventPublisher(executorService);
         registerListeners(executionEventListeners);
@@ -82,25 +95,54 @@ public class KikwiflowEngine {
         return processDefinitionManager.deploy(is);
     }
 
-    private ProcessInstanceSnapshot handleContinuation(ProcessInstance processInstance, Continuation continuation) {
-        // Caso 1: O processo parou em uma tarefa assíncrona (ou estado de espera).
+    private ProcessInstanceSnapshot handleContinuation(UnitOfWorkResult unitOfWorkResult) {
+        Continuation continuation = unitOfWorkResult.continuation();
+        UnitOfWork unitOfWork = unitOfWorkResult.unitOfWork();
+        ProcessInstanceEntity processInstance = unitOfWork.instanceToUpdate();
+
+        // O processo parou em uma tarefa assíncrona (ou estado de espera).
+        List<ExecutableTaskEntity> nextTasks = null;
         if (continuation != null && continuation.isAsynchronous()) {
-            createAsynchronousTasks(continuation);
-            // Retorna o snapshot da instância em estado ATIVO, pois ela ainda não terminou.
-            // A instância pode ter sido modificada, então criamos um novo snapshot.
-            return ProcessInstanceMapper.takeSnapshot(processInstance);
+            //TODO classificar entre external e executable
+            nextTasks = continuation.nextNodes().stream()
+                  .map(flowNodeDefinitionSnapshot ->
+                       ExecutableTaskEntity.builder()
+                              .processDefinitionId(processInstance.getProcessDefinitionId())
+                              .taskDefinitionId(flowNodeDefinitionSnapshot.id())
+                              .processInstanceId(processInstance.getId())
+                              .build()).toList();
+        }else{
+            processInstance.setEndedAt(Instant.now());
+            processInstance.setStatus(ProcessInstanceStatus.COMPLETED);
         }
 
-        // Caso 2: O processo foi concluído de forma síncrona.
-        // Finaliza a instância, publica o evento e a remove do repositório de runtime.
-        return processInstanceManager.complete(processInstance);
-    }
 
-    private void createAsynchronousTasks(Continuation continuation) {
-        // TODO: Implementar a criação (em lote) de ExecutableTaskEntity no repositório.
-        for (FlowNodeDefinitionSnapshot asyncNode : continuation.nextNodes()) {
-            System.out.println("TODO: Criar tarefa assíncrona para o nó: " + asyncNode.id());
+        List<OutboxEventEntity> events = unitOfWork.events();
+        if(ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus())){
+           ProcessInstanceFinished processInstanceFinished = ProcessInstanceFinished.builder()
+                    .processDefinitionId(processInstance.getProcessDefinitionId())
+                    .businessKey(processInstance.getBusinessKey())
+                    .id(processInstance.getId())
+                    .status(processInstance.getStatus())
+                    .variables(processInstance.getVariables())
+                    .build();
+
+
+            events.add(new OutboxEventEntity(processInstanceFinished));
         }
+
+        //TODO ajustar para adicionar external tasks e tasks to delete.
+        UnitOfWork updatedUnitOfWork = new UnitOfWork(
+                !ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus()) ? processInstance : null,
+                ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus()) ? processInstance : null,
+                nextTasks,
+                Collections.emptyList(),
+                unitOfWork.events()
+        );
+
+        kikwiEngineRepository.commitWork(updatedUnitOfWork);
+
+        return ProcessInstanceMapper.takeSnapshot(processInstance);
     }
 
     /**
@@ -162,7 +204,7 @@ public class KikwiflowEngine {
             );
 
             // 3. Finalização: Lida com o resultado da execução.
-            return engine.handleContinuation(processInstance, unitOfWorkResult.continuation());
+            return engine.handleContinuation(unitOfWorkResult);
         }
     }
 }

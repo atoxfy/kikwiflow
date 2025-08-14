@@ -108,6 +108,8 @@ public class LinearServiceTasksTests {
         assertEquals(initialVar, processInstance.variables().get(initialVarKey));
 
         assertableKikwiEngine.assertThatProcessInstanceNotExistsInRuntimeContext(processInstance.id());
+        assertableKikwiEngine.evaluateEvents();
+
         assertableKikwiEngine.assertIfHasProcessInstanceInHistory(processInstance);
     }
 }

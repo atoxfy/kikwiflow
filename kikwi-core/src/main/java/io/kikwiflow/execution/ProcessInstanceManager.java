@@ -1,6 +1,7 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.event.AsynchronousEventPublisher;
+import io.kikwiflow.execution.dto.UnitOfWorkResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
 import io.kikwiflow.persistence.api.data.event.ProcessInstanceFinished;
@@ -35,21 +36,7 @@ public class ProcessInstanceManager {
         return ProcessInstanceMapper.toProcessInstance(kikwiEngineRepository.saveProcessInstance(processInstance));
     }
 
-    /**
-     * Completes a given process instance. This method assumes the passed instance
-     * contains the final state of the execution.
-     *
-     * @param processInstance The process instance with its final state.
-     * @return An immutable snapshot of the completed instance.
-     */
-    public ProcessInstanceSnapshot complete(ProcessInstance processInstance) {
-        processInstance.setStatus(ProcessInstanceStatus.COMPLETED);
-        processInstance.setEndedAt(Instant.now());
-        ProcessInstanceSnapshot processInstanceSnapshot = takeSnapshot(processInstance);
-        final ProcessInstanceFinished event = toFinishedEvent(processInstanceSnapshot);
-        kikwiEngineRepository.deleteProcessInstanceById(processInstance.getId());
-        return processInstanceSnapshot;
-    }
+
 
     public void update(ProcessInstance processInstance) {
         kikwiEngineRepository.updateProcessInstance(ProcessInstanceMapper.mapToEntity(processInstance));

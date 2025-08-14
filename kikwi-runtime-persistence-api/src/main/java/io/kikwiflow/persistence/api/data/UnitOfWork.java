@@ -9,6 +9,7 @@ import java.util.List;
 
 public record UnitOfWork(
         ProcessInstanceEntity instanceToUpdate,
-        List<ExecutableTask> tasksToCreate,
+        ProcessInstanceEntity instanceToDelete,
+        List<ExecutableTaskEntity> tasksToCreate,
         List<String> tasksToDelete,
         List<OutboxEventEntity> events) {}

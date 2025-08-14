@@ -31,10 +31,10 @@ import java.util.UUID;
 
 public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
-    private Map<String, ProcessInstanceEntity> processInstanceCollection = new HashMap<>();
-    private Map<String, ExecutableTaskEntity> executableTaskCollection = new HashMap<>();
-    private Map<String, ProcessDefinitionEntity> processDefinitionCollection = new HashMap<String, ProcessDefinitionEntity>();
-    private Map<String, Map<Integer, ProcessDefinitionEntity>> processDefinitionHistoryCollection= new HashMap<String, Map<Integer, ProcessDefinitionEntity>>();
+    private final Map<String, ProcessInstanceEntity> processInstanceCollection = new HashMap<>();
+    private final Map<String, ExecutableTaskEntity> executableTaskCollection = new HashMap<>();
+    private final Map<String, ProcessDefinitionEntity> processDefinitionCollection = new HashMap<String, ProcessDefinitionEntity>();
+    private final Map<String, Map<Integer, ProcessDefinitionEntity>> processDefinitionHistoryCollection= new HashMap<String, Map<Integer, ProcessDefinitionEntity>>();
     private final Queue<OutboxEventEntity> outboxEventQueue;
 
     public InMemoryKikwiEngineRepository(Queue<OutboxEventEntity> outboxEventQueue){
@@ -123,7 +123,17 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
     @Override
     public void commitWork(UnitOfWork unitOfWork) {
-        this.processInstanceCollection.put(unitOfWork.instanceToUpdate().getId(), unitOfWork.instanceToUpdate());
+        //TODO adjust it /!\
+        ProcessInstanceEntity processInstanceToDelete = unitOfWork.instanceToDelete();
+        if(processInstanceToDelete != null){
+            this.processInstanceCollection.remove(processInstanceToDelete.getId());
+        }
+
+        ProcessInstanceEntity processInstanceToUpdate = unitOfWork.instanceToUpdate();
+        if(processInstanceToUpdate != null){
+            this.processInstanceCollection.put(unitOfWork.instanceToUpdate().getId(), unitOfWork.instanceToUpdate());
+        }
+
         this.outboxEventQueue.addAll(unitOfWork.events());
     }
 }

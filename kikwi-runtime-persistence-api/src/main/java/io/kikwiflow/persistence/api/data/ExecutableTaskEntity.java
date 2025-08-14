@@ -1,6 +1,6 @@
 package io.kikwiflow.persistence.api.data;
 
-import io.kikwiflow.model.execution.enumerated.ExecutionStatus;
+import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 
 import java.time.Instant;
 
@@ -9,21 +9,13 @@ public class ExecutableTaskEntity {
     private String taskDefinitionId;
     private String processDefinitionId;
     private Instant createdAt;
-
     private Long executions;
-
     private Long retries;
-
     private String processInstanceId;
-
     private String error;
-
-    private ExecutionStatus status;
-
+    private ExecutableTaskStatus status;
     private String executorId;
-
     private Instant acquiredAt;
-
 
     public String getId() {
         return id;
@@ -89,11 +81,11 @@ public class ExecutableTaskEntity {
         this.error = error;
     }
 
-    public ExecutionStatus getStatus() {
+    public ExecutableTaskStatus getStatus() {
         return status;
     }
 
-    public void setStatus(ExecutionStatus status) {
+    public void setStatus(ExecutableTaskStatus status) {
         this.status = status;
     }
 
@@ -111,5 +103,96 @@ public class ExecutableTaskEntity {
 
     public void setAcquiredAt(Instant acquiredAt) {
         this.acquiredAt = acquiredAt;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String id;
+        private String taskDefinitionId;
+        private String processDefinitionId;
+        private Instant createdAt;
+        private Long executions;
+        private Long retries;
+        private String processInstanceId;
+        private String error;
+        private ExecutableTaskStatus status;
+        private String executorId;
+        private Instant acquiredAt;
+
+        private Builder() {}
+
+        public Builder id(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder taskDefinitionId(String taskDefinitionId) {
+            this.taskDefinitionId = taskDefinitionId;
+            return this;
+        }
+
+        public Builder processDefinitionId(String processDefinitionId) {
+            this.processDefinitionId = processDefinitionId;
+            return this;
+        }
+
+        public Builder createdAt(Instant createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        public Builder executions(Long executions) {
+            this.executions = executions;
+            return this;
+        }
+
+        public Builder retries(Long retries) {
+            this.retries = retries;
+            return this;
+        }
+
+        public Builder processInstanceId(String processInstanceId) {
+            this.processInstanceId = processInstanceId;
+            return this;
+        }
+
+        public Builder error(String error) {
+            this.error = error;
+            return this;
+        }
+
+        public Builder status(ExecutableTaskStatus status) {
+            this.status = status;
+            return this;
+        }
+
+        public Builder executorId(String executorId) {
+            this.executorId = executorId;
+            return this;
+        }
+
+        public Builder acquiredAt(Instant acquiredAt) {
+            this.acquiredAt = acquiredAt;
+            return this;
+        }
+
+        public ExecutableTaskEntity build() {
+            ExecutableTaskEntity entity = new ExecutableTaskEntity();
+            entity.setId(this.id);
+            entity.setTaskDefinitionId(this.taskDefinitionId);
+            entity.setProcessDefinitionId(this.processDefinitionId);
+            entity.setCreatedAt(this.createdAt);
+            entity.setExecutions(this.executions);
+            entity.setRetries(this.retries);
+            entity.setProcessInstanceId(this.processInstanceId);
+            entity.setError(this.error);
+            entity.setStatus(this.status);
+            entity.setExecutorId(this.executorId);
+            entity.setAcquiredAt(this.acquiredAt);
+            return entity;
+        }
     }
 }

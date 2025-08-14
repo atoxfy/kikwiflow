@@ -136,6 +136,7 @@ public class FlowNodeExecutor {
 
             if (continuation == null || continuation.isAsynchronous()) {
                 return new UnitOfWorkResult( new UnitOfWork(ProcessInstanceMapper.mapToEntity(processInstance),
+                        null,
                         List.of(),
                         List.of(),
                         criticalEvents),
@@ -152,6 +153,7 @@ public class FlowNodeExecutor {
         if (currentNode != null) {
             return new UnitOfWorkResult(
                     new UnitOfWork(ProcessInstanceMapper.mapToEntity(processInstance),
+                            null,
                             List.of(),
                             List.of(),
                             criticalEvents),

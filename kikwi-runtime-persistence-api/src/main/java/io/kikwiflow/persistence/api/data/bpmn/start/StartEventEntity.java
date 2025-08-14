@@ -49,7 +49,7 @@ public class StartEventEntity extends FlowNodeDefinitionEntity {
             return this;
         }
 
-        public StartEventEntity.Builder outgoing(List<SequenceFlowEntity> description) {
+        public StartEventEntity.Builder outgoing(List<SequenceFlowEntity> outgoing) {
             this.outgoing = outgoing;
             return this;
         }

@@ -76,12 +76,16 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
 
     @Override
     public void deleteProcessInstanceById(String processInstanceId) {
-
+        this.inMemoryKikwiEngineRepository.deleteProcessInstanceById(processInstanceId);
     }
 
     @Override
     public void commitWork(UnitOfWork unitOfWork) {
         this.inMemoryKikwiEngineRepository.commitWork(unitOfWork);
+    }
+
+    public void evaluateEvents(){
+        this.assertableEventListener.runOnce();
     }
 
     public void reset() {
@@ -96,7 +100,7 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     public void assertIfHasProcessInstanceInHistory(ProcessInstanceSnapshot processInstance){
         Optional<ProcessInstanceFinished> coldProcessInstanceOpt = processInstanceSnapshotRepository.findById(processInstance.id());
         assertTrue(coldProcessInstanceOpt.isPresent());
-        ProcessInstanceEntity savedProcessInstance = coldProcessInstanceOpt.get();
+        ProcessInstanceFinished savedProcessInstance = coldProcessInstanceOpt.get();
         assertEquals(processInstance.id(), savedProcessInstance.getId());
         assertEquals(processInstance.businessKey(), savedProcessInstance.getBusinessKey());
         assertEquals(processInstance.processDefinitionId(), savedProcessInstance.getProcessDefinitionId());
