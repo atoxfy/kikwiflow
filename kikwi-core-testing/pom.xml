@@ -8,6 +8,11 @@
         <artifactId>kikwiflow-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
     <packaging>jar</packaging>
     <name>kikwiflow :: Testing</name>
     <artifactId>kikwi-core-testing</artifactId>
@@ -22,10 +27,6 @@
             <artifactId>kikwi-runtime-persistence-api</artifactId>
             <version>0.1.0-SNAPSHOT</version>
         </dependency>
-
-
-
-        <!--Test dependencies -->
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-in-memory-addons</artifactId>
@@ -53,10 +54,5 @@
             <version>5.12.0</version>
         </dependency>
     </dependencies>
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 
 </project>

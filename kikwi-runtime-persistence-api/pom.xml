@@ -8,15 +8,14 @@
         <artifactId>kikwiflow-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
-
-    <artifactId>kikwi-runtime-persistence-api</artifactId>
-    <packaging>jar</packaging>
-    <name>kikwiflow :: Persistence API</name>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    <packaging>jar</packaging>
+    <name>kikwiflow :: Runtime Persistence API</name>
+    <artifactId>kikwi-runtime-persistence-api</artifactId>
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>

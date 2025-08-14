@@ -30,6 +30,10 @@
         <module>kikwi-history-api</module>
         <module>kikwi-critical-event-relay-api</module>
         <module>kikwi-core-tests</module>
+        <module>kikwi-management-core</module>
+        <module>kikwi-management-api</module>
+        <module>kikwi-pulse</module>
+
     </modules>
 
 </project>

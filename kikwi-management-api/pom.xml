@@ -14,13 +14,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <packaging>jar</packaging>
-    <name>kikwiflow :: Spring Boot Starter</name>
-    <artifactId>kikwi-spring-boot-starter</artifactId>
-    <dependencies>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-core</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
-        </dependency>
-    </dependencies>
+    <name>kikwiflow :: Management API</name>
+    <artifactId>kikwi-management-api</artifactId>
 </project>

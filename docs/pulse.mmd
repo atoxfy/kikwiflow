@@ -1,0 +1,30 @@
+graph TD
+    subgraph "kikwi-pulse (Cockpit)"
+        UI[UI Angular]
+        BFF[BFF Spring Boot]
+    end
+
+subgraph "Camada de Gestão"
+API[kikwi-management-api<br> Interfaces, DTOs]
+IMPL[kikwi-management-core<br> Implementação dos Serviços]
+end
+
+subgraph "Camada de Persistência"
+PersistenceAPI[kikwi-runtime-persistence-api<br> Interface do Repositório]
+PersistenceMongo[kikwi-persistence-mongodb<br> Implementação do Repositório]
+end
+
+subgraph "Fundação"
+Model[kikwi-model]
+end
+
+UI -- HTTP --> BFF
+BFF -- depende de --> IMPL
+
+IMPL -- implementa --> API
+IMPL -- depende de --> PersistenceAPI
+
+API -- depende de --> Model
+PersistenceAPI -- depende de --> Model
+
+BFF -- também depende de --> PersistenceMongo
