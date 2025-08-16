@@ -16,11 +16,11 @@
  */
 package io.kikwiflow.persistence.api.repository;
 
-import io.kikwiflow.persistence.api.data.ExecutableTaskEntity;
-import io.kikwiflow.persistence.api.data.ProcessDefinitionEntity;
-import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
+import io.kikwiflow.model.execution.node.ExecutableTask;
+import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -38,7 +38,7 @@ public interface KikwiEngineRepository {
      *
      * @param instance O objeto ProcessInstance a ser persistido.
      */
-    ProcessInstanceEntity saveProcessInstance(ProcessInstanceEntity instance);
+    ProcessInstance saveProcessInstance(ProcessInstance instance);
 
     /**
      * Encontra uma instância de processo pelo seu ID.
@@ -46,7 +46,7 @@ public interface KikwiEngineRepository {
      * @param processInstanceId O ID da instância a ser procurada.
      * @return Um Optional contendo a ProcessInstance se encontrada, ou vazio caso contrário.
      */
-    Optional<ProcessInstanceEntity> findProcessInstanceById(String processInstanceId);
+    Optional<ProcessInstance> findProcessInstanceById(String processInstanceId);
 
     /**
      * Atualiza as variáveis de uma instância de processo existente.
@@ -61,17 +61,20 @@ public interface KikwiEngineRepository {
      *
      * @param task A tarefa executável a ser criada.
      */
-    ExecutableTaskEntity createExecutableTask(ExecutableTaskEntity task);
+    ExecutableTask createExecutableTask(ExecutableTask task);
+
+    ExternalTask createExternalTask(ExternalTask task);
+
+    List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId);
 
 
-    public ProcessDefinitionEntity saveProcessDefinition(ProcessDefinitionEntity processDefinitionDeploy);
+    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy);
 
-    public Optional<ProcessDefinitionEntity> findProcessDefinitionByKey(String processDefinitionKey);
+    public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey);
 
-    public ProcessInstanceEntity updateProcessInstance(ProcessInstanceEntity processInstance);//TODO just for tests now
+    public ProcessInstance updateProcessInstance(ProcessInstance processInstance);//TODO just for tests now
 
     public void deleteProcessInstanceById(String processInstanceId);
 
     public void commitWork(UnitOfWork unitOfWork);
 }
-

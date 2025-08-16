@@ -2,17 +2,16 @@ package io.kikwiflow.assertion;
 
 import io.kikwiflow.history.repository.FlowNodeExecutionSnapshotInMemoryRepository;
 import io.kikwiflow.history.repository.ProcessInstanceInMemorySnapshotRepository;
-import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.persistence.api.data.ExecutableTaskEntity;
-import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
-import io.kikwiflow.persistence.api.data.ProcessDefinitionEntity;
-import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
+import io.kikwiflow.model.execution.node.ExternalTask;
+import io.kikwiflow.model.execution.node.ExecutableTask;
+import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
-import io.kikwiflow.persistence.api.data.event.OutboxEventEntity;
-import io.kikwiflow.persistence.api.data.event.ProcessInstanceFinished;
+import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.persistence.InMemoryKikwiEngineRepository;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
@@ -39,12 +38,12 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessInstanceEntity saveProcessInstance(ProcessInstanceEntity instance) {
+    public ProcessInstance saveProcessInstance(ProcessInstance instance) {
         return inMemoryKikwiEngineRepository.saveProcessInstance(instance);
     }
 
     @Override
-    public Optional<ProcessInstanceEntity> findProcessInstanceById(String processInstanceId) {
+    public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         return inMemoryKikwiEngineRepository.findProcessInstanceById(processInstanceId);
     }
 
@@ -54,23 +53,33 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
-    public ExecutableTaskEntity createExecutableTask(ExecutableTaskEntity task) {
+    public ExternalTask createExternalTask(ExternalTask task) {
+        return inMemoryKikwiEngineRepository.createExternalTask(task);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
+        return inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
+    }
+
+    @Override
+    public ExecutableTask createExecutableTask(ExecutableTask task) {
         return inMemoryKikwiEngineRepository.createExecutableTask(task);
     }
 
 
     @Override
-    public ProcessDefinitionEntity saveProcessDefinition(ProcessDefinitionEntity processDefinitionDeploy) {
+    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy) {
         return inMemoryKikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
     }
 
     @Override
-    public Optional<ProcessDefinitionEntity> findProcessDefinitionByKey(String processDefinitionKey) {
+    public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey) {
         return inMemoryKikwiEngineRepository.findProcessDefinitionByKey(processDefinitionKey);
     }
 
     @Override
-    public ProcessInstanceEntity updateProcessInstance(ProcessInstanceEntity processInstance) {
+    public ProcessInstance updateProcessInstance(ProcessInstance processInstance) {
         return null;
     }
 
@@ -93,11 +102,23 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     public void assertThatProcessInstanceNotExistsInRuntimeContext(String processInstanceId){
-        Optional<ProcessInstanceEntity> hotProcessInstanceOpt = inMemoryKikwiEngineRepository.findProcessInstanceById(processInstanceId);
+        Optional<ProcessInstance> hotProcessInstanceOpt = inMemoryKikwiEngineRepository.findProcessInstanceById(processInstanceId);
         assertFalse(hotProcessInstanceOpt.isPresent());
     }
 
-    public void assertIfHasProcessInstanceInHistory(ProcessInstanceSnapshot processInstance){
+    public void assertHasActiveExternalTaskOn(String processInstanceId, String taskDefinitionId) {
+        List<ExternalTask> tasks = inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
+        assertTrue(tasks.stream().anyMatch(task -> task.getTaskDefinitionId().equals(taskDefinitionId)),
+            "Expected to find an active external task with definition ID '" + taskDefinitionId + "' but none was found.");
+        assertEquals(1, tasks.size(), "Expected exactly one active external task, but found " + tasks.size());
+    }
+
+    public void assertThatProcessInstanceIsActive(String processInstanceId) {
+        Optional<ProcessInstance> hotProcessInstanceOpt = inMemoryKikwiEngineRepository.findProcessInstanceById(processInstanceId);
+        assertTrue(hotProcessInstanceOpt.isPresent(), "Process instance should still be active in runtime context.");
+    }
+
+    public void assertIfHasProcessInstanceInHistory(ProcessInstance processInstance){
         Optional<ProcessInstanceFinished> coldProcessInstanceOpt = processInstanceSnapshotRepository.findById(processInstance.id());
         assertTrue(coldProcessInstanceOpt.isPresent());
         ProcessInstanceFinished savedProcessInstance = coldProcessInstanceOpt.get();

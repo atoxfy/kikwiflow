@@ -17,16 +17,15 @@
 package io.kikwiflow.bpmn.impl;
 
 import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.bpmn.mapper.FlowNodeMapper;
 import io.kikwiflow.bpmn.mapper.ProcessDefinitionMapper;
 import io.kikwiflow.bpmn.model.FlowNodeDefinition;
-import io.kikwiflow.bpmn.model.ProcessDefinition;
+import io.kikwiflow.bpmn.model.ProcessDefinitionGraph;
 import io.kikwiflow.bpmn.model.SequenceFlow;
 import io.kikwiflow.bpmn.model.end.EndEvent;
 import io.kikwiflow.bpmn.model.start.StartEvent;
-import io.kikwiflow.bpmn.model.task.ServiceTask;
-import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
+import io.kikwiflow.bpmn.model.task.HumanTask;
+import io.kikwiflow.bpmn.model.task.Service;
+import io.kikwiflow.model.bpmn.ProcessDefinition;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -40,7 +39,7 @@ public class DefaultBpmnParser implements BpmnParser {
     private static final String CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn";
 
     @Override
-    public ProcessDefinitionSnapshot parse(InputStream bpmnXmlFileStream) throws Exception {
+    public ProcessDefinition parse(InputStream bpmnXmlFileStream) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
@@ -51,9 +50,9 @@ public class DefaultBpmnParser implements BpmnParser {
             throw new RuntimeException("Tag <bpmn:process> não encontrada no arquivo.");
         }
 
-        ProcessDefinition processDefinitionDeploy = new ProcessDefinition();
-        processDefinitionDeploy.setKey(processElement.getAttribute("id"));
-        processDefinitionDeploy.setName(processElement.getAttribute("name"));
+        ProcessDefinitionGraph processDefinitionGraphDeploy = new ProcessDefinitionGraph();
+        processDefinitionGraphDeploy.setKey(processElement.getAttribute("id"));
+        processDefinitionGraphDeploy.setName(processElement.getAttribute("name"));
 
         NodeList childNodes = processElement.getChildNodes();
         for (int i = 0; i < childNodes.getLength(); i++) {
@@ -73,11 +72,14 @@ public class DefaultBpmnParser implements BpmnParser {
                     case "bpmn:serviceTask":
                         flowNodeDefinition = parseServiceTask(element);
                         break;
+                    case "bpmn:userTask":
+                        flowNodeDefinition = parseHumanTask(element);
+                        break;
                 }
 
                 if (flowNodeDefinition != null) {
-                    if(isDefaultStartPoint) processDefinitionDeploy.setDefaultStartPoint(flowNodeDefinition);
-                    processDefinitionDeploy.addFlowNode(flowNodeDefinition);
+                    if(isDefaultStartPoint) processDefinitionGraphDeploy.setDefaultStartPoint(flowNodeDefinition);
+                    processDefinitionGraphDeploy.addFlowNode(flowNodeDefinition);
                 }
             }
         }
@@ -87,14 +89,14 @@ public class DefaultBpmnParser implements BpmnParser {
             Element flowElement = (Element) sequenceFlows.item(i);
             String sourceRef = flowElement.getAttribute("sourceRef");
 
-            FlowNodeDefinition sourceNode = processDefinitionDeploy.getFlowNodes().get(sourceRef);
+            FlowNodeDefinition sourceNode = processDefinitionGraphDeploy.getFlowNodes().get(sourceRef);
             if (sourceNode != null) {
                 SequenceFlow sequenceFlow = parseSequenceFlow(flowElement);
                 sourceNode.addOutgoing(sequenceFlow);
             }
         }
 
-        return ProcessDefinitionMapper.toSnapshot(processDefinitionDeploy);
+        return ProcessDefinitionMapper.toSnapshot(processDefinitionGraphDeploy);
     }
 
     private FlowNodeDefinition parseEvent(Element element, FlowNodeDefinition node) {
@@ -103,8 +105,15 @@ public class DefaultBpmnParser implements BpmnParser {
         return node;
     }
 
-    private ServiceTask parseServiceTask(Element element) {
-        ServiceTask node = new ServiceTask();
+    private HumanTask parseHumanTask(Element element) {
+        HumanTask node = new HumanTask();
+        node.setId(element.getAttribute("id"));
+        node.setName(element.getAttribute("name"));
+        return node;
+    }
+
+    private Service parseServiceTask(Element element) {
+        Service node = new Service();
         node.setId(element.getAttribute("id"));
         node.setName(element.getAttribute("name"));
         node.setDelegateExpression(element.getAttributeNS(CAMUNDA_NS, "delegateExpression"));

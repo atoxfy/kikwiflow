@@ -16,11 +16,11 @@
  */
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.SequenceFlowDefinitionSnapshot;
+import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.bpmn.elements.SequenceFlowDefinition;
 import io.kikwiflow.execution.dto.Continuation;
-import io.kikwiflow.execution.ProcessInstance;
+import io.kikwiflow.execution.ProcessInstanceExecution;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,20 +37,20 @@ public class Navigator {
         this.processDefinitionManager = processDefinitionManager;
     }
 
-    public FlowNodeDefinitionSnapshot findStartPoint(ProcessDefinitionSnapshot processDefinition){
+    public FlowNodeDefinition findStartPoint(ProcessDefinition processDefinition){
         return processDefinition.defaultStartPoint();
     }
 
-    public Continuation determineNextContinuation(FlowNodeDefinitionSnapshot completedNode, ProcessDefinitionSnapshot processDefinition, boolean forceAsync) {
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, boolean forceAsync) {
 
-        List<SequenceFlowDefinitionSnapshot> outgoingFlows = completedNode.outgoing();
+        List<SequenceFlowDefinition> outgoingFlows = completedNode.outgoing();
 
         if (outgoingFlows.isEmpty()) {
             // É um EndEvent ou um nó sem saída, o processo termina aqui.
             return null;
         }
 
-        List<FlowNodeDefinitionSnapshot> nextNodes = new ArrayList<>();
+        List<FlowNodeDefinition> nextNodes = new ArrayList<>();
 
         /*
         // Aqui futuramente adicionar logica por tipo de node
@@ -94,9 +94,9 @@ public class Navigator {
         return new Continuation(nextNodes, isAsync);
     }
 
-    public Continuation determineNextContinuation(FlowNodeDefinitionSnapshot completedNode, ProcessInstance instance, boolean forceAsync) {
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessInstanceExecution instance, boolean forceAsync) {
 
-        ProcessDefinitionSnapshot definition = processDefinitionManager.getByKey(instance.getProcessDefinitionId()).get();//todo
+        ProcessDefinition definition = processDefinitionManager.getByKey(instance.getProcessDefinitionId()).get();//todo
         return determineNextContinuation(completedNode, instance, forceAsync);
 
     }

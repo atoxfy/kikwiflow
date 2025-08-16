@@ -1,10 +1,9 @@
 package io.kikwiflow.assertion;
 
-import io.kikwiflow.event.LightweightEvent;
-import io.kikwiflow.persistence.api.data.event.CriticalEvent;
-import io.kikwiflow.persistence.api.data.event.FlowNodeExecuted;
-import io.kikwiflow.persistence.api.data.event.OutboxEventEntity;
-import io.kikwiflow.persistence.api.data.event.ProcessInstanceFinished;
+import io.kikwiflow.model.event.CriticalEvent;
+import io.kikwiflow.model.event.FlowNodeExecuted;
+import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.history.repository.FlowNodeExecutionSnapshotInMemoryRepository;
 import io.kikwiflow.history.repository.ProcessInstanceInMemorySnapshotRepository;
 

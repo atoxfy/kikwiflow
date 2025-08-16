@@ -2,12 +2,8 @@ package io.kikwiflow.bpmn.mapper.start;
 
 import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
 import io.kikwiflow.bpmn.model.start.StartEvent;
-import io.kikwiflow.model.bpmn.elements.EndEventDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.StartEventDefinitionSnapshot;
-import io.kikwiflow.persistence.api.data.bpmn.FlowNodeDefinitionEntity;
+import io.kikwiflow.model.bpmn.elements.StartEventDefinition;
 import io.kikwiflow.persistence.api.data.bpmn.start.StartEventEntity;
-import io.kikwiflow.persistence.api.data.bpmn.task.ServiceTaskEntity;
 
 import java.util.stream.Collectors;
 
@@ -17,8 +13,8 @@ public class StartEventMapper {
         // Utility class
     }
 
-    public static StartEventDefinitionSnapshot toSnapshot(StartEvent node) {
-        return StartEventDefinitionSnapshot.builder()
+    public static StartEventDefinition toSnapshot(StartEvent node) {
+        return StartEventDefinition.builder()
                 .id(node.getId())
                 .name(node.getName())
                 .description(node.getDescription())
@@ -30,7 +26,7 @@ public class StartEventMapper {
                 .build();
     }
 
-    public static StartEventEntity toEntity(StartEventDefinitionSnapshot node) {
+    public static StartEventEntity toEntity(StartEventDefinition node) {
         return StartEventEntity.builder()
                 .id(node.id())
                 .name(node.name())
@@ -43,8 +39,8 @@ public class StartEventMapper {
                 .build();
     }
 
-    public static StartEventDefinitionSnapshot toSnapshot(StartEventEntity node) {
-        return StartEventDefinitionSnapshot.builder()
+    public static StartEventDefinition toSnapshot(StartEventEntity node) {
+        return StartEventDefinition.builder()
                 .id(node.getId())
                 .name(node.getName())
                 .description(node.getDescription())

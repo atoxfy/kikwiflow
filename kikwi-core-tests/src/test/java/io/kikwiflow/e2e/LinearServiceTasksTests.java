@@ -6,9 +6,9 @@ import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.execution.TestDelegateResolver;
 import io.kikwiflow.execution.delegate.AddVariableDelegate;
 import io.kikwiflow.execution.delegate.RemoveVariableDelegate;
-import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.model.execution.ExecutionContext;
-import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
+import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.execution.api.ExecutionContext;
+import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +67,7 @@ public class LinearServiceTasksTests {
     void souldDeployAndExecuteSimpleSyncProcessWithServiceTasks() throws Exception {
         InputStream bpmnStream = getClass().getClassLoader().getResourceAsStream("sample.bpmn");
 
-        ProcessDefinitionSnapshot processDefinition = kikwiflowEngine.deployDefinition(bpmnStream);
+        ProcessDefinition processDefinition = kikwiflowEngine.deployDefinition(bpmnStream);
         String processDefinitionKey = processDefinition.key();
         String businessKey = "anyBusinessKey";
         Map<String, Object> startVariables = new HashMap<>();
@@ -91,7 +91,7 @@ public class LinearServiceTasksTests {
             return null;
         }).when(removeVariableDelegate).execute(any(ExecutionContext.class));
 
-        ProcessInstanceSnapshot processInstance = kikwiflowEngine.startProcess()
+        ProcessInstance processInstance = kikwiflowEngine.startProcess()
                 .byKey(processDefinitionKey)
                 .withBusinessKey(businessKey)
                 .withVariables(startVariables)

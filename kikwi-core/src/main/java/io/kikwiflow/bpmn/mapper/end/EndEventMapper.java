@@ -1,15 +1,11 @@
 package io.kikwiflow.bpmn.mapper.end;
 
-import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
 import io.kikwiflow.bpmn.model.end.EndEvent;
-import io.kikwiflow.model.bpmn.elements.EndEventDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
-import io.kikwiflow.persistence.api.data.bpmn.FlowNodeDefinitionEntity;
+import io.kikwiflow.model.bpmn.elements.EndEventDefinition;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.persistence.api.data.bpmn.end.EndEventEntity;
-import io.kikwiflow.persistence.api.data.bpmn.start.StartEventEntity;
 
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public final class EndEventMapper {
 
@@ -17,12 +13,12 @@ public final class EndEventMapper {
         // Utility class
     }
 
-    public static EndEventDefinitionSnapshot toSnapshot(final EndEvent endEvent) {
+    public static EndEventDefinition toSnapshot(final EndEvent endEvent) {
         if (Objects.isNull(endEvent)) {
             return null;
         }
 
-        return EndEventDefinitionSnapshot.builder()
+        return EndEventDefinition.builder()
                 .id(endEvent.getId())
                 .name(endEvent.getName())
                 .description(endEvent.getDescription())
@@ -31,7 +27,7 @@ public final class EndEventMapper {
                 .build();
     }
 
-    public static EndEventEntity toEntity(EndEventDefinitionSnapshot node) {
+    public static EndEventEntity toEntity(EndEventDefinition node) {
         return EndEventEntity.builder()
                 .id(node.id())
                 .name(node.name())
@@ -41,12 +37,12 @@ public final class EndEventMapper {
                 .build();
     }
 
-    public static FlowNodeDefinitionSnapshot toSnapshot(EndEventEntity node) {
+    public static FlowNodeDefinition toSnapshot(EndEventEntity node) {
         if (Objects.isNull(node)) {
             return null;
         }
 
-        return EndEventDefinitionSnapshot.builder()
+        return EndEventDefinition.builder()
                 .id(node.getId())
                 .name(node.getName())
                 .description(node.getDescription())

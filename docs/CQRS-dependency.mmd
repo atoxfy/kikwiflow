@@ -1,0 +1,29 @@
+graph TD
+    subgraph "kikwi-pulse (Cockpit)"
+        UI[UI Angular]
+    end
+
+    subgraph "Serviço de Gestão (BFF)"
+        BFF[API REST]
+        MgmtCore[kikwi-management-core]
+    end
+
+    subgraph "Aplicação de Negócio"
+        Engine[kikwi-core]
+    end
+
+    subgraph "Base de Dados"
+        DB_Primary[(MongoDB Primária)]
+        DB_Replica[(MongoDB Réplica)]
+    end
+
+    UI -- HTTP --> BFF
+
+    BFF --> MgmtCore
+
+    MgmtCore -- Comando (ex: complete) --> Engine
+MgmtCore -- Query (ex: find) --> DB_Replica
+
+Engine -- Escrita --> DB_Primary
+
+DB_Primary -- Replicação --> DB_Replica

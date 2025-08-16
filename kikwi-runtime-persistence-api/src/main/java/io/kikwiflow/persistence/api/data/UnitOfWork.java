@@ -1,15 +1,17 @@
 package io.kikwiflow.persistence.api.data;
 
 
-import io.kikwiflow.model.execution.ExecutableTask;
-import io.kikwiflow.persistence.api.data.event.CriticalEvent;
-import io.kikwiflow.persistence.api.data.event.OutboxEventEntity;
+import io.kikwiflow.model.execution.node.ExecutableTask;
+import io.kikwiflow.model.execution.node.ExternalTask;
+import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.event.OutboxEventEntity;
 
 import java.util.List;
 
 public record UnitOfWork(
-        ProcessInstanceEntity instanceToUpdate,
-        ProcessInstanceEntity instanceToDelete,
-        List<ExecutableTaskEntity> tasksToCreate,
+        ProcessInstance instanceToUpdate,
+        ProcessInstance instanceToDelete,
+        List<ExecutableTask> executableTasksToCreate,
+        List<ExternalTask> externalTasksToCreate,
         List<String> tasksToDelete,
         List<OutboxEventEntity> events) {}

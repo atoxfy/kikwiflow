@@ -16,13 +16,11 @@
  */
 package io.kikwiflow.execution;
 
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinitionSnapshot;
-import io.kikwiflow.model.execution.ExecutionContext;
-import io.kikwiflow.model.execution.JavaDelegate;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinition;
+import io.kikwiflow.model.execution.api.ExecutionContext;
+import io.kikwiflow.model.execution.api.JavaDelegate;
 import io.kikwiflow.exception.BadDefinitionExecutionException;
-import io.kikwiflow.bpmn.model.FlowNodeDefinition;
-import io.kikwiflow.bpmn.model.task.ServiceTask;
 
 import java.util.Objects;
 
@@ -33,15 +31,15 @@ public class TaskExecutor {
         this.delegateResolver = delegateResolver;
     }
 
-    private boolean isExecutableByDelegate(ServiceTaskDefinitionSnapshot serviceTask){
+    private boolean isExecutableByDelegate(ServiceTaskDefinition serviceTask){
         return Objects.nonNull(serviceTask.delegateExpression());
     }
 
     public void execute(ExecutionContext executionContext){
-        FlowNodeDefinitionSnapshot executableTask = executionContext.getFlowNode();
+        FlowNodeDefinition executableTask = executionContext.getFlowNode();
 
-        if(executableTask instanceof ServiceTaskDefinitionSnapshot){
-            ServiceTaskDefinitionSnapshot serviceTask = (ServiceTaskDefinitionSnapshot) executableTask;
+        if(executableTask instanceof ServiceTaskDefinition){
+            ServiceTaskDefinition serviceTask = (ServiceTaskDefinition) executableTask;
             if(isExecutableByDelegate(serviceTask)){
                 String delegateExpression = serviceTask.delegateExpression();
                 String beanName = delegateExpression.replace("${", "").replace("}", "");

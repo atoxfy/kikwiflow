@@ -1,6 +1,6 @@
 package io.kikwiflow.event;
 
-import io.kikwiflow.persistence.api.data.event.OutboxEventEntity;
+import io.kikwiflow.model.event.OutboxEventEntity;
 
 import java.util.List;
 

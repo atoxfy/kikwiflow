@@ -1,18 +1,11 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.event.AsynchronousEventPublisher;
-import io.kikwiflow.execution.dto.UnitOfWorkResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
-import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
-import io.kikwiflow.persistence.api.data.event.ProcessInstanceFinished;
-import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
-import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
-import java.time.Instant;
 import java.util.Map;
 
-import static io.kikwiflow.execution.mapper.ProcessInstanceMapper.toFinishedEvent;
 import static io.kikwiflow.execution.mapper.ProcessInstanceMapper.takeSnapshot;
 
 public class ProcessInstanceManager {
@@ -26,8 +19,8 @@ public class ProcessInstanceManager {
     }
 
 
-    public ProcessInstance start(String businessKey, String processDefinitionId, Map<String, Object> variables){
-        final ProcessInstanceEntity processInstance = ProcessInstanceEntity.builder()
+    public ProcessInstanceExecution start(String businessKey, String processDefinitionId, Map<String, Object> variables){
+        final ProcessInstance processInstance = ProcessInstance.builder()
                 .businessKey(businessKey)
                 .processDefinitionId(processDefinitionId)
                 .variables(variables)
@@ -38,7 +31,7 @@ public class ProcessInstanceManager {
 
 
 
-    public void update(ProcessInstance processInstance) {
+    public void update(ProcessInstanceExecution processInstance) {
         kikwiEngineRepository.updateProcessInstance(ProcessInstanceMapper.mapToEntity(processInstance));
     }
 }

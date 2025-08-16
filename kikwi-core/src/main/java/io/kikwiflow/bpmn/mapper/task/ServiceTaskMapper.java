@@ -1,20 +1,14 @@
 package io.kikwiflow.bpmn.mapper.task;
 
-import io.kikwiflow.bpmn.model.task.ServiceTask;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinitionSnapshot;
+import io.kikwiflow.bpmn.model.task.Service;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinition;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
-import io.kikwiflow.bpmn.model.task.ServiceTask;
-import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinitionSnapshot;
-import io.kikwiflow.persistence.api.data.bpmn.FlowNodeDefinitionEntity;
-import io.kikwiflow.persistence.api.data.bpmn.task.ServiceTaskEntity;
-
-import java.util.Objects;
-import java.util.stream.Collectors;
+import io.kikwiflow.persistence.api.data.bpmn.task.ServiceEntity;
 
 public final class ServiceTaskMapper {
 
@@ -22,11 +16,11 @@ public final class ServiceTaskMapper {
         // Utility class
     }
 
-    public static ServiceTaskDefinitionSnapshot toSnapshot(final ServiceTask serviceTask) {
+    public static ServiceTaskDefinition toSnapshot(final Service serviceTask) {
         if (Objects.isNull(serviceTask)) {
             return null;
         }
-        return ServiceTaskDefinitionSnapshot.builder()
+        return ServiceTaskDefinition.builder()
                 .id(serviceTask.getId())
                 .name(serviceTask.getName())
                 .description(serviceTask.getDescription())
@@ -39,9 +33,9 @@ public final class ServiceTaskMapper {
                 .build();
     }
 
-    public static ServiceTaskEntity toEntity(ServiceTaskDefinitionSnapshot serviceTask) {
+    public static ServiceEntity toEntity(ServiceTaskDefinition serviceTask) {
 
-        return ServiceTaskEntity.builder()
+        return ServiceEntity.builder()
                 .id(serviceTask.id())
                 .name(serviceTask.name())
                 .description(serviceTask.description())
@@ -54,11 +48,11 @@ public final class ServiceTaskMapper {
                 .build();
     }
 
-    public static FlowNodeDefinitionSnapshot toSnapshot(ServiceTaskEntity serviceTask) {
+    public static FlowNodeDefinition toSnapshot(ServiceEntity serviceTask) {
         if (Objects.isNull(serviceTask)) {
             return null;
         }
-        return ServiceTaskDefinitionSnapshot.builder()
+        return ServiceTaskDefinition.builder()
                 .id(serviceTask.getId())
                 .name(serviceTask.getName())
                 .description(serviceTask.getDescription())

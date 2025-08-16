@@ -1,7 +1,7 @@
 package io.kikwiflow.execution.dto;
 
-import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.execution.ProcessInstance;
+import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.execution.ProcessInstanceExecution;
 
-public record StartableProcessRecord(ProcessDefinitionSnapshot processDefinition, ProcessInstance processInstance) {
+public record StartableProcessRecord(ProcessDefinition processDefinition, ProcessInstanceExecution processInstance) {
 }

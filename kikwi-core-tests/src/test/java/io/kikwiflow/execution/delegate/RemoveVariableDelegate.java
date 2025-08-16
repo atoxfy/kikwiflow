@@ -1,7 +1,7 @@
 package io.kikwiflow.execution.delegate;
 
-import io.kikwiflow.model.execution.ExecutionContext;
-import io.kikwiflow.model.execution.JavaDelegate;
+import io.kikwiflow.model.execution.api.ExecutionContext;
+import io.kikwiflow.model.execution.api.JavaDelegate;
 
 public class RemoveVariableDelegate implements JavaDelegate {
     @Override

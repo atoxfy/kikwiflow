@@ -1,7 +1,6 @@
 package io.kikwiflow.history.repository;
 
-import io.kikwiflow.model.execution.FlowNodeExecutionSnapshot;
-import io.kikwiflow.persistence.api.data.event.FlowNodeExecuted;
+import io.kikwiflow.model.event.FlowNodeExecuted;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -16,10 +16,9 @@
  */
 package io.kikwiflow.execution.mapper;
 
-import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
-import io.kikwiflow.persistence.api.data.event.ProcessInstanceFinished;
-import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
-import io.kikwiflow.execution.ProcessInstance;
+import io.kikwiflow.model.event.ProcessInstanceFinished;
+import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.execution.ProcessInstanceExecution;
 
 import java.util.Map;
 
@@ -29,20 +28,20 @@ public final class ProcessInstanceMapper {
         // Utility class
     }
 
-    public static ProcessInstanceFinished toFinishedEvent(final ProcessInstanceSnapshot processInstanceSnapshot) {
+    public static ProcessInstanceFinished toFinishedEvent(final ProcessInstance processInstance) {
         ProcessInstanceFinished processInstanceEntity = new ProcessInstanceFinished();
-        processInstanceEntity.setId(processInstanceSnapshot.id());
-        processInstanceEntity.setBusinessKey(processInstanceSnapshot.businessKey());
-        processInstanceEntity.setStatus(processInstanceSnapshot.status());
-        processInstanceEntity.setProcessDefinitionId(processInstanceSnapshot.processDefinitionId());
-        processInstanceEntity.setVariables(processInstanceSnapshot.variables());
-        processInstanceEntity.setStartedAt(processInstanceSnapshot.startedAt());
-        processInstanceEntity.setEndedAt(processInstanceSnapshot.endedAt());
+        processInstanceEntity.setId(processInstance.id());
+        processInstanceEntity.setBusinessKey(processInstance.businessKey());
+        processInstanceEntity.setStatus(processInstance.status());
+        processInstanceEntity.setProcessDefinitionId(processInstance.processDefinitionId());
+        processInstanceEntity.setVariables(processInstance.variables());
+        processInstanceEntity.setStartedAt(processInstance.startedAt());
+        processInstanceEntity.setEndedAt(processInstance.endedAt());
         return processInstanceEntity;
     }
 
-    public static ProcessInstanceSnapshot takeSnapshot(final ProcessInstance instance) {
-        return new ProcessInstanceSnapshot(
+    public static ProcessInstance takeSnapshot(final ProcessInstanceExecution instance) {
+        return new ProcessInstance(
             instance.getId(),
             instance.getBusinessKey(),
             instance.getStatus(),
@@ -53,8 +52,8 @@ public final class ProcessInstanceMapper {
         );
     }
 
-    public static ProcessInstance toProcessInstance(ProcessInstanceSnapshot processInstanceSnapshot) {
-        ProcessInstance processInstance = new ProcessInstance();
+    public static ProcessInstanceExecution toProcessInstance(ProcessInstance processInstanceSnapshot) {
+        ProcessInstanceExecution processInstance = new ProcessInstanceExecution();
         processInstance.setId(processInstanceSnapshot.id());
         processInstance.setBusinessKey(processInstanceSnapshot.businessKey());
         processInstance.setStatus(processInstanceSnapshot.status());
@@ -65,19 +64,7 @@ public final class ProcessInstanceMapper {
         return processInstance;
     }
 
-    public static ProcessInstanceEntity mapToEntity(ProcessInstance processInstance) {
-        ProcessInstanceEntity processInstanceEntity = new ProcessInstanceEntity();
-        processInstanceEntity.setId(processInstance.getId());
-        processInstanceEntity.setBusinessKey(processInstance.getBusinessKey());
-        processInstanceEntity.setStatus(processInstance.getStatus());
-        processInstanceEntity.setProcessDefinitionId(processInstance.getProcessDefinitionId());
-        processInstanceEntity.setVariables(processInstance.getVariables());
-        processInstanceEntity.setStartedAt(processInstance.getStartedAt());
-        processInstanceEntity.setEndedAt(processInstance.getEndedAt());
-        return processInstanceEntity;
-    }
-
-    public static ProcessInstance toProcessInstance(ProcessInstanceEntity processInstance) {
+    public static ProcessInstance mapToEntity(ProcessInstanceExecution processInstance) {
         ProcessInstance processInstanceEntity = new ProcessInstance();
         processInstanceEntity.setId(processInstance.getId());
         processInstanceEntity.setBusinessKey(processInstance.getBusinessKey());
@@ -89,8 +76,20 @@ public final class ProcessInstanceMapper {
         return processInstanceEntity;
     }
 
-    public static ProcessInstanceSnapshot takeSnapshot(ProcessInstanceEntity processInstance) {
-        return new ProcessInstanceSnapshot(
+    public static ProcessInstanceExecution toProcessInstance(ProcessInstance processInstance) {
+        ProcessInstanceExecution processInstanceEntity = new ProcessInstanceExecution();
+        processInstanceEntity.setId(processInstance.getId());
+        processInstanceEntity.setBusinessKey(processInstance.getBusinessKey());
+        processInstanceEntity.setStatus(processInstance.getStatus());
+        processInstanceEntity.setProcessDefinitionId(processInstance.getProcessDefinitionId());
+        processInstanceEntity.setVariables(processInstance.getVariables());
+        processInstanceEntity.setStartedAt(processInstance.getStartedAt());
+        processInstanceEntity.setEndedAt(processInstance.getEndedAt());
+        return processInstanceEntity;
+    }
+
+    public static ProcessInstance takeSnapshot(ProcessInstance processInstance) {
+        return new ProcessInstance(
                 processInstance.getId(),
                 processInstance.getBusinessKey(),
                 processInstance.getStatus(),

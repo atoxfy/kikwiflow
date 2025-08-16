@@ -1,7 +1,6 @@
 package io.kikwiflow.history.repository;
 
-import io.kikwiflow.model.execution.ProcessInstanceSnapshot;
-import io.kikwiflow.persistence.api.data.event.ProcessInstanceFinished;
+import io.kikwiflow.model.event.ProcessInstanceFinished;
 
 import java.util.Optional;
 

@@ -16,14 +16,14 @@
  */
 package io.kikwiflow.persistence;
 
-import io.kikwiflow.persistence.api.data.ExecutableTaskEntity;
-import io.kikwiflow.persistence.api.data.ProcessDefinitionEntity;
-import io.kikwiflow.persistence.api.data.ProcessInstanceEntity;
+import io.kikwiflow.model.execution.node.ExecutableTask;
+import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
-import io.kikwiflow.persistence.api.data.event.OutboxEventEntity;
+import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
@@ -31,10 +31,11 @@ import java.util.UUID;
 
 public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
-    private final Map<String, ProcessInstanceEntity> processInstanceCollection = new HashMap<>();
-    private final Map<String, ExecutableTaskEntity> executableTaskCollection = new HashMap<>();
-    private final Map<String, ProcessDefinitionEntity> processDefinitionCollection = new HashMap<String, ProcessDefinitionEntity>();
-    private final Map<String, Map<Integer, ProcessDefinitionEntity>> processDefinitionHistoryCollection= new HashMap<String, Map<Integer, ProcessDefinitionEntity>>();
+    private final Map<String, ProcessInstance> processInstanceCollection = new HashMap<>();
+    private final Map<String, ExecutableTask> executableTaskCollection = new HashMap<>();
+    private final Map<String, ExternalTask> externalTaskCollection = new HashMap<>();
+    private final Map<String, ProcessDefinition> processDefinitionCollection = new HashMap<String, ProcessDefinition>();
+    private final Map<String, Map<Integer, ProcessDefinition>> processDefinitionHistoryCollection= new HashMap<String, Map<Integer, ProcessDefinition>>();
     private final Queue<OutboxEventEntity> outboxEventQueue;
 
     public InMemoryKikwiEngineRepository(Queue<OutboxEventEntity> outboxEventQueue){
@@ -44,20 +45,21 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     public void reset(){
         processDefinitionCollection.clear();
         executableTaskCollection.clear();
+        externalTaskCollection.clear();
         processDefinitionCollection.clear();
         outboxEventQueue.clear();
         processDefinitionHistoryCollection.clear();
     }
 
     @Override
-    public ProcessInstanceEntity saveProcessInstance(ProcessInstanceEntity instance) {
+    public ProcessInstance saveProcessInstance(ProcessInstance instance) {
         instance.setId(UUID.randomUUID().toString());
         this.processInstanceCollection.put(instance.getId(), instance);
         return instance;
     }
 
     @Override
-    public Optional<ProcessInstanceEntity> findProcessInstanceById(String processInstanceId) {
+    public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         return Optional.ofNullable(this.processInstanceCollection.get(processInstanceId));
     }
 
@@ -68,17 +70,31 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public ExecutableTaskEntity createExecutableTask(ExecutableTaskEntity executableTask) {
+    public ExecutableTask createExecutableTask(ExecutableTask executableTask) {
         executableTask.setId(UUID.randomUUID().toString());
         this.executableTaskCollection.put(executableTask.getId(), executableTask);
         return executableTask;
     }
 
+    @Override
+    public ExternalTask createExternalTask(ExternalTask task) {
+        task.setId(UUID.randomUUID().toString());
+        this.externalTaskCollection.put(task.getId(), task);
+        return task;
+    }
 
     @Override
-    public ProcessDefinitionEntity saveProcessDefinition(ProcessDefinitionEntity processDefinition){
+    public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
+        return externalTaskCollection.values().stream()
+            .filter(task -> processInstanceId.equals(task.getProcessInstanceId()))
+            .toList();
+    }
+
+
+    @Override
+    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinition){
         String key = processDefinition.getKey();
-        ProcessDefinitionEntity lastProcessDefinition = processDefinitionCollection.get(key);
+        ProcessDefinition lastProcessDefinition = processDefinitionCollection.get(key);
         Integer version = 0;
         //TODO separar responsabilidades
         if(lastProcessDefinition != null){
@@ -95,15 +111,15 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public Optional<ProcessDefinitionEntity> findProcessDefinitionByKey(String processDefinitionKey){
+    public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey){
         return Optional.ofNullable(processDefinitionCollection.get(processDefinitionKey));
     }
 
-    public void addToHistory(ProcessDefinitionEntity processDefinition){
+    public void addToHistory(ProcessDefinition processDefinition){
         String key = processDefinition.getKey();
-        Map<Integer, ProcessDefinitionEntity> processDefinitionVersionMap = processDefinitionHistoryCollection.get(key);
+        Map<Integer, ProcessDefinition> processDefinitionVersionMap = processDefinitionHistoryCollection.get(key);
         if(null == processDefinitionVersionMap){
-            processDefinitionVersionMap = new HashMap<Integer, ProcessDefinitionEntity>();
+            processDefinitionVersionMap = new HashMap<Integer, ProcessDefinition>();
         }
 
         processDefinitionVersionMap.put(processDefinition.getVersion(), processDefinition);
@@ -111,7 +127,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessInstanceEntity updateProcessInstance(ProcessInstanceEntity processInstance) {
+    public ProcessInstance updateProcessInstance(ProcessInstance processInstance) {
         this.processInstanceCollection.put(processInstance.getId(), processInstance);
         return processInstance;
     }
@@ -123,17 +139,26 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
     @Override
     public void commitWork(UnitOfWork unitOfWork) {
+
         //TODO adjust it /!\
-        ProcessInstanceEntity processInstanceToDelete = unitOfWork.instanceToDelete();
-        if(processInstanceToDelete != null){
-            this.processInstanceCollection.remove(processInstanceToDelete.getId());
+        if(unitOfWork.instanceToDelete() != null){
+            this.processInstanceCollection.remove(unitOfWork.instanceToDelete().getId());
         }
 
-        ProcessInstanceEntity processInstanceToUpdate = unitOfWork.instanceToUpdate();
-        if(processInstanceToUpdate != null){
+        if(unitOfWork.instanceToUpdate() != null){
             this.processInstanceCollection.put(unitOfWork.instanceToUpdate().getId(), unitOfWork.instanceToUpdate());
         }
 
-        this.outboxEventQueue.addAll(unitOfWork.events());
+        if(unitOfWork.executableTasksToCreate() != null){
+            unitOfWork.executableTasksToCreate().forEach(this::createExecutableTask);
+        }
+
+        if(unitOfWork.externalTasksToCreate() != null){
+            unitOfWork.externalTasksToCreate().forEach(this::createExternalTask);
+        }
+
+        if(unitOfWork.events() != null){
+            this.outboxEventQueue.addAll(unitOfWork.events());
+        }
     }
 }

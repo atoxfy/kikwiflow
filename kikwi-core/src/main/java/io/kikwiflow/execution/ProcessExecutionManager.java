@@ -2,11 +2,8 @@ package io.kikwiflow.execution;
 
 import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.execution.dto.StartableProcessRecord;
-import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.execution.dto.UnitOfWorkResult;
-import io.kikwiflow.model.bpmn.ProcessDefinitionSnapshot;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinitionSnapshot;
-import io.kikwiflow.execution.dto.Continuation;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 public class ProcessExecutionManager {
@@ -22,7 +19,7 @@ public class ProcessExecutionManager {
     }
 
     public UnitOfWorkResult startProcessExecution(StartableProcessRecord startableProcessRecord){
-        FlowNodeDefinitionSnapshot startPoint = startableProcessRecord.processDefinition().defaultStartPoint();
+        FlowNodeDefinition startPoint = startableProcessRecord.processDefinition().defaultStartPoint();
         return flowNodeExecutor.runWhileNotFindAStopPoint(startPoint, startableProcessRecord.processInstance(), startableProcessRecord.processDefinition());
     }
 }
