@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -16,6 +16,8 @@
  */
 package io.kikwiflow.persistence;
 
+import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
@@ -53,9 +55,19 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
     @Override
     public ProcessInstance saveProcessInstance(ProcessInstance instance) {
-        instance.setId(UUID.randomUUID().toString());
-        this.processInstanceCollection.put(instance.getId(), instance);
-        return instance;
+
+        ProcessInstance instanceToSave = ProcessInstance.builder()
+                .id(null != instance.id() ? instance.id() : UUID.randomUUID().toString())
+                .businessKey(instance.businessKey())
+                .processDefinitionId(instance.processDefinitionId())
+                .status(instance.status())
+                .endedAt(instance.endedAt())
+                .variables(instance.variables())
+                .startedAt(instance.startedAt())
+                .build();
+
+        this.processInstanceCollection.put(instanceToSave.id(), instanceToSave);
+        return instanceToSave;
     }
 
     @Override
@@ -66,48 +78,92 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     @Override
     public void updateVariables(String processInstanceId, Map<String, Object> variables) {
         findProcessInstanceById(processInstanceId)
-                .ifPresent(processInstance -> processInstance.setVariables(variables));
+                .ifPresent(processInstance -> {
+                    ProcessInstance instanceToSave = ProcessInstance.builder()
+                            .id(processInstance.id())
+                            .businessKey(processInstance.businessKey())
+                            .processDefinitionId(processInstance.processDefinitionId())
+                            .status(processInstance.status())
+                            .endedAt(processInstance.endedAt())
+                            .variables(variables)
+                            .startedAt(processInstance.startedAt())
+                            .build();
+
+                    saveProcessInstance(instanceToSave);
+                });
     }
 
     @Override
     public ExecutableTask createExecutableTask(ExecutableTask executableTask) {
-        executableTask.setId(UUID.randomUUID().toString());
-        this.executableTaskCollection.put(executableTask.getId(), executableTask);
-        return executableTask;
+        ExecutableTask executableTaskToSave = ExecutableTask.builder()
+                .id(UUID.randomUUID().toString())
+                .createdAt(executableTask.createdAt())
+                .executions(executableTask.executions())
+                .acquiredAt(executableTask.acquiredAt())
+                .description(executableTask.description())
+                .error(executableTask.error())
+                .executorId(executableTask.executorId())
+                .name(executableTask.name())
+                .taskDefinitionId(executableTask.taskDefinitionId())
+                .processDefinitionId(executableTask.processDefinitionId())
+                .processInstanceId(executableTask.processInstanceId())
+                .retries(executableTask.retries())
+                .status(executableTask.status())
+                .build();
+
+        this.executableTaskCollection.put(executableTaskToSave.id(), executableTaskToSave);
+        return executableTaskToSave;
     }
 
     @Override
     public ExternalTask createExternalTask(ExternalTask task) {
-        task.setId(UUID.randomUUID().toString());
-        this.externalTaskCollection.put(task.getId(), task);
-        return task;
+        ExternalTask externalTask = ExternalTask.builder()
+                .assignee(task.assignee())
+                .createdAt(task.createdAt())
+                .description(task.description())
+                .id(UUID.randomUUID().toString())
+                .name(task.name())
+                .processDefinitionId(task.processDefinitionId())
+                .taskDefinitionId(task.taskDefinitionId())
+                .status(task.status())
+                .topicName(task.topicName())
+                .processInstanceId(task.processInstanceId())
+                .build();
+
+        this.externalTaskCollection.put(externalTask.id(), externalTask);
+        return externalTask;
     }
 
     @Override
     public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
         return externalTaskCollection.values().stream()
-            .filter(task -> processInstanceId.equals(task.getProcessInstanceId()))
+            .filter(task -> processInstanceId.equals(task.processInstanceId()))
             .toList();
     }
 
 
     @Override
     public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinition){
-        String key = processDefinition.getKey();
+        String key = processDefinition.key();
         ProcessDefinition lastProcessDefinition = processDefinitionCollection.get(key);
         Integer version = 0;
+
         //TODO separar responsabilidades
         if(lastProcessDefinition != null){
-            version = lastProcessDefinition.getVersion();
+            version = lastProcessDefinition.version();
         }
 
-        final String id = UUID.randomUUID().toString();
-        processDefinition.setId(id);
-        processDefinition.setVersion(version);
+        ProcessDefinition processDefinitionToSave = ProcessDefinition.builder()
+                .id(UUID.randomUUID().toString())
+                .version(version)
+                .key(key)
+                .defaultStartPoint(processDefinition.defaultStartPoint())
+                .flowNodes(processDefinition.flowNodes())
+                .build();
 
-        this.processDefinitionCollection.put(key, processDefinition);
-        this.addToHistory(processDefinition);
-        return processDefinition;
+        this.processDefinitionCollection.put(key, processDefinitionToSave);
+        this.addToHistory(processDefinitionToSave);
+        return processDefinitionToSave;
     }
 
     @Override
@@ -116,19 +172,19 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     public void addToHistory(ProcessDefinition processDefinition){
-        String key = processDefinition.getKey();
+        String key = processDefinition.key();
         Map<Integer, ProcessDefinition> processDefinitionVersionMap = processDefinitionHistoryCollection.get(key);
         if(null == processDefinitionVersionMap){
             processDefinitionVersionMap = new HashMap<Integer, ProcessDefinition>();
         }
 
-        processDefinitionVersionMap.put(processDefinition.getVersion(), processDefinition);
+        processDefinitionVersionMap.put(processDefinition.version(), processDefinition);
         processDefinitionHistoryCollection.put(key, processDefinitionVersionMap);
     }
 
     @Override
     public ProcessInstance updateProcessInstance(ProcessInstance processInstance) {
-        this.processInstanceCollection.put(processInstance.getId(), processInstance);
+        this.processInstanceCollection.put(processInstance.id(), processInstance);
         return processInstance;
     }
 
@@ -142,11 +198,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
         //TODO adjust it /!\
         if(unitOfWork.instanceToDelete() != null){
-            this.processInstanceCollection.remove(unitOfWork.instanceToDelete().getId());
+            this.processInstanceCollection.remove(unitOfWork.instanceToDelete().id());
         }
 
         if(unitOfWork.instanceToUpdate() != null){
-            this.processInstanceCollection.put(unitOfWork.instanceToUpdate().getId(), unitOfWork.instanceToUpdate());
+          this.saveProcessInstance(unitOfWork.instanceToUpdate());
         }
 
         if(unitOfWork.executableTasksToCreate() != null){

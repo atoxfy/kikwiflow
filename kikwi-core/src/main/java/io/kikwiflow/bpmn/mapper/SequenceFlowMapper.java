@@ -1,3 +1,20 @@
+/*
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Atoxfy licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.kikwiflow.bpmn.mapper;
 
 import io.kikwiflow.bpmn.model.SequenceFlow;
@@ -5,20 +22,11 @@ import io.kikwiflow.model.bpmn.elements.SequenceFlowDefinition;
 
 import java.util.Objects;
 
-import io.kikwiflow.persistence.api.data.bpmn.SequenceFlowEntity;
 
 public final class SequenceFlowMapper {
 
     private SequenceFlowMapper() {
         // Utility class
-    }
-
-    public static SequenceFlowDefinition toSnapshot(final SequenceFlowEntity sequenceFlow) {
-        if (Objects.isNull(sequenceFlow)) {
-            return null;
-        }
-
-        return new SequenceFlowDefinition(sequenceFlow.getId(), sequenceFlow.getCondition(), sequenceFlow.getTargetNodeId());
     }
 
     public static SequenceFlowDefinition toSnapshot(final SequenceFlow sequenceFlow) {
@@ -27,13 +35,5 @@ public final class SequenceFlowMapper {
         }
 
         return new SequenceFlowDefinition(sequenceFlow.getId(), sequenceFlow.getCondition(), sequenceFlow.getTargetNodeId());
-    }
-
-    public static SequenceFlowEntity toEntity(SequenceFlowDefinition sequenceFlowDefinition) {
-        SequenceFlowEntity sequenceFlow = new SequenceFlowEntity();
-        sequenceFlow.setCondition(sequenceFlowDefinition.condition());
-        sequenceFlow.setId(sequenceFlowDefinition.id());
-        sequenceFlow.setTargetNodeId(sequenceFlowDefinition.targetNodeId());
-        return sequenceFlow;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -18,13 +18,13 @@ package io.kikwiflow.bpmn.impl;
 
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.mapper.ProcessDefinitionMapper;
-import io.kikwiflow.bpmn.model.FlowNodeDefinition;
+import io.kikwiflow.bpmn.model.FlowNode;
 import io.kikwiflow.bpmn.model.ProcessDefinitionGraph;
 import io.kikwiflow.bpmn.model.SequenceFlow;
 import io.kikwiflow.bpmn.model.end.EndEvent;
 import io.kikwiflow.bpmn.model.start.StartEvent;
 import io.kikwiflow.bpmn.model.task.HumanTask;
-import io.kikwiflow.bpmn.model.task.Service;
+import io.kikwiflow.bpmn.model.task.ServiceTask;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -59,27 +59,27 @@ public class DefaultBpmnParser implements BpmnParser {
             Node node = childNodes.item(i);
             if (node instanceof Element) {
                 Element element = (Element) node;
-                FlowNodeDefinition flowNodeDefinition = null;
+                FlowNode flowNode = null;
                 boolean isDefaultStartPoint = false;
                 switch (element.getTagName()) {
                     case "bpmn:startEvent":
-                        flowNodeDefinition = parseEvent(element, new StartEvent());
+                        flowNode = parseEvent(element, new StartEvent());
                         isDefaultStartPoint = true;
                         break;
                     case "bpmn:endEvent":
-                        flowNodeDefinition = parseEvent(element, new EndEvent());
+                        flowNode = parseEvent(element, new EndEvent());
                         break;
                     case "bpmn:serviceTask":
-                        flowNodeDefinition = parseServiceTask(element);
+                        flowNode = parseServiceTask(element);
                         break;
                     case "bpmn:userTask":
-                        flowNodeDefinition = parseHumanTask(element);
+                        flowNode = parseHumanTask(element);
                         break;
                 }
 
-                if (flowNodeDefinition != null) {
-                    if(isDefaultStartPoint) processDefinitionGraphDeploy.setDefaultStartPoint(flowNodeDefinition);
-                    processDefinitionGraphDeploy.addFlowNode(flowNodeDefinition);
+                if (flowNode != null) {
+                    if(isDefaultStartPoint) processDefinitionGraphDeploy.setDefaultStartPoint(flowNode);
+                    processDefinitionGraphDeploy.addFlowNode(flowNode);
                 }
             }
         }
@@ -89,7 +89,7 @@ public class DefaultBpmnParser implements BpmnParser {
             Element flowElement = (Element) sequenceFlows.item(i);
             String sourceRef = flowElement.getAttribute("sourceRef");
 
-            FlowNodeDefinition sourceNode = processDefinitionGraphDeploy.getFlowNodes().get(sourceRef);
+            FlowNode sourceNode = processDefinitionGraphDeploy.getFlowNodes().get(sourceRef);
             if (sourceNode != null) {
                 SequenceFlow sequenceFlow = parseSequenceFlow(flowElement);
                 sourceNode.addOutgoing(sequenceFlow);
@@ -99,7 +99,7 @@ public class DefaultBpmnParser implements BpmnParser {
         return ProcessDefinitionMapper.toSnapshot(processDefinitionGraphDeploy);
     }
 
-    private FlowNodeDefinition parseEvent(Element element, FlowNodeDefinition node) {
+    private FlowNode parseEvent(Element element, FlowNode node) {
         node.setId(element.getAttribute("id"));
         node.setName(element.getAttribute("name"));
         return node;
@@ -112,8 +112,8 @@ public class DefaultBpmnParser implements BpmnParser {
         return node;
     }
 
-    private Service parseServiceTask(Element element) {
-        Service node = new Service();
+    private ServiceTask parseServiceTask(Element element) {
+        ServiceTask node = new ServiceTask();
         node.setId(element.getAttribute("id"));
         node.setName(element.getAttribute("name"));
         node.setDelegateExpression(element.getAttributeNS(CAMUNDA_NS, "delegateExpression"));

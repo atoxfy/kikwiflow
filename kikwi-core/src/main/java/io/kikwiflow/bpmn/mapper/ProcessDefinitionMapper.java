@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -19,7 +19,6 @@ package io.kikwiflow.bpmn.mapper;
 import io.kikwiflow.bpmn.model.ProcessDefinitionGraph;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.persistence.api.data.bpmn.FlowNodeDefinitionEntity;
 
 import java.util.Map;
 import java.util.Objects;
@@ -32,23 +31,6 @@ public final class ProcessDefinitionMapper {
     }
 
 
-    public static ProcessDefinition toSnapshot(final ProcessDefinition processDefinitionDeploy) {
-        if (Objects.isNull(processDefinitionDeploy)) {
-            return null;
-        }
-
-        final Map<String, FlowNodeDefinition> flowNodeSnapshots = processDefinitionDeploy.getFlowNodes()
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> FlowNodeMapper.toSnapshot(entry.getValue())));
-
-
-        return new ProcessDefinition(null, null, processDefinitionDeploy.getKey(), processDefinitionDeploy.getName(), flowNodeSnapshots, FlowNodeMapper.toSnapshot(processDefinitionDeploy.getDefaultStartPoint()));
-    }
-
-
-
     public static ProcessDefinition toSnapshot(final ProcessDefinitionGraph processDefinitionGraphDeploy) {
         if (Objects.isNull(processDefinitionGraphDeploy)) {
             return null;
@@ -58,30 +40,9 @@ public final class ProcessDefinitionMapper {
                 .entrySet()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> FlowNodeMapper.toSnapshot(entry.getValue())));
+                        entry -> FlowNodeMapper.toRecord(entry.getValue())));
 
 
-        return new ProcessDefinition(null, null, processDefinitionGraphDeploy.getKey(), processDefinitionGraphDeploy.getName(), flowNodeSnapshots, FlowNodeMapper.toSnapshot(processDefinitionGraphDeploy.getDefaultStartPoint()));
-    }
-
-    public static ProcessDefinition mapToEntity(ProcessDefinition processDefinitionDeploy) {
-        if (Objects.isNull(processDefinitionDeploy)) {
-            return null;
-        }
-
-        final Map<String, FlowNodeDefinitionEntity> flowNodeSnapshots = processDefinitionDeploy.flowNodes()
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> FlowNodeMapper.toEntity(entry.getValue())));
-
-        return ProcessDefinition.builder()
-                .id(processDefinitionDeploy.id())
-                .key(processDefinitionDeploy.key())
-                .defaultStartPoint(FlowNodeMapper.toEntity(processDefinitionDeploy.defaultStartPoint()))
-                .name(processDefinitionDeploy.name())
-                .flowNodes(flowNodeSnapshots)
-                .build();
-
+        return new ProcessDefinition(null, null, processDefinitionGraphDeploy.getKey(), processDefinitionGraphDeploy.getName(), flowNodeSnapshots, FlowNodeMapper.toRecord(processDefinitionGraphDeploy.getDefaultStartPoint()));
     }
 }

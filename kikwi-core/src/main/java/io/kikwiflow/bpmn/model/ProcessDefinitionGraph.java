@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -26,18 +26,18 @@ public class ProcessDefinitionGraph {
     private String key;
     private String name;
 
-    private Map<String, FlowNodeDefinition> flowNodes = new HashMap<>();
-    private FlowNodeDefinition defaultStartPoint;
+    private Map<String, FlowNode> flowNodes = new HashMap<>();
+    private FlowNode defaultStartPoint;
 
-    public FlowNodeDefinition getDefaultStartPoint() {
+    public FlowNode getDefaultStartPoint() {
         return defaultStartPoint;
     }
 
-    public void setDefaultStartPoint(FlowNodeDefinition defaultStartPoint) {
+    public void setDefaultStartPoint(FlowNode defaultStartPoint) {
         this.defaultStartPoint = defaultStartPoint;
     }
 
-    public void addFlowNode(FlowNodeDefinition node) { this.flowNodes.put(node.getId(), node); }
+    public void addFlowNode(FlowNode node) { this.flowNodes.put(node.getId(), node); }
 
 
     public String getKey() {
@@ -56,11 +56,11 @@ public class ProcessDefinitionGraph {
         this.name = name;
     }
 
-    public Map<String, FlowNodeDefinition> getFlowNodes() {
+    public Map<String, FlowNode> getFlowNodes() {
         return flowNodes;
     }
 
-    public void setFlowNodes(Map<String, FlowNodeDefinition> flowNodes) {
+    public void setFlowNodes(Map<String, FlowNode> flowNodes) {
         this.flowNodes = flowNodes;
     }
 }

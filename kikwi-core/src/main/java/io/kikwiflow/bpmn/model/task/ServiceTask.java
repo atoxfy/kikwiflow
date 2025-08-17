@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.kikwiflow.bpmn.model.task;
 
-package io.kikwiflow.persistence.api.data;
 
+import io.kikwiflow.bpmn.model.FlowNode;
+import io.kikwiflow.model.execution.node.Executable;
 
-import io.kikwiflow.model.execution.node.ExecutableTask;
-import io.kikwiflow.model.execution.node.ExternalTask;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.event.OutboxEventEntity;
+public class ServiceTask extends FlowNode implements Executable {
 
-import java.util.List;
+    private String delegateExpression;
 
-public record UnitOfWork(
-        ProcessInstance instanceToUpdate,
-        ProcessInstance instanceToDelete,
-        List<ExecutableTask> executableTasksToCreate,
-        List<ExternalTask> externalTasksToCreate,
-        List<String> tasksToDelete,
-        List<OutboxEventEntity> events) {}
+    public String getDelegateExpression() {
+        return delegateExpression;
+    }
+
+    public void setDelegateExpression(String delegateExpression) {
+        this.delegateExpression = delegateExpression;
+    }
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -16,6 +16,8 @@
  */
 package io.kikwiflow.persistence.api.repository;
 
+import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;

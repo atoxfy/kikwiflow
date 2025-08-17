@@ -15,20 +15,16 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.persistence.api.data;
+package io.kikwiflow.execution.dto;
 
-
-import io.kikwiflow.model.execution.node.ExecutableTask;
-import io.kikwiflow.model.execution.node.ExternalTask;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.model.event.OutboxEventEntity;
 
 import java.util.List;
 
-public record UnitOfWork(
-        ProcessInstance instanceToUpdate,
-        ProcessInstance instanceToDelete,
-        List<ExecutableTask> executableTasksToCreate,
-        List<ExternalTask> externalTasksToCreate,
-        List<String> tasksToDelete,
-        List<OutboxEventEntity> events) {}
+/**
+ * Represents the result of a synchronous execution block by the FlowNodeExecutor.
+ * It contains the state changes and events generated, but is not yet a transactional UnitOfWork.
+ */
+public record ExecutionOutcome(ProcessInstanceExecution processInstance, List<OutboxEventEntity> events) {
+}

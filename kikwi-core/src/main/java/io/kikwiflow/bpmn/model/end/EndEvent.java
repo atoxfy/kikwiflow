@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -17,6 +17,9 @@
 package io.kikwiflow.bpmn.model.end;
 
 
-import io.kikwiflow.bpmn.model.FlowNodeDefinition;
+import io.kikwiflow.bpmn.model.FlowNode;
 
-public class EndEvent extends FlowNodeDefinition {}
+public class EndEvent extends FlowNode {
+
+
+}

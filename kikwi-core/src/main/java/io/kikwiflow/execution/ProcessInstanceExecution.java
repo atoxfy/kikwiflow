@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -21,14 +21,22 @@ import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Representa uma instância de processo em execução.
+ * <p>
+ * Esta classe é um objeto de estado <strong>mutável</strong>, projetado para ser modificado durante o ciclo de vida
+ * de uma execução síncrona dentro do {@link FlowNodeExecutor}. Ela carrega o estado "quente" da instância,
+ * incluindo variáveis, status atual e metadados.
+ * <p>
+ * É importante distingui-la do registro imutável {@link io.kikwiflow.model.execution.ProcessInstance},
+ * que é usado para persistência, snapshots e comunicação entre os limites do motor.
+ */
 public class ProcessInstanceExecution {
     private String id;
     private String businessKey;
     private ProcessInstanceStatus status;
     private String processDefinitionId;
-
     private Map<String, Object> variables;
-
     private Instant startedAt;
     private Instant endedAt;
 
@@ -94,6 +102,11 @@ public class ProcessInstanceExecution {
         return new Builder();
     }
 
+    /**
+     * Um builder para criar instâncias de {@link ProcessInstanceExecution} de forma fluente.
+     * <p>
+     * Simplifica a criação do objeto, especialmente ao definir os parâmetros iniciais de um processo.
+     */
     public static class Builder {
         private String businessKey;
         private String processDefinitionId;
@@ -102,21 +115,42 @@ public class ProcessInstanceExecution {
         private Builder() {
         }
 
+        /**
+         * Define a chave de negócio para a instância do processo.
+         * @param businessKey A chave de negócio.
+         * @return O próprio builder, para encadeamento de chamadas.
+         */
         public Builder businessKey(String businessKey) {
             this.businessKey = businessKey;
             return this;
         }
 
+        /**
+         * Define o ID da definição de processo à qual esta instância pertence.
+         * @param processDefinitionId O ID da definição.
+         * @return O próprio builder, para encadeamento de chamadas.
+         */
         public Builder processDefinitionId(String processDefinitionId) {
             this.processDefinitionId = processDefinitionId;
             return this;
         }
 
+        /**
+         * Define o mapa de variáveis iniciais para a instância do processo.
+         * @param variables O mapa de variáveis.
+         * @return O próprio builder, para encadeamento de chamadas.
+         */
         public Builder variables(Map<String, Object> variables) {
             this.variables = variables;
             return this;
         }
 
+        /**
+         * Constrói e retorna a nova instância de {@link ProcessInstanceExecution} com o estado inicial configurado.
+         * <p>
+         * O status é inicializado como {@link ProcessInstanceStatus#ACTIVE} e o tempo de início é definido para o momento atual.
+         * @return A nova instância de processo em execução.
+         */
         public ProcessInstanceExecution build() {
             ProcessInstanceExecution instance = new ProcessInstanceExecution();
             instance.setBusinessKey(this.businessKey);

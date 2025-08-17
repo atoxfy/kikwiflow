@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -20,10 +20,7 @@ import io.kikwiflow.model.execution.api.JavaDelegate;
 
 import java.util.Optional;
 
-/**
- * Responsible for obtain delegate instances
- * @author Emiliano Fagundes
- */
+
 public interface DelegateResolver {
     public Optional<JavaDelegate> resolve(String beanName);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -14,21 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.bpmn.model.task;
 
+package io.kikwiflow.execution.dto;
 
-import io.kikwiflow.bpmn.model.FlowNodeDefinition;
-import io.kikwiflow.model.execution.node.Executable;
+import io.kikwiflow.persistence.api.data.UnitOfWork;
 
-public class Service extends FlowNodeDefinition implements Executable {
-
-    private String delegateExpression;
-
-    public String getDelegateExpression() {
-        return delegateExpression;
-    }
-
-    public void setDelegateExpression(String delegateExpression) {
-        this.delegateExpression = delegateExpression;
-    }
+public record ExecutionResult(ExecutionOutcome outcome, Continuation continuation) {
 }

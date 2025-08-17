@@ -14,25 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.kikwiflow.execution;
 
-import io.kikwiflow.model.execution.api.JavaDelegate;
-
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
-public class TestDelegateResolver implements DelegateResolver {
-    private final Map<String, JavaDelegate> delegatesMap = new HashMap<>();
+/**
+ * Atua como uma fábrica estática para criar instâncias de processo em memória.
+ * <p>
+ * Esta classe utilitária é responsável por construir o objeto {@link ProcessInstanceExecution} inicial,
+ * que representa o estado "quente" e mutável de um processo antes de ser persistido
+ * e executado pela engine.
+ */
+public final class ProcessInstanceExecutionFactory {
 
-
-    public void register(String name, JavaDelegate delegate){
-        delegatesMap.put(name, delegate);
+    private ProcessInstanceExecutionFactory() {
+        // Classe utilitária, não deve ser instanciada.
     }
 
-    @Override
-    public Optional<JavaDelegate> resolve(String beanName) {
-        return Optional.ofNullable(delegatesMap.get(beanName));
+    public static ProcessInstanceExecution create(String businessKey, String processDefinitionId, Map<String, Object> variables){
+        return ProcessInstanceExecution.builder()
+                .businessKey(businessKey)
+                .processDefinitionId(processDefinitionId)
+                .variables(variables)
+                .build();
     }
 }

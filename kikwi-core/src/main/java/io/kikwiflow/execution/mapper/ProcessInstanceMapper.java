@@ -1,5 +1,5 @@
 /*
- * Copyright Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -28,7 +28,7 @@ public final class ProcessInstanceMapper {
         // Utility class
     }
 
-    public static ProcessInstanceFinished toFinishedEvent(final ProcessInstance processInstance) {
+    public static ProcessInstanceFinished maoToFinishedEvent(final ProcessInstance processInstance) {
         ProcessInstanceFinished processInstanceEntity = new ProcessInstanceFinished();
         processInstanceEntity.setId(processInstance.id());
         processInstanceEntity.setBusinessKey(processInstance.businessKey());
@@ -40,7 +40,7 @@ public final class ProcessInstanceMapper {
         return processInstanceEntity;
     }
 
-    public static ProcessInstance takeSnapshot(final ProcessInstanceExecution instance) {
+    public static ProcessInstance mapToRecord(final ProcessInstanceExecution instance) {
         return new ProcessInstance(
             instance.getId(),
             instance.getBusinessKey(),
@@ -52,51 +52,16 @@ public final class ProcessInstanceMapper {
         );
     }
 
-    public static ProcessInstanceExecution toProcessInstance(ProcessInstance processInstanceSnapshot) {
-        ProcessInstanceExecution processInstance = new ProcessInstanceExecution();
-        processInstance.setId(processInstanceSnapshot.id());
-        processInstance.setBusinessKey(processInstanceSnapshot.businessKey());
-        processInstance.setStatus(processInstanceSnapshot.status());
-        processInstance.setProcessDefinitionId(processInstanceSnapshot.processDefinitionId());
-        processInstance.setVariables(processInstanceSnapshot.variables());
-        processInstance.setStartedAt(processInstanceSnapshot.startedAt());
-        processInstance.setEndedAt(processInstanceSnapshot.endedAt());
-        return processInstance;
-    }
 
-    public static ProcessInstance mapToEntity(ProcessInstanceExecution processInstance) {
-        ProcessInstance processInstanceEntity = new ProcessInstance();
-        processInstanceEntity.setId(processInstance.getId());
-        processInstanceEntity.setBusinessKey(processInstance.getBusinessKey());
-        processInstanceEntity.setStatus(processInstance.getStatus());
-        processInstanceEntity.setProcessDefinitionId(processInstance.getProcessDefinitionId());
-        processInstanceEntity.setVariables(processInstance.getVariables());
-        processInstanceEntity.setStartedAt(processInstance.getStartedAt());
-        processInstanceEntity.setEndedAt(processInstance.getEndedAt());
-        return processInstanceEntity;
-    }
-
-    public static ProcessInstanceExecution toProcessInstance(ProcessInstance processInstance) {
+    public static ProcessInstanceExecution mapToInstanceExecution(ProcessInstance processInstance) {
         ProcessInstanceExecution processInstanceEntity = new ProcessInstanceExecution();
-        processInstanceEntity.setId(processInstance.getId());
-        processInstanceEntity.setBusinessKey(processInstance.getBusinessKey());
-        processInstanceEntity.setStatus(processInstance.getStatus());
-        processInstanceEntity.setProcessDefinitionId(processInstance.getProcessDefinitionId());
-        processInstanceEntity.setVariables(processInstance.getVariables());
-        processInstanceEntity.setStartedAt(processInstance.getStartedAt());
-        processInstanceEntity.setEndedAt(processInstance.getEndedAt());
+        processInstanceEntity.setId(processInstance.id());
+        processInstanceEntity.setBusinessKey(processInstance.businessKey());
+        processInstanceEntity.setStatus(processInstance.status());
+        processInstanceEntity.setProcessDefinitionId(processInstance.processDefinitionId());
+        processInstanceEntity.setVariables(processInstance.variables());
+        processInstanceEntity.setStartedAt(processInstance.startedAt());
+        processInstanceEntity.setEndedAt(processInstance.endedAt());
         return processInstanceEntity;
-    }
-
-    public static ProcessInstance takeSnapshot(ProcessInstance processInstance) {
-        return new ProcessInstance(
-                processInstance.getId(),
-                processInstance.getBusinessKey(),
-                processInstance.getStatus(),
-                processInstance.getProcessDefinitionId(),
-                Map.copyOf(processInstance.getVariables()),
-                processInstance.getStartedAt(),
-                processInstance.getEndedAt()
-        );
     }
 }
