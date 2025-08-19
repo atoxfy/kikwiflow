@@ -20,6 +20,7 @@ import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
+import io.kikwiflow.model.execution.node.WaitState;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 
 import java.util.List;
@@ -67,8 +68,7 @@ public interface KikwiEngineRepository {
 
     ExternalTask createExternalTask(ExternalTask task);
 
-    List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId);
-
+    Optional<ExternalTask> completeExternalTask(String externalTaskId);
 
     public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy);
 
@@ -79,4 +79,6 @@ public interface KikwiEngineRepository {
     public void deleteProcessInstanceById(String processInstanceId);
 
     public void commitWork(UnitOfWork unitOfWork);
+
+    Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId);
 }

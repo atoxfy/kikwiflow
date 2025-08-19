@@ -83,6 +83,12 @@ public class ProcessDefinitionService {
                 .or(() -> getAndLoadOnCacheByKey(processDefinitionKey));
     }
 
+    public Optional<ProcessDefinition> getById(String processDefinitionKey){
+        return processDefinitionCache.findById(processDefinitionKey)
+                .or(() -> getAndLoadOnCacheById(processDefinitionKey));
+    }
+
+
     /**
      * Obtém uma definição de processo pela sua chave, ou lança uma exceção se não for encontrada.
      * É um método de conveniência que envolve o {@link #getByKey(String)}.
@@ -105,6 +111,11 @@ public class ProcessDefinitionService {
      */
     private Optional<ProcessDefinition> getAndLoadOnCacheByKey(String processDefinitionKey){
         return kikwiEngineRepository.findProcessDefinitionByKey(processDefinitionKey)
+                .map(processDefinitionCache::add);
+    }
+
+    private Optional<ProcessDefinition> getAndLoadOnCacheById(String processDefinitionId){
+        return kikwiEngineRepository.findProcessDefinitionById(processDefinitionId)
                 .map(processDefinitionCache::add);
     }
 }

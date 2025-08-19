@@ -18,6 +18,7 @@ package io.kikwiflow;
 
 import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
+import io.kikwiflow.exception.ProcessInstanceNotFoundException;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
@@ -53,6 +54,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -82,14 +84,22 @@ public class KikwiflowEngine {
 
     }
 
-    public List<ExternalTask> getExternalTasks(){
-        //lista as tarefas humanas
 
-        return null;
-    }
+    public void completeWaitStateById(String externalTaskId){
+        kikwiEngineRepository.completeExternalTask(externalTaskId)
+                .ifPresent(externalTask -> {
+                    //TODO ajustar essa dinamica
+                    String processInstanceId = externalTask.processInstanceId();
+                    ProcessInstance processInstance = kikwiEngineRepository.findProcessInstanceById(processInstanceId)
+                            .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found"));
+                    ProcessDefinition processDefinition = processDefinitionService.getById(externalTask.processDefinitionId())
+                            .orElseThrow();
 
-    public void complete(){
-        //completa
+                    processExecutionManager.execute();
+
+
+                });
+
 
     }
 

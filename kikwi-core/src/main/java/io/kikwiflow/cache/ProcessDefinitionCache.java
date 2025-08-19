@@ -18,6 +18,7 @@ package io.kikwiflow.cache;
 
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 
+import javax.management.Query;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -32,5 +33,13 @@ public class ProcessDefinitionCache {
 
     public Optional<ProcessDefinition> findByKey(String processDefinitionKey){
         return Optional.ofNullable(processDefinitionMap.get(processDefinitionKey));
+    }
+
+    public Optional<ProcessDefinition> findById(String id) {
+        //TODO ajustar o cache
+        return processDefinitionMap.values().stream()
+                .filter(processDefinition ->  processDefinition.id().equals(id))
+                .findFirst();
+
     }
 }

@@ -1,9 +1,9 @@
 graph TD
-    subgraph "kikwi-pulse (Cockpit)"
+    subgraph "kikwi-pulse Cockpit"
         UI[UI Angular]
     end
 
-    subgraph "Serviço de Gestão (BFF)"
+    subgraph "Serviço de Gestão BFF"
         BFF[API REST]
         MgmtCore[kikwi-management-core]
     end
@@ -12,18 +12,31 @@ graph TD
         Engine[kikwi-core]
     end
 
-    subgraph "Base de Dados"
-        DB_Primary[(MongoDB Primária)]
-        DB_Replica[(MongoDB Réplica)]
-    end
+subgraph "Camada de Persistência Contrato"
+PersistenceAPI[kikwi-runtime-persistence-api<br>ProcessExecutionRepository]
+end
 
-    UI -- HTTP --> BFF
+subgraph "Implementação da Persistência Ex: MongoDB"
+PersistenceImpl[kikwi-persistence-mongodb]
+end
 
-    BFF --> MgmtCore
+subgraph "Base de Dados"
+DB_Primary[Base de Dados Primária]
+DB_Replica[Base de Dados Réplica]
+end
 
-    MgmtCore -- Comando (ex: complete) --> Engine
-MgmtCore -- Query (ex: find) --> DB_Replica
+UI -- HTTP --> BFF
+BFF --> MgmtCore
 
-Engine -- Escrita --> DB_Primary
+MgmtCore -- Comando --> Engine
+MgmtCore -- Query --> PersistenceAPI
+
+Engine -- Comando --> PersistenceAPI
+
+BFF -- inclui dependência --> PersistenceImpl
+PersistenceImpl -- implementa --> PersistenceAPI
+
+PersistenceImpl -- Escrita --> DB_Primary
+PersistenceImpl -- Leitura --> DB_Replica
 
 DB_Primary -- Replicação --> DB_Replica
