@@ -45,61 +45,61 @@ class BpmnParserTest {
     }
 
     @Test
-    @DisplayName("Should parse a simple BPMN file with service tasks successfully")
+    @DisplayName("Deve fazer o parse de um arquivo BPMN simples com service tasks com sucesso")
     void shouldParseSimpleBpmnFileSuccessfully() throws Exception {
         //Arrange
         InputStream bpmnStream = getClass().getClassLoader().getResourceAsStream("sample.bpmn");
-        assertNotNull(bpmnStream, "BPMN file 'sample.bpmn' not found in test resources");
+        assertNotNull(bpmnStream, "Arquivo BPMN 'sample.bpmn' não encontrado nos recursos de teste");
 
         //Act
         ProcessDefinition processDefinitionDeploy = defaultBpmnParser.parse(bpmnStream);
 
 
         //Assert
-        assertNotNull(processDefinitionDeploy, "Process definition should not be null.");
-        assertEquals("Process_1nwhurl", processDefinitionDeploy.key(), "The process key is incorrect.");
-        assertEquals("Processo Teste", processDefinitionDeploy.name(), "The process name is incorrect.");
+        assertNotNull(processDefinitionDeploy, "A definição do processo não deve ser nula.");
+        assertEquals("Process_1nwhurl", processDefinitionDeploy.key(), "A chave do processo está incorreta.");
+        assertEquals("Processo Teste", processDefinitionDeploy.name(), "O nome do processo está incorreto.");
 
         // Check nodes
-        assertEquals(4, processDefinitionDeploy.flowNodes().size(), "The number of flow nodes is incorrect.");
+        assertEquals(4, processDefinitionDeploy.flowNodes().size(), "O número de nós de fluxo está incorreto.");
 
         //StartEvent
         FlowNodeDefinition startEvent = processDefinitionDeploy.flowNodes().get("StartEvent_1");
-        assertNotNull(startEvent, "The StartEvent was not found.");
-        assertTrue(startEvent instanceof StartEventDefinition, "The node should be an instance of StartEventDefinitionSnapshot.");
-        assertEquals(1, startEvent.outgoing().size(), "The StartEvent should have one outgoing flow.");
-        assertEquals("Activity_0wn4t7o", startEvent.outgoing().get(0).targetNodeId(), "The StartEvent's outgoing flow points to the wrong node.");
+        assertNotNull(startEvent, "O StartEvent não foi encontrado.");
+        assertTrue(startEvent instanceof StartEventDefinition, "O nó deveria ser uma instância de StartEventDefinition.");
+        assertEquals(1, startEvent.outgoing().size(), "O StartEvent deveria ter um fluxo de saída.");
+        assertEquals("Activity_0wn4t7o", startEvent.outgoing().get(0).targetNodeId(), "O fluxo de saída do StartEvent aponta para o nó errado.");
 
         //ServiceTask 1
         FlowNodeDefinition task1 = processDefinitionDeploy.flowNodes().get("Activity_0wn4t7o");
-        assertNotNull(task1, "The first ServiceTask was not found.");
-        assertTrue(task1 instanceof ServiceTaskDefinition, "The node should be an instance of ServiceTaskDefinitionSnapshot.");
-        assertEquals("add variable", task1.name(), "The name of the first task is incorrect.");
-        assertEquals("${addVariableDelegate}", ((ServiceTaskDefinition) task1).delegateExpression(), "The delegate expression of the first task is incorrect.");
-        assertEquals(1, task1.outgoing().size(), "The first task should have one outgoing flow.");
-        assertEquals("Activity_16ovgt4", task1.outgoing().get(0).targetNodeId(), "The first task's outgoing flow points to the wrong node.");
+        assertNotNull(task1, "A primeira ServiceTask não foi encontrada.");
+        assertTrue(task1 instanceof ServiceTaskDefinition, "O nó deveria ser uma instância de ServiceTaskDefinition.");
+        assertEquals("add variable", task1.name(), "O nome da primeira tarefa está incorreto.");
+        assertEquals("${addVariableDelegate}", ((ServiceTaskDefinition) task1).delegateExpression(), "A expressão delegate da primeira tarefa está incorreta.");
+        assertEquals(1, task1.outgoing().size(), "A primeira tarefa deveria ter um fluxo de saída.");
+        assertEquals("Activity_16ovgt4", task1.outgoing().get(0).targetNodeId(), "O fluxo de saída da primeira tarefa aponta para o nó errado.");
 
         //ServiceTask 2
         FlowNodeDefinition task2 = processDefinitionDeploy.flowNodes().get("Activity_16ovgt4");
-        assertNotNull(task2, "The second ServiceTask was not found.");
-        assertEquals("remove variable", task2.name(), "The name of the second task is incorrect.");
-        assertEquals("${removeVariableDelegate}", ((ServiceTaskDefinition) task2).delegateExpression(), "The delegate expression of the second task is incorrect.");
+        assertNotNull(task2, "A segunda ServiceTask não foi encontrada.");
+        assertEquals("remove variable", task2.name(), "O nome da segunda tarefa está incorreto.");
+        assertEquals("${removeVariableDelegate}", ((ServiceTaskDefinition) task2).delegateExpression(), "A expressão delegate da segunda tarefa está incorreta.");
 
         //EndEvent
         FlowNodeDefinition endEvent = processDefinitionDeploy.flowNodes().get("Event_0w1t1d3");
-        assertNotNull(endEvent, "The EndEvent was not found.");
-        assertTrue(endEvent instanceof EndEventDefinition, "The node should be an instance of EndEventDefinitionSnapshot.");
-        assertTrue(endEvent.outgoing().isEmpty(), "The EndEvent should not have any outgoing flows.");
+        assertNotNull(endEvent, "O EndEvent não foi encontrado.");
+        assertTrue(endEvent instanceof EndEventDefinition, "O nó deveria ser uma instância de EndEventDefinition.");
+        assertTrue(endEvent.outgoing().isEmpty(), "O EndEvent não deveria ter fluxos de saída.");
     }
 
 
 
     @Test
-    @DisplayName("Should correctly parse a BPMN file with sequential human tasks")
+    @DisplayName("Deve fazer o parse de um arquivo BPMN com tarefas humanas sequenciais corretamente")
     void shouldCorrectlyParseSequentialHumanTasksBpmn() throws Exception {
         // Arrange
         InputStream bpmnStream = getClass().getClassLoader().getResourceAsStream("sequential-human-tasks.bpmn");
-        assertNotNull(bpmnStream, "BPMN file 'sequential-human-tasks.bpmn' not found in test resources");
+        assertNotNull(bpmnStream, "Arquivo BPMN 'sequential-human-tasks.bpmn' não encontrado nos recursos de teste");
 
         // Act
         ProcessDefinition processDefinition = defaultBpmnParser.parse(bpmnStream);
@@ -113,29 +113,29 @@ class BpmnParserTest {
 
         // 2. Assert Flow Nodes count
         assertNotNull(processDefinition.flowNodes());
-        assertEquals(7, processDefinition.flowNodes().size(), "Should parse 1 start event, 5 user tasks, and 1 end event");
+        assertEquals(7, processDefinition.flowNodes().size(), "Deveria fazer o parse de 1 evento de início, 5 tarefas de usuário e 1 evento de fim");
 
         // 3. Assert Start Event
         FlowNodeDefinition startEvent = processDefinition.defaultStartPoint();
-        assertNotNull(startEvent, "Default start point should be identified");
+        assertNotNull(startEvent, "O ponto de início padrão deveria ser identificado");
         assertEquals("Event_01chmjj", startEvent.id());
         assertEquals("Lead received", startEvent.name());
-        assertTrue(startEvent instanceof StartEventDefinition, "Start point should be a StartEvent");
-        assertEquals(1, startEvent.outgoing().size(), "Start event should have one outgoing flow");
-        assertEquals("external-task-1", startEvent.outgoing().get(0).targetNodeId(), "Start event should flow to the first human task");
+        assertTrue(startEvent instanceof StartEventDefinition, "O ponto de início deveria ser um StartEvent");
+        assertEquals(1, startEvent.outgoing().size(), "O evento de início deveria ter um fluxo de saída");
+        assertEquals("external-task-1", startEvent.outgoing().get(0).targetNodeId(), "O evento de início deveria fluir para a primeira tarefa humana");
 
         // 4. Assert a specific Human Task and its connectivity
         FlowNodeDefinition task1 = processDefinition.flowNodes().get("external-task-1");
         assertNotNull(task1);
-        assertTrue(task1 instanceof HumanTaskDefinition, "Node should be a HumanTask");
+        assertTrue(task1 instanceof HumanTaskDefinition, "O nó deveria ser uma HumanTask");
         assertEquals("External Task 1", task1.name());
-        assertEquals(1, task1.outgoing().size(), "Task 1 should have one outgoing flow");
-        assertEquals("external-task-2", task1.outgoing().get(0).targetNodeId(), "Task 1 should flow to Task 2");
+        assertEquals(1, task1.outgoing().size(), "A Tarefa 1 deveria ter um fluxo de saída");
+        assertEquals("external-task-2", task1.outgoing().get(0).targetNodeId(), "A Tarefa 1 deveria fluir para a Tarefa 2");
 
         // 5. Assert End Event
         FlowNodeDefinition endEvent = processDefinition.flowNodes().get("Event_0zc4z3m");
         assertNotNull(endEvent);
-        assertTrue(endEvent instanceof EndEventDefinition, "End node should be an EndEvent");
-        assertTrue(endEvent.outgoing().isEmpty(), "End event should have no outgoing flows");
+        assertTrue(endEvent instanceof EndEventDefinition, "O nó final deveria ser um EndEvent");
+        assertTrue(endEvent.outgoing().isEmpty(), "O evento de fim não deveria ter fluxos de saída");
     }
 }
