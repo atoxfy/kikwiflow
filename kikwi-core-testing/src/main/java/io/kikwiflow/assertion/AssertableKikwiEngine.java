@@ -76,6 +76,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public Optional<ExternalTask> completeExternalTask(String externalTaskId) {
+        return Optional.empty();
+    }
+
+    @Override
     public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
         return inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
     }
@@ -109,6 +114,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public void commitWork(UnitOfWork unitOfWork) {
         this.inMemoryKikwiEngineRepository.commitWork(unitOfWork);
+    }
+
+    @Override
+    public Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId) {
+        return Optional.empty();
     }
 
     public void evaluateEvents(){

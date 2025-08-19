@@ -70,7 +70,10 @@ public interface KikwiEngineRepository {
 
     Optional<ExternalTask> completeExternalTask(String externalTaskId);
 
-    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy);
+     List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId);
+
+
+     public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy);
 
     public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey);
 

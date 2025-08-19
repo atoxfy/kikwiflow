@@ -135,6 +135,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public Optional<ExternalTask> completeExternalTask(String externalTaskId) {
+        return Optional.empty();
+    }
+
+    @Override
     public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
         return externalTaskCollection.values().stream()
             .filter(task -> processInstanceId.equals(task.processInstanceId()))
@@ -216,5 +221,10 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         if(unitOfWork.events() != null){
             this.outboxEventQueue.addAll(unitOfWork.events());
         }
+    }
+
+    @Override
+    public Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId) {
+        return Optional.empty();
     }
 }

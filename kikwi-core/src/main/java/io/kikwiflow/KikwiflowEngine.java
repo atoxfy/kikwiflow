@@ -34,6 +34,7 @@ import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.ProcessInstanceExecution;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.node.Executable;
 import io.kikwiflow.model.execution.node.WaitState;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -78,7 +79,7 @@ public class KikwiflowEngine {
         final BpmnParser bpmnParser = new DefaultBpmnParser();
         this.processDefinitionService = new ProcessDefinitionService(bpmnParser, kikwiEngineRepository);
         this.navigator = new Navigator(processDefinitionService);
-        this.processExecutionManager = new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(delegateResolver), navigator, kikwiflowConfig));
+        this.processExecutionManager = new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(delegateResolver)), navigator, kikwiflowConfig);
         this.kikwiflowConfig = kikwiflowConfig;
         this.eventListeners = executionEventListeners;
 
@@ -95,7 +96,7 @@ public class KikwiflowEngine {
                     ProcessDefinition processDefinition = processDefinitionService.getById(externalTask.processDefinitionId())
                             .orElseThrow();
 
-                    processExecutionManager.execute();
+                   // processExecutionManager.execute();
 
 
                 });
@@ -233,9 +234,8 @@ public class KikwiflowEngine {
             ProcessInstance processInstance = engine.kikwiEngineRepository.saveProcessInstance(ProcessInstanceMapper.mapToRecord(processInstanceExecution));
             processInstanceExecution.setId(processInstance.id());
 
-            ExecutionResult executionResult = engine.processExecutionManager.startProcessExecution(
-                new StartableProcessRecord(processDefinition, processInstanceExecution)
-            );
+            FlowNodeDefinition startPoint = processDefinition.defaultStartPoint();
+            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition);
 
             return engine.handleContinuation(executionResult);
         }

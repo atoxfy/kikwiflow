@@ -16,44 +16,146 @@
  */
 package io.kikwiflow.execution;
 
-import io.kikwiflow.execution.dto.StartableProcessRecord;
+import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.execution.dto.Continuation;
+import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
+import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
+import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.event.FlowNodeExecuted;
+import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.execution.FlowNodeExecutionSnapshot;
+import io.kikwiflow.model.execution.enumerated.NodeExecutionStatus;
+import io.kikwiflow.model.execution.node.WaitState;
+import io.kikwiflow.navigation.Navigator;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Orquestra a execução de uma instância de processo.
+ * Orquestra a execução síncrona de um fluxo de processo.
  * <p>
- * Esta classe atua como uma fachada (facade) para a lógica de execução,
- * recebendo uma instância de processo pronta para ser iniciada e delegando
- * a sua condução ao {@link FlowNodeExecutor}.
- * A sua principal responsabilidade é isolar o motor principal ({@link io.kikwiflow.KikwiflowEngine})
- * dos detalhes de como a execução do fluxo é iniciada.
+ * Esta classe contém o loop de execução principal do motor. A sua responsabilidade é
+ * receber um ponto de partida e conduzir a instância do processo através dos nós
+ * sequenciais, utilizando o {@link Navigator} para determinar o próximo passo e o
+ * {@link FlowNodeExecutor} para executar a lógica de cada nó.
+ * <p>
+ * A execução continua até que uma das seguintes condições de paragem seja encontrada:
+ * <ul>
+ *     <li>Um nó que é um estado de espera ({@link WaitState}).</li>
+ *     <li>Um nó que exige um commit transacional antes da sua execução (commit-before).</li>
+ *     <li>O fim do fluxo do processo (nenhum nó de saída).</li>
+ * </ul>
  */
 public class ProcessExecutionManager {
 
     private final FlowNodeExecutor flowNodeExecutor;
+    private final Navigator navigator;
+    private final KikwiflowConfig kikwiflowConfig;
 
     /**
-     * Constrói uma nova instância do ProcessExecutionManager.
+     * Constrói uma nova instância do gestor de execução.
      *
-     * @param flowNodeExecutor O executor que efetivamente percorre o grafo do processo.
+     * @param flowNodeExecutor O executor responsável pela lógica de um único nó.
+     * @param navigator O componente que determina o próximo passo no fluxo.
+     * @param kikwiflowConfig A configuração do motor, usada para verificar se funcionalidades como estatísticas estão ativadas.
      */
-    public ProcessExecutionManager(FlowNodeExecutor flowNodeExecutor) {
+    public ProcessExecutionManager(FlowNodeExecutor flowNodeExecutor, Navigator navigator, KikwiflowConfig kikwiflowConfig) {
         this.flowNodeExecutor = flowNodeExecutor;
+        this.navigator = navigator;
+        this.kikwiflowConfig = kikwiflowConfig;
     }
 
     /**
-     * Inicia a execução de uma nova instância de processo.
+     * Executa um segmento de fluxo de processo a partir de um ponto de partida.
      * <p>
-     * Este método encontra o ponto de início padrão da definição do processo e
-     * invoca o {@link FlowNodeExecutor} para começar a executar o fluxo.
+     * Este método invoca o {@link FlowNodeExecutor} para executar o fluxo de forma síncrona
+     * até que um ponto de paragem (wait state, commit boundary, ou fim do processo) seja encontrado.
      *
-     * @param startableProcessRecord Um registro contendo a definição do processo e a instância
-     *                               de processo a ser executada.
+     * @param startPoint O nó a partir do qual a execução deve começar.
+     * @param processInstance A instância de processo em execução (mutável durante a execução).
+     * @param processDefinition A definição do processo correspondente.
      * @return O {@link ExecutionResult} que contém o resultado da execução síncrona.
      */
-    public ExecutionResult startProcessExecution(StartableProcessRecord startableProcessRecord){
-        FlowNodeDefinition startPoint = startableProcessRecord.processDefinition().defaultStartPoint();
-        return flowNodeExecutor.runWhileNotFindAStopPoint(startPoint, startableProcessRecord.processInstance(), startableProcessRecord.processDefinition());
+    public ExecutionResult executeFlow(FlowNodeDefinition startPoint, ProcessInstanceExecution processInstance, ProcessDefinition processDefinition) {
+        FlowNodeDefinition currentNode = startPoint;
+        List<OutboxEventEntity> criticalEvents = new ArrayList<>();
+
+        while (currentNode != null && !isWaitState(currentNode) && !isCommitBefore(currentNode)) {
+            Instant startedAt = Instant.now();
+            NodeExecutionStatus status;
+
+            try {
+                flowNodeExecutor.execute(processInstance, processDefinition, currentNode);
+                status = NodeExecutionStatus.SUCCESS;
+            } catch (Exception e) {
+                status = NodeExecutionStatus.ERROR;
+                // TODO: error handling, maybe create a failed event and stop.
+                throw e;
+            }
+
+            if (kikwiflowConfig.isStatsEnabled() || kikwiflowConfig.isOutboxEventsEnabled()) {
+                final FlowNodeExecutionSnapshot snapshot = FlowNodeExecutionSnapshot.builder()
+                    .flowNodeDefinition(currentNode)
+                    .processDefinitionSnapshot(processDefinition)
+                    .processInstanceSnapshot(ProcessInstanceMapper.mapToRecord(processInstance))
+                    .startedAt(startedAt)
+                    .finishedAt(Instant.now())
+                    .nodeExecutionStatus(status)
+                    .build();
+
+                FlowNodeExecuted flowNodeExecuted = FlowNodeExecuted.builder()
+                    .flowNodeDefinitionId(snapshot.flowNodeDefinition().id())
+                    .processInstanceId(snapshot.processInstance().id())
+                    .processDefinitionId(snapshot.processDefinition().id())
+                    .nodeExecutionStatus(snapshot.nodeExecutionStatus())
+                    .startedAt(snapshot.startedAt())
+                    .finishedAt(snapshot.finishedAt())
+                    .build();
+
+                criticalEvents.add(new OutboxEventEntity(flowNodeExecuted));
+            }
+
+            boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());
+            Continuation continuation = navigator.determineNextContinuation(currentNode, processDefinition, isCommitAfter);
+
+            if (continuation == null || continuation.isAsynchronous()) {
+                return new ExecutionResult(new ExecutionOutcome(processInstance, criticalEvents), continuation);
+            } else {
+                // TODO: Handle parallel gateways in the future
+                currentNode = continuation.nextNodes().get(0);
+            }
+        }
+
+        if (currentNode != null) {
+            return new ExecutionResult(
+                new ExecutionOutcome(processInstance, criticalEvents),
+                new Continuation(List.of(currentNode), true)
+            );
+        }
+
+        return new ExecutionResult(new ExecutionOutcome(processInstance, criticalEvents), null);
+    }
+
+    /**
+     * Verifica se um nó é um "estado de espera" (wait state).
+     * Um estado de espera interrompe a execução síncrona do motor, aguardando um gatilho externo.
+     *
+     * @param flowNodeDefinition O nó a ser verificado.
+     * @return {@code true} se o nó implementa a interface {@link WaitState}.
+     */
+    private boolean isWaitState(FlowNodeDefinition flowNodeDefinition) {
+        return flowNodeDefinition instanceof WaitState;
+    }
+
+    /**
+     * Verifica se um nó está configurado para forçar um commit transacional *antes* da sua execução.
+     * @param flowNodeDefinition O nó a ser verificado.
+     * @return {@code true} se o atributo `commitBefore` for verdadeiro, {@code false} caso contrário.
+     */
+    private boolean isCommitBefore(FlowNodeDefinition flowNodeDefinition) {
+        return Boolean.TRUE.equals(flowNodeDefinition.commitBefore());
     }
 }
