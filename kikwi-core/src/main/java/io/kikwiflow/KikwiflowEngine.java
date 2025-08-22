@@ -19,6 +19,7 @@ package io.kikwiflow;
 import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.exception.ProcessInstanceNotFoundException;
+import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
@@ -52,6 +53,7 @@ import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -86,22 +88,48 @@ public class KikwiflowEngine {
     }
 
 
-    public void completeWaitStateById(String externalTaskId){
-        kikwiEngineRepository.completeExternalTask(externalTaskId)
-                .ifPresent(externalTask -> {
-                    //TODO ajustar essa dinamica
-                    String processInstanceId = externalTask.processInstanceId();
-                    ProcessInstance processInstance = kikwiEngineRepository.findProcessInstanceById(processInstanceId)
-                            .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found"));
-                    ProcessDefinition processDefinition = processDefinitionService.getById(externalTask.processDefinitionId())
-                            .orElseThrow();
+    /**
+     * Completa uma tarefa externa e continua a execução do processo.
+     *
+     * @param externalTaskId O ID da tarefa externa a ser completada.
+     * @param variables Um mapa de variáveis a serem adicionadas ou atualizadas na instância do processo.
+     * @return O estado final da instância do processo após a continuação da execução.
+     * @throws TaskNotFoundException se nenhuma tarefa com o ID fornecido for encontrada.
+     * @throws ProcessInstanceNotFoundException se a instância de processo associada não for encontrada.
+     */
+    public ProcessInstance completeExternalTask(String externalTaskId, Map<String, Object> variables) {
+        // 1. Encontrar a tarefa a ser completada.
+        ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)
+            .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
 
-                   // processExecutionManager.execute();
+        // 2. Obter os dados necessários para a continuação.
+        ProcessInstance processInstanceRecord = kikwiEngineRepository.findProcessInstanceById(taskToComplete.processInstanceId())
+            .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found with id: " + taskToComplete.processInstanceId()));
 
+        ProcessDefinition processDefinition = processDefinitionService.getById(processInstanceRecord.processDefinitionId())
+            .orElseThrow(); // Se a instância existe, a definição também deve existir.
 
-                });
+        // 3. Preparar o estado de execução.
+        ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
+        if (variables != null) {
+            processInstanceExecution.getVariables().putAll(variables);
+        }
 
+        // 4. Navegar: encontrar o nó que foi completado e determinar o próximo passo.
+        FlowNodeDefinition completedNode = processDefinition.flowNodes().get(taskToComplete.taskDefinitionId());
+        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, false);
 
+        // 5. Executar: se houver um próximo passo, delegar ao executor.
+        ExecutionResult executionResult;
+        if (continuation != null && !continuation.nextNodes().isEmpty()) {
+            FlowNodeDefinition startPoint = continuation.nextNodes().get(0); // Simplificado para fluxo linear
+            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition);
+        } else {
+            executionResult = new ExecutionResult(new ExecutionOutcome(processInstanceExecution, Collections.emptyList()), null);
+        }
+
+        // 6. Persistir o resultado e o estado da tarefa completada.
+        return handleContinuation(executionResult, taskToComplete.id());
     }
 
 
@@ -115,7 +143,15 @@ public class KikwiflowEngine {
         return processDefinitionService.deploy(is);
     }
 
-    private ProcessInstance handleContinuation(ExecutionResult executionResult) {
+    private ProcessInstance handleContinuation(ExecutionResult executionResult){
+        return handleContinuation(executionResult, null);
+    }
+
+    /**
+     * Orquestra a persistência do estado final de uma execução síncrona.
+     * Este método constrói e comita a {@link UnitOfWork}.
+     */
+    private ProcessInstance handleContinuation(ExecutionResult executionResult, String completedExternalTaskId) {
         Continuation continuation = executionResult.continuation();
         ExecutionOutcome executionOutcomea = executionResult.outcome();
         ProcessInstanceExecution processInstance = executionOutcomea.processInstance();
@@ -166,13 +202,18 @@ public class KikwiflowEngine {
         }
 
         ProcessInstance processInstanceToSave = ProcessInstanceMapper.mapToRecord(processInstance);
-        //TODO ajustar para adicionar external tasks e tasks to delete.
+
+        List<String> tasksToDelete = new ArrayList<>();
+        if (completedExternalTaskId != null) {
+            tasksToDelete.add(completedExternalTaskId);
+        }
+
         UnitOfWork updatedUnitOfWork = new UnitOfWork(
                 !ProcessInstanceStatus.COMPLETED.equals(processInstanceToSave.status()) ? processInstanceToSave : null,
                 ProcessInstanceStatus.COMPLETED.equals(processInstanceToSave.status()) ? processInstanceToSave : null,
                 nextExecutableTasks,
                 nextExternalTasks,
-                Collections.emptyList(),
+                tasksToDelete,
                events
         );
 
@@ -197,7 +238,7 @@ public class KikwiflowEngine {
         private final KikwiflowEngine engine;
         private String processDefinitionKey;
         private String businessKey;
-        private Map<String, Object> variables = Collections.emptyMap();
+        private Map<String, Object> variables = new HashMap<>();
 
         private ProcessStarter(KikwiflowEngine engine) {
             this.engine = engine;
@@ -215,7 +256,7 @@ public class KikwiflowEngine {
 
         public ProcessStarter withVariables(Map<String, Object> vars) {
             if (vars != null) {
-                this.variables = vars;
+                this.variables = new HashMap<>(vars);
             }
             return this;
         }

@@ -83,5 +83,7 @@ public interface KikwiEngineRepository {
 
     public void commitWork(UnitOfWork unitOfWork);
 
+    Optional<ExternalTask> findExternalTaskById(String externalTaskId);
+
     Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId);
 }
