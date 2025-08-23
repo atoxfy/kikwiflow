@@ -193,12 +193,6 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessInstance updateProcessInstance(ProcessInstance processInstance) {
-        this.processInstanceCollection.put(processInstance.id(), processInstance);
-        return processInstance;
-    }
-
-    @Override
     public void deleteProcessInstanceById(String processInstanceId) {
         this.processInstanceCollection.remove(processInstanceId);
     }

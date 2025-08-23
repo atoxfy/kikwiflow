@@ -1,0 +1,83 @@
+graph TD
+    subgraph "Aplicação Final do Utilizador"
+        App["Your Spring Boot App<br>(Contém o seu código de negócio)"]
+    end
+
+    subgraph "Ecossistema kikwi-flow (Módulos)"
+        Starter[kikwi-spring-boot-starter]
+        Autoconfigure[kikwi-spring-boot-autoconfigure]
+        QuerySpringBootAutoconfigure["kikwi-query-spring-boot-autoconfigure<br><i>(Contém a implementação e a auto-configuração da API de Consulta)</i>"]
+
+        subgraph "Camada de Consulta (API)"
+            QueryApi["kikwi-query-api<br><i>(Contrato de alto nível para a Aplicação)</i>"]
+        end
+
+        subgraph "Engine"
+            EngineCore[kikwi-core]
+        end
+
+        subgraph "Camada de Persistência (Implementações)"
+            PersistenceMongo[kikwi-persistence-mongodb]
+            PersistencePostgres["kikwi-persistence-postgres<br>(Futuro)"]
+        end
+
+        subgraph "Camada de Persistência (Contrato)"
+            PersistenceApi["kikwi-runtime-persistence-api<br><i>(Contém as interfaces de persistência)</i>"]
+            CommandRepo["CommandRepository (Interface)"]
+            QueryRepo["QueryRepository (Interface)"]
+            PersistenceApi -- "Contém" --> CommandRepo
+            PersistenceApi -- "Contém" --> QueryRepo
+        end
+
+        subgraph "Fundação"
+            Model[kikwi-model]
+            EventsApi[kikwi-lightweight-events-api]
+        end
+    end
+
+%% Dependências do Maven (o que é "puxado")
+    App -- "1. Adiciona dependência para" --> Starter
+    App -- "2. ESCOLHE E adiciona dependências para" --> PersistenceMongo
+    App -- "3. (Opcional) Adiciona dependência para" --> QuerySpringBootAutoconfigure
+
+    Starter -- "Depende de (agrega)" --> Autoconfigure
+
+    Autoconfigure -- "Depende de" --> EngineCore
+    QuerySpringBootAutoconfigure -- "Depende de (para implementar)" --> QueryApi
+    QuerySpringBootAutoconfigure -- "Depende de (para consultar)" --> PersistenceApi
+
+%% A linha tracejada indica uma dependência opcional/condicional.
+    Autoconfigure -. "Configura se presente" .-> PersistenceMongo
+
+    EngineCore -- "Depende de" --> PersistenceApi
+    EngineCore -- "Depende de" --> Model
+    EngineCore -- "Depende de" --> EventsApi
+
+    PersistenceMongo -- "Implementa" --> PersistenceApi
+    PersistenceApi -- "Depende de" --> Model
+
+    QueryApi -- "Depende de" --> Model
+
+%% Fluxo de Configuração do Spring (o que é "embarcado")
+    subgraph "Contexto da Aplicação Spring (Runtime)"
+        SpringBoot["Spring Boot<br>Application Context"]
+
+        EngineBean["KikwiFlowEngine (Bean)"]
+        QueryBean["ExternalTaskQueryService (Bean)<br><i>from query-spring-boot-autoconfigure</i>"]
+        RepoBean["KikwiEngineRepository (Bean)<br><i>from persistence impl</i>"]
+        AppServiceBean["HumanTaskApplicationService (Bean)<br><i>from Your App</i>"]
+    end
+
+    Autoconfigure -- "Fornece 'receitas' para a Engine" --> SpringBoot
+    QuerySpringBootAutoconfigure -- "Fornece 'receitas' de consulta (se presente)" --> SpringBoot
+
+    SpringBoot -- "Cria e injeta" --> EngineBean
+    SpringBoot -- "Cria e injeta" --> QueryBean
+    SpringBoot -- "Cria e injeta" --> RepoBean
+    SpringBoot -- "Cria e injeta" --> AppServiceBean
+
+    AppServiceBean -- "Usa (injeta)" --> EngineBean
+    AppServiceBean -- "Usa (injeta)" --> QueryBean
+    QueryBean -- "Usa (injeta)" --> RepoBean
+
+    EngineBean -- "Usa (injeta)" --> RepoBean

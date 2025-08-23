@@ -14,8 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.persistence.api.repository;
 
-public interface KikwiEngineRepository extends QueryRepository, CommandRepository{
+package io.kikwiflow.query.api;
 
+import io.kikwiflow.model.execution.node.ExternalTask;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface ExternalTaskQueryService {
+    List<ExternalTask> findByProcessInstanceId(String processInstanceId);
+    Optional<ExternalTask> findById(String externalTaskId);
 }

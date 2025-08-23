@@ -18,22 +18,36 @@
     </properties>
 
     <modules>
-        <module>kikwi-core</module>
-        <module>kikwi-spring-boot-starter</module>
-        <module>kikwi-example-app</module>
-        <module>kikwi-runtime-persistence-api</module>
+        <!-- Foundation -->
         <module>kikwi-model</module>
-        <module>kikwi-runtime-persistence-mongodb</module>
-        <module>kikwi-core-testing</module>
         <module>kikwi-lightweight-events-api</module>
-        <module>kikwi-in-memory-addons</module>
+
+        <!-- APIs -->
+        <module>kikwi-runtime-persistence-api</module>
+        <module>kikwi-runtime-query-api</module>
         <module>kikwi-history-api</module>
         <module>kikwi-critical-event-relay-api</module>
+
+        <!-- Core Engine & Testing -->
+        <module>kikwi-core</module>
+        <module>kikwi-core-testing</module>
         <module>kikwi-core-tests</module>
-        <module>kikwi-management-core</module>
-        <module>kikwi-management-api</module>
+
+        <!-- Spring Boot Integration -->
+        <module>kikwi-spring-boot-starter</module>
+        <module>kikwi-spring-boot-autoconfigure</module>
+        <module>kikwi-runtime-query-spring-boot-autoconfigure</module>
+
+        <!-- Addons & Implementations -->
+        <module>kikwi-in-memory-addons</module>
+        <module>kikwi-runtime-persistence-mongodb</module>
         <module>kikwi-pulse</module>
 
+        <!-- Example Application (usually last) -->
+        <module>sample-linear-human-tasks-spring-boot</module>
+        <module>kikwi-runtime-query-spring-boot-starter</module>
+        <module>kikwi-in-memory-spring-boot-autoconfigure</module>
+        <module>kikwi-in-memory-spring-boot-starter</module>
     </modules>
 
 </project>
