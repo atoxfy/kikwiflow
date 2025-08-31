@@ -77,7 +77,7 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
 
     @Override
     public Optional<ExternalTask> completeExternalTask(String externalTaskId) {
-        return Optional.empty();
+        return inMemoryKikwiEngineRepository.completeExternalTask(externalTaskId);
     }
 
     @Override
@@ -90,7 +90,6 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
         return inMemoryKikwiEngineRepository.createExecutableTask(task);
     }
 
-
     @Override
     public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy) {
         return inMemoryKikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
@@ -102,11 +101,6 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessInstance updateProcessInstance(ProcessInstance processInstance) {
-        return null;
-    }
-
-    @Override
     public void deleteProcessInstanceById(String processInstanceId) {
         this.inMemoryKikwiEngineRepository.deleteProcessInstanceById(processInstanceId);
     }
@@ -114,6 +108,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public void commitWork(UnitOfWork unitOfWork) {
         this.inMemoryKikwiEngineRepository.commitWork(unitOfWork);
+    }
+
+    @Override
+    public Optional<ExternalTask> findExternalTaskById(String externalTaskId) {
+        return inMemoryKikwiEngineRepository.findExternalTaskById(externalTaskId);
     }
 
     @Override
@@ -155,5 +154,12 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
         assertEquals(processInstance.processDefinitionId(), savedProcessInstance.getProcessDefinitionId());
         assertEquals(processInstance.status(), savedProcessInstance.getStatus());
         assertEquals(processInstance.variables(), savedProcessInstance.getVariables());
+    }
+
+    public void assertThatProcessInstanceIsCompleted(String processInstanceId) {
+        // Na implementação atual, uma instância completa é removida da coleção ativa.
+        // Esta asserção verifica se a instância não foi encontrada, o que indica que foi concluída.
+        assertFalse(findProcessInstanceById(processInstanceId).isPresent(),
+                "A instância de processo " + processInstanceId + " deveria estar completa e não na coleção ativa.");
     }
 }

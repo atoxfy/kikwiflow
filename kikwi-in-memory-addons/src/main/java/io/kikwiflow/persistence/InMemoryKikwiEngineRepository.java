@@ -140,6 +140,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public Optional<ExternalTask> findExternalTaskById(String externalTaskId) {
+        return Optional.ofNullable(externalTaskCollection.get(externalTaskId));
+    }
+
+    @Override
     public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
         return externalTaskCollection.values().stream()
             .filter(task -> processInstanceId.equals(task.processInstanceId()))
@@ -188,12 +193,6 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessInstance updateProcessInstance(ProcessInstance processInstance) {
-        this.processInstanceCollection.put(processInstance.id(), processInstance);
-        return processInstance;
-    }
-
-    @Override
     public void deleteProcessInstanceById(String processInstanceId) {
         this.processInstanceCollection.remove(processInstanceId);
     }
@@ -216,6 +215,10 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
         if(unitOfWork.externalTasksToCreate() != null){
             unitOfWork.externalTasksToCreate().forEach(this::createExternalTask);
+        }
+
+        if (unitOfWork.tasksToDelete() != null) {
+            unitOfWork.tasksToDelete().forEach(externalTaskCollection::remove);
         }
 
         if(unitOfWork.events() != null){

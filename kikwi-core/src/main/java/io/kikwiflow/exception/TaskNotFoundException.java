@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.persistence.api.repository;
+package io.kikwiflow.exception;
 
-public interface KikwiEngineRepository extends QueryRepository, CommandRepository{
-
+public class TaskNotFoundException extends RuntimeException {
+    public TaskNotFoundException(String message) {
+        super(message);
+    }
 }

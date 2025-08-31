@@ -22,6 +22,7 @@ import io.kikwiflow.assertion.AssertableKikwiEngine;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.execution.TestDelegateResolver;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import org.junit.jupiter.api.AfterEach;
@@ -89,7 +90,6 @@ public class LinearHumanTasksTests {
         String initialVarKey = "myVar";
         startVariables.put(initialVarKey, initialVar);
 
-
         //act
         ProcessInstance processInstance = kikwiflowEngine.startProcess()
                 .byKey(processDefinitionKey)
@@ -97,16 +97,56 @@ public class LinearHumanTasksTests {
                 .withVariables(startVariables)
                 .execute();
 
-
         //assert
         assertNotNull(processInstance.id());
-        // The process should be ACTIVE, not COMPLETED, because it's waiting at a human task.
         assertEquals(ProcessInstanceStatus.ACTIVE, processInstance.status(), "Process should be active and waiting.");
-
-        // Verify that the process instance still exists in the runtime context.
         assertableKikwiEngine.assertThatProcessInstanceIsActive(processInstance.id());
-
-        // Verify that an external task has been created for the first human task.
         assertableKikwiEngine.assertHasActiveExternalTaskOn(processInstance.id(), "external-task-1");
+    }
+
+    @Test
+    @DisplayName("Deve percorrer todo o fluxo de tarefas humanas sequenciais com sucesso")
+    void shouldRunThroughTheEntireSequentialHumanTaskProcess() throws Exception {
+        // Arrange
+        InputStream bpmnStream = getClass().getClassLoader().getResourceAsStream("sequential-human-tasks.bpmn");
+        ProcessDefinition processDefinition = kikwiflowEngine.deployDefinition(bpmnStream);
+        ProcessInstance processInstance = kikwiflowEngine.startProcess()
+            .byKey(processDefinition.key())
+            .withBusinessKey("e2e-sequential-flow")
+            .execute();
+
+        // Assert
+        assertNotNull(processInstance.id());
+        assertEquals(ProcessInstanceStatus.ACTIVE, processInstance.status());
+        assertableKikwiEngine.assertHasActiveExternalTaskOn(processInstance.id(), "external-task-1");
+
+        // Act & Assert
+        for (int i = 1; i <= 5; i++) {
+            String currentTaskDefinitionId = "external-task-" + i;
+
+            // Find the current active task
+            ExternalTask taskToComplete = assertableKikwiEngine.findExternalTasksByProcessInstanceId(processInstance.id())
+                .stream()
+                .filter(task -> task.taskDefinitionId().equals(currentTaskDefinitionId))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Tarefa não encontrada: " + currentTaskDefinitionId));
+
+            // Complete the task
+            Map<String, Object> completionVariables = Map.of("task" + i + "_completed", true);
+            processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), completionVariables);
+
+            // Assert the state after each completion
+            if (i < 5) {
+                assertEquals(ProcessInstanceStatus.ACTIVE, processInstance.status(), "Processo deveria continuar ativo após a tarefa " + i);
+                String nextTaskDefinitionId = "external-task-" + (i + 1);
+                assertableKikwiEngine.assertHasActiveExternalTaskOn(processInstance.id(), nextTaskDefinitionId);
+            }
+        }
+
+        // Final Assert: The process should now be completed
+        assertEquals(ProcessInstanceStatus.COMPLETED, processInstance.status(), "Processo deveria estar completo após a última tarefa.");
+        assertNotNull(processInstance.endedAt(), "Processo deveria ter uma data de término.");
+        assertTrue(assertableKikwiEngine.findExternalTasksByProcessInstanceId(processInstance.id()).isEmpty(), "Não deveriam existir mais tarefas externas ativas.");
+        assertableKikwiEngine.assertThatProcessInstanceIsCompleted(processInstance.id());
     }
 }

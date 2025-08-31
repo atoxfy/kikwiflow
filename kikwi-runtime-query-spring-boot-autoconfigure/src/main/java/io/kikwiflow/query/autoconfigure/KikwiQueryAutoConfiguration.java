@@ -14,8 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.persistence.api.repository;
 
-public interface KikwiEngineRepository extends QueryRepository, CommandRepository{
+package io.kikwiflow.query.autoconfigure;
 
+import io.kikwiflow.persistence.api.repository.QueryRepository;
+import io.kikwiflow.query.api.ExternalTaskQueryService;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+
+@AutoConfiguration
+public class KikwiQueryAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ExternalTaskQueryService externalTaskQueryService(QueryRepository queryRepository){
+        return new DefaultExternalTaskQueryService(queryRepository);
+    }
 }

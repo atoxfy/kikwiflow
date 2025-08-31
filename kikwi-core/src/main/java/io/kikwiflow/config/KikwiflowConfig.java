@@ -16,41 +16,53 @@
  */
 package io.kikwiflow.config;
 
-/**
- * Configuration class
- * @author Emiliano Fagundes
- *
- *
- * kikwi:
- *   history:
- *     enabled: true
- *     fail-on-error: true
- */
 public class KikwiflowConfig {
 
-    private Boolean isStatsEnabled;
-    private Boolean isOutboxEventsEnabled;
-
+    /**
+     * Controla se a engine deve coletar estatísticas de execução para cada nó do fluxo.
+     * <p>
+     * Quando habilitado ({@code true}), o motor gera eventos leves (lightweight events) como {@code FlowNodeExecutionStats}
+     * que contêm métricas de desempenho (tempos de início e fim). Isso é útil para
+     * monitoramento e análise, mas por se tratar de uma publicação assincrona (fire and forget) inconsistências
+     * podem ocorrer.
+     * <p>
+     * O valor padrão é {@code false}. Pode ser sobrescrito via {@code kikwiflow.stats.enabled=true}
+     * no arquivo de propriedades da aplicação.
+     */
+    private boolean isStatsEnabled = false;
+    /**
+     * Controla o uso do Padrão Outbox para a publicação de eventos críticos.
+     * <p>
+     * Quando habilitado ({@code true}), os eventos gerados durante a execução do processo
+     * (como {@code FlowNodeExecuted} ou {@code ProcessInstanceFinished}) são primeiro salvos
+     * em uma "caixa de saída" persistente, dentro da mesma transação da mudança de estado do processo.
+     * Um processo separado (relay) é então responsável por ler desta caixa e dar um destino aos eventos,
+     *garantindo a entrega e a consistência transacional.
+     * <p>
+     * O valor padrão é {@code false}. Pode ser sobrescrito via {@code kikwiflow.outbox.events-enabled=true}
+     * no arquivo de propriedades da aplicação.
+     */
+    private boolean isOutboxEventsEnabled = false;
 
     public KikwiflowConfig() {
     }
 
     public void statsEnabled() {
-        isStatsEnabled = true;
+        this.isStatsEnabled = true;
     }
     public void outboxEventsEnabled() {
-        isOutboxEventsEnabled = true;
+        this.isOutboxEventsEnabled = true;
     }
 
     public void statsDisabled(){
-        isStatsEnabled = false;
+        this.isStatsEnabled = false;
     }
 
     public boolean isStatsEnabled(){
         return isStatsEnabled;
     }
 
-    public Boolean isOutboxEventsEnabled() {
+    public boolean isOutboxEventsEnabled() {
         return isOutboxEventsEnabled;
     }
 }
