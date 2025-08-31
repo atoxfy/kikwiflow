@@ -26,7 +26,7 @@ class TaskExecutorTest {
     }
 
     @Test
-    @DisplayName("")
+    @DisplayName("Deve executar o delegate quando o FlowNode for um ServiceTaskDefinition válido")
     void shouldExecute(){
         JavaDelegate delegate = mock(JavaDelegate.class);
         String beanName = "testdelegate";
@@ -105,7 +105,7 @@ class TaskExecutorTest {
     }
 
     @Test
-    @DisplayName("")
+    @DisplayName("Não deve executar delegate quando o FlowNode não for ServiceTaskDefinition")
     void shouldNotEnterIfWhenFlowNodeIsNotServiceTaskDefinition() {
         JavaDelegate delegate = mock(JavaDelegate.class);
 
