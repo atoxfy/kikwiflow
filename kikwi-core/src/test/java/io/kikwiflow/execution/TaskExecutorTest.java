@@ -116,7 +116,6 @@ class TaskExecutorTest {
         verifyNoInteractions(delegateResolver);
         verifyNoInteractions(delegate);
 
-
     }
 
 }
