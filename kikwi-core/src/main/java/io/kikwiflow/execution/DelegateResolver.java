@@ -22,5 +22,5 @@ import java.util.Optional;
 
 
 public interface DelegateResolver {
-    public Optional<JavaDelegate> resolve(String beanName);
+     Optional<JavaDelegate> resolve(String beanName);
 }
