@@ -17,8 +17,8 @@
 
 package io.kikwiflow.execution.delegate;
 
-import io.kikwiflow.model.execution.api.ExecutionContext;
-import io.kikwiflow.model.execution.api.JavaDelegate;
+import io.kikwiflow.execution.api.ExecutionContext;
+import io.kikwiflow.execution.api.JavaDelegate;
 
 public class AddVariableDelegate implements JavaDelegate {
     @Override

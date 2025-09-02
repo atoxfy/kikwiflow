@@ -14,21 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.kikwiflow.management.rest.autoconfigure;
 
-package io.kikwiflow.model.execution.api;
+import io.kikwiflow.management.rest.processInstances.ProcessInstanceController;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.context.annotation.Import;
 
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-
-public interface ExecutionContext {
-    void setVariable(String variableName, Object value);
-    void removeVariable(String variableName);
-    Object getVariable(String variableName);
-
-    boolean hasVariable(String variableName);
-
-    String getProcessInstanceId();
-
-    FlowNodeDefinition getFlowNode();
-
-
+@AutoConfiguration
+@Import(ProcessInstanceController.class)
+public class KikwiManagementRestAutoConfiguration {
 }

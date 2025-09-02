@@ -15,17 +15,20 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.execution.delegate;
+package io.kikwiflow.execution.api;
 
-import io.kikwiflow.execution.api.ExecutionContext;
-import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+
+public interface ExecutionContext {
+    void setVariable(String variableName, Object value);
+    void removeVariable(String variableName);
+    Object getVariable(String variableName);
+
+    boolean hasVariable(String variableName);
+
+    String getProcessInstanceId();
+
+    FlowNodeDefinition getFlowNode();
 
 
-public class RemoveVariableDelegate implements JavaDelegate {
-    @Override
-    public void execute(ExecutionContext execution) {
-        System.out.println("RemoveVariableDelegate => Before "  + execution.getVariable("food"));
-        execution.removeVariable("food");
-        System.out.println("RemoveVariableDelegate => After "  + execution.getVariable("food"));
-    }
 }

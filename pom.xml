@@ -48,6 +48,8 @@
         <module>kikwi-runtime-query-spring-boot-starter</module>
         <module>kikwi-in-memory-spring-boot-autoconfigure</module>
         <module>kikwi-in-memory-spring-boot-starter</module>
+        <module>kikwi-management-rest</module>
+        <module>kikwi-delegate-api</module>
     </modules>
 
 </project>

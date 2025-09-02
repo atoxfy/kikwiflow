@@ -16,11 +16,12 @@
  */
 package io.kikwiflow.execution;
 
-import io.kikwiflow.model.execution.api.JavaDelegate;
+
+import io.kikwiflow.execution.api.JavaDelegate;
 
 import java.util.Optional;
 
 
 public interface DelegateResolver {
-    public Optional<JavaDelegate> resolve(String beanName);
+    Optional<JavaDelegate> resolve(String beanName);
 }

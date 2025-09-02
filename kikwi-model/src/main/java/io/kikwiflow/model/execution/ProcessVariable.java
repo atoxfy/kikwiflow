@@ -15,17 +15,12 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.execution.delegate;
+package io.kikwiflow.model.execution;
 
-import io.kikwiflow.execution.api.ExecutionContext;
-import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 
+import java.util.List;
 
-public class RemoveVariableDelegate implements JavaDelegate {
-    @Override
-    public void execute(ExecutionContext execution) {
-        System.out.println("RemoveVariableDelegate => Before "  + execution.getVariable("food"));
-        execution.removeVariable("food");
-        System.out.println("RemoveVariableDelegate => After "  + execution.getVariable("food"));
-    }
+public record ProcessVariable(String name, ProcessVariableVisibility visibility, List<String> roles, Object value) {
+
 }

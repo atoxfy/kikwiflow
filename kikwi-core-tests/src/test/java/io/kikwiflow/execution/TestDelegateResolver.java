@@ -17,7 +17,8 @@
 
 package io.kikwiflow.execution;
 
-import io.kikwiflow.model.execution.api.JavaDelegate;
+
+import io.kikwiflow.execution.api.JavaDelegate;
 
 import java.util.HashMap;
 import java.util.Map;

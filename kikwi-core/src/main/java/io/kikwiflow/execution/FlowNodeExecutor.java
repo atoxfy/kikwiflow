@@ -17,10 +17,9 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.api.DefaultExecutionContext;
-import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.model.bpmn.ProcessDefinition;
 import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.execution.api.ExecutionContext;
 import io.kikwiflow.model.execution.node.Executable;
 
 

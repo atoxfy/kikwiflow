@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.model.execution.api;
+package io.kikwiflow.execution.api;
 
 
 public interface JavaDelegate {
-    public void execute(ExecutionContext execution);
+     void execute(ExecutionContext execution);
 }
