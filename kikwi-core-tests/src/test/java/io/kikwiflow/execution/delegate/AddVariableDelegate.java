@@ -19,13 +19,17 @@ package io.kikwiflow.execution.delegate;
 
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 
 public class AddVariableDelegate implements JavaDelegate {
     @Override
     public void execute(ExecutionContext execution) {
         System.out.println("AddVariableDelegate =>  Before "  + execution.getVariable("food"));
 
-        execution.setVariable("food", "cheeseburger" );
+        ProcessVariable processVariable = new ProcessVariable("food", ProcessVariableVisibility.PUBLIC,
+                null, "cheesseburger");
+        execution.setVariable("food", processVariable);
         System.out.println("AddVariableDelegate => After "  + execution.getVariable("food"));
 
     }

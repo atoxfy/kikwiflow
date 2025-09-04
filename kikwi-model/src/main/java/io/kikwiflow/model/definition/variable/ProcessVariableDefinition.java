@@ -15,15 +15,11 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.bpmn.elements;
+package io.kikwiflow.model.definition.variable;
+
+import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 
 import java.util.List;
 
-public sealed interface FlowNodeDefinition permits StartEventDefinition, HumanTaskDefinition, ServiceTaskDefinition, EndEventDefinition {
-    String id();
-    String name();
-    String description();
-    Boolean commitAfter();
-    Boolean commitBefore();
-    List<SequenceFlowDefinition> outgoing();
+public record ProcessVariableDefinition(String name, ProcessVariableVisibility visibility, List<String> roles, String type, String format) {
 }

@@ -19,6 +19,7 @@ package io.kikwiflow.management.rest.tasks;
 
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.query.api.ExternalTaskQueryService;
 import org.springframework.http.ResponseEntity;
@@ -51,7 +52,7 @@ public class TaskController {
 
 
     @PostMapping("/tasks/{taskId}/complete")
-    public ResponseEntity<ProcessInstance> completeTask(@PathVariable String taskId, @RequestBody(required = false) Map<String, Object> variables) {
+    public ResponseEntity<ProcessInstance> completeTask(@PathVariable String taskId, @RequestBody(required = false) Map<String, ProcessVariable> variables) {
         ProcessInstance instance = commandEngine.completeExternalTask(taskId, variables);
         return ResponseEntity.ok(instance);
     }

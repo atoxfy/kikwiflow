@@ -15,10 +15,15 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.bpmn.elements;
+package io.kikwiflow.rule.api;
 
-public record SequenceFlowDefinition(
-        String id,
-        String condition,
-        String targetNodeId) {
+import io.kikwiflow.model.execution.ProcessVariable;
+
+import java.util.Map;
+
+public interface DecisionRule {
+
+    String getKey();
+
+    boolean evaluate(Map<String, ProcessVariable> variables);
 }

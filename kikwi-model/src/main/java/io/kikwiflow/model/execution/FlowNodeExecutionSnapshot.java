@@ -17,8 +17,8 @@
 
 package io.kikwiflow.model.execution;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.enumerated.NodeExecutionStatus;
 
 import java.time.Instant;

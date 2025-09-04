@@ -15,17 +15,20 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.bpmn.elements;
+package io.kikwiflow.model.definition.process.elements;
+
+import io.kikwiflow.model.execution.node.Executable;
 
 import java.util.Collections;
 import java.util.List;
 
-public record StartEventDefinition(String id,
-                                   String name,
-                                   String description,
-                                   Boolean commitAfter,
-                                   Boolean commitBefore,
-                                   List<SequenceFlowDefinition> outgoing) implements FlowNodeDefinition {
+public record ServiceTaskDefinition(String id,
+                                    String name,
+                                    String description,
+                                    String delegateExpression,
+                                    Boolean commitAfter,
+                                    Boolean commitBefore,
+                                    List<SequenceFlowDefinition> outgoing) implements FlowNodeDefinition, Executable {
 
     public static Builder builder() {
         return new Builder();
@@ -35,8 +38,10 @@ public record StartEventDefinition(String id,
         private String id;
         private String name;
         private String description;
+        private String delegateExpression;
         private Boolean commitAfter;
         private Boolean commitBefore;
+
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
 
         private Builder() {}
@@ -48,6 +53,11 @@ public record StartEventDefinition(String id,
 
         public Builder name(String name) {
             this.name = name;
+            return this;
+        }
+
+        public Builder delegateExpression(String delegateExpression) {
+            this.delegateExpression = delegateExpression;
             return this;
         }
 
@@ -73,8 +83,9 @@ public record StartEventDefinition(String id,
             return this;
         }
 
-        public StartEventDefinition build() {
-            return new StartEventDefinition(id, name, description, commitAfter, commitBefore, outgoing);
+        public ServiceTaskDefinition build() {
+            return new ServiceTaskDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing);
         }
     }
+
 }

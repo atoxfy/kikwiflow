@@ -16,9 +16,8 @@
  */
 package io.kikwiflow.cache;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
 
-import javax.management.Query;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

@@ -15,20 +15,17 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.bpmn.elements;
-
-import io.kikwiflow.model.execution.node.Executable;
+package io.kikwiflow.model.definition.process.elements;
 
 import java.util.Collections;
 import java.util.List;
 
-public record ServiceTaskDefinition(String id,
-                                    String name,
-                                    String description,
-                                    String delegateExpression,
-                                    Boolean commitAfter,
-                                    Boolean commitBefore,
-                                    List<SequenceFlowDefinition> outgoing) implements FlowNodeDefinition, Executable {
+public record EndEventDefinition(String id,
+                                 String name,
+                                 String description,
+                                 Boolean commitAfter,
+                                 Boolean commitBefore,
+                                 List<SequenceFlowDefinition> outgoing) implements FlowNodeDefinition {
 
     public static Builder builder() {
         return new Builder();
@@ -38,10 +35,8 @@ public record ServiceTaskDefinition(String id,
         private String id;
         private String name;
         private String description;
-        private String delegateExpression;
         private Boolean commitAfter;
         private Boolean commitBefore;
-
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
 
         private Builder() {}
@@ -53,11 +48,6 @@ public record ServiceTaskDefinition(String id,
 
         public Builder name(String name) {
             this.name = name;
-            return this;
-        }
-
-        public Builder delegateExpression(String delegateExpression) {
-            this.delegateExpression = delegateExpression;
             return this;
         }
 
@@ -83,9 +73,8 @@ public record ServiceTaskDefinition(String id,
             return this;
         }
 
-        public ServiceTaskDefinition build() {
-            return new ServiceTaskDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing);
+        public EndEventDefinition build() {
+            return new EndEventDefinition(id, name, description, commitAfter, commitBefore, outgoing);
         }
     }
-
 }

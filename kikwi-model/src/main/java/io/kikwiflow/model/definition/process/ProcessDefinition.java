@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.model.bpmn;
+package io.kikwiflow.model.definition.process;
 
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 
 import java.util.Collections;
 import java.util.Map;

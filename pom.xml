@@ -50,6 +50,7 @@
         <module>kikwi-in-memory-spring-boot-starter</module>
         <module>kikwi-management-rest</module>
         <module>kikwi-delegate-api</module>
+        <module>kikwi-rule-api</module>
     </modules>
 
 </project>

@@ -16,8 +16,10 @@
  */
 package io.kikwiflow.persistence;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.variable.ProcessVariableDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
@@ -76,7 +78,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public void updateVariables(String processInstanceId, Map<String, Object> variables) {
+    public void updateVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
         findProcessInstanceById(processInstanceId)
                 .ifPresent(processInstance -> {
                     ProcessInstance instanceToSave = ProcessInstance.builder()

@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.bpmn.elements;
+package io.kikwiflow.model.definition.process.elements;
 
 import java.util.Collections;
 import java.util.List;
 
-public record EndEventDefinition(String id,
-                                 String name,
-                                 String description,
-                                 Boolean commitAfter,
-                                 Boolean commitBefore,
-                                 List<SequenceFlowDefinition> outgoing) implements FlowNodeDefinition {
+public record StartEventDefinition(String id,
+                                   String name,
+                                   String description,
+                                   Boolean commitAfter,
+                                   Boolean commitBefore,
+                                   List<SequenceFlowDefinition> outgoing) implements FlowNodeDefinition {
 
     public static Builder builder() {
         return new Builder();
@@ -73,8 +73,8 @@ public record EndEventDefinition(String id,
             return this;
         }
 
-        public EndEventDefinition build() {
-            return new EndEventDefinition(id, name, description, commitAfter, commitBefore, outgoing);
+        public StartEventDefinition build() {
+            return new StartEventDefinition(id, name, description, commitAfter, commitBefore, outgoing);
         }
     }
 }

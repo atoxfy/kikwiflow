@@ -1,7 +1,8 @@
 package io.kikwiflow.persistence.api.repository;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
@@ -24,7 +25,7 @@ public interface CommandRepository {
      * @param processInstanceId O ID da instância a ser atualizada.
      * @param variables O mapa de variáveis a serem adicionadas ou sobrescritas.
      */
-    void updateVariables(String processInstanceId, Map<String, Object> variables);
+    void updateVariables(String processInstanceId, Map<String, ProcessVariable> variables);
 
     /**
      * Adiciona uma nova tarefa à fila de execução.

@@ -18,9 +18,10 @@
 package io.kikwiflow.api;
 
 import io.kikwiflow.execution.api.ExecutionContext;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.execution.ProcessInstanceExecution;
+import io.kikwiflow.model.execution.ProcessVariable;
 
 public class DefaultExecutionContext implements ExecutionContext {
 
@@ -35,7 +36,7 @@ public class DefaultExecutionContext implements ExecutionContext {
     }
 
     @Override
-    public void setVariable(String variableName, Object value) {
+    public void setVariable(String variableName, ProcessVariable value) {
         processInstance.getVariables().put(variableName, value);
     }
 
@@ -45,7 +46,7 @@ public class DefaultExecutionContext implements ExecutionContext {
     }
 
     @Override
-    public Object getVariable(String variableName) {
+    public ProcessVariable getVariable(String variableName) {
         return processInstance.getVariables().get(variableName);
     }
 

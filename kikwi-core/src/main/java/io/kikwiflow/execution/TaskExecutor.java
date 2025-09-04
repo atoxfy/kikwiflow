@@ -18,8 +18,8 @@ package io.kikwiflow.execution;
 
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.api.JavaDelegate;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
 
 import io.kikwiflow.exception.BadDefinitionExecutionException;
 

@@ -21,7 +21,9 @@ import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.assertion.AssertableKikwiEngine;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.execution.TestDelegateResolver;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
@@ -85,10 +87,11 @@ public class LinearHumanTasksTests {
         ProcessDefinition processDefinition = kikwiflowEngine.deployDefinition(bpmnStream);
         String processDefinitionKey = processDefinition.key();
         String businessKey = "anyBusinessKey";
-        Map<String, Object> startVariables = new HashMap<>();
+        Map<String, ProcessVariable> startVariables = new HashMap<>();
         String initialVar = UUID.randomUUID().toString();
         String initialVarKey = "myVar";
-        startVariables.put(initialVarKey, initialVar);
+        ProcessVariable processVariable = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, initialVar);
+        startVariables.put(initialVarKey, processVariable);
 
         //act
         ProcessInstance processInstance = kikwiflowEngine.startProcess()
@@ -132,7 +135,8 @@ public class LinearHumanTasksTests {
                 .orElseThrow(() -> new AssertionError("Tarefa não encontrada: " + currentTaskDefinitionId));
 
             // Complete the task
-            Map<String, Object> completionVariables = Map.of("task" + i + "_completed", true);
+            ProcessVariable processVariable = new ProcessVariable("task" + i + "_completed", ProcessVariableVisibility.PUBLIC, null, true);
+            Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
             processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), completionVariables);
 
             // Assert the state after each completion

@@ -19,7 +19,8 @@ package io.kikwiflow.assertion;
 
 import io.kikwiflow.history.repository.FlowNodeExecutionSnapshotInMemoryRepository;
 import io.kikwiflow.history.repository.ProcessInstanceInMemorySnapshotRepository;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -66,7 +67,7 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
-    public void updateVariables(String processInstanceId, Map<String, Object> variables) {
+    public void updateVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
         inMemoryKikwiEngineRepository.updateVariables(processInstanceId, variables);
     }
 

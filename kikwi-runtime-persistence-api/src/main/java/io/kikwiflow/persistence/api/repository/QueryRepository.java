@@ -17,7 +17,7 @@
 
 package io.kikwiflow.persistence.api.repository;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExternalTask;
 

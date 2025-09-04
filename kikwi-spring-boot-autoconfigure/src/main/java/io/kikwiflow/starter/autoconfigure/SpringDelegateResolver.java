@@ -17,7 +17,7 @@
 package io.kikwiflow.starter.autoconfigure;
 
 import io.kikwiflow.execution.DelegateResolver;
-import io.kikwiflow.model.execution.api.JavaDelegate;
+import io.kikwiflow.execution.api.JavaDelegate;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 

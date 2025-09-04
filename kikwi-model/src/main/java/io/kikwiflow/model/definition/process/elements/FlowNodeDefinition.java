@@ -14,18 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.bpmn;
 
+package io.kikwiflow.model.definition.process.elements;
 
-import io.kikwiflow.model.definition.process.ProcessDefinition;
+import java.util.List;
 
-import java.io.InputStream;
-
-/**
- * Responsible for read and convert bpmn (xml) file
- * into java objects and create the execution model graph
- * @author Emiliano Fagundes
- */
-public interface BpmnParser {
-    public ProcessDefinition parse(InputStream bpmnFileStream) throws Exception;
+public sealed interface FlowNodeDefinition permits StartEventDefinition, HumanTaskDefinition, ServiceTaskDefinition, EndEventDefinition {
+    String id();
+    String name();
+    String description();
+    Boolean commitAfter();
+    Boolean commitBefore();
+    List<SequenceFlowDefinition> outgoing();
 }

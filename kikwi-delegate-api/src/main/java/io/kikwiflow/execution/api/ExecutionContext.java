@@ -17,12 +17,13 @@
 
 package io.kikwiflow.execution.api;
 
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.execution.ProcessVariable;
 
 public interface ExecutionContext {
-    void setVariable(String variableName, Object value);
+    void setVariable(String variableName, ProcessVariable value);
     void removeVariable(String variableName);
-    Object getVariable(String variableName);
+    ProcessVariable getVariable(String variableName);
 
     boolean hasVariable(String variableName);
 

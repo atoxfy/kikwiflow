@@ -24,9 +24,11 @@ import io.kikwiflow.execution.TestDelegateResolver;
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.delegate.AddVariableDelegate;
 import io.kikwiflow.execution.delegate.RemoveVariableDelegate;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -87,10 +89,11 @@ public class LinearServiceTaskTasksTests {
         ProcessDefinition processDefinition = kikwiflowEngine.deployDefinition(bpmnStream);
         String processDefinitionKey = processDefinition.key();
         String businessKey = "anyBusinessKey";
-        Map<String, Object> startVariables = new HashMap<>();
+        Map<String, ProcessVariable> startVariables = new HashMap<>();
         String initialVar = UUID.randomUUID().toString();
         String initialVarKey = "myVar";
-        startVariables.put(initialVarKey, initialVar);
+        ProcessVariable initialProcessVar = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, initialVar);
+        startVariables.put(initialVarKey, initialProcessVar);
 
         // Configure spies to perform assertions at the time of invocation
         doAnswer(invocation -> {

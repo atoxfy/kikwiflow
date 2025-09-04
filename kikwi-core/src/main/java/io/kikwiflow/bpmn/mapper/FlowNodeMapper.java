@@ -26,7 +26,7 @@ import io.kikwiflow.bpmn.model.start.StartEvent;
 import io.kikwiflow.bpmn.model.task.HumanTask;
 import io.kikwiflow.bpmn.model.task.ServiceTask;
 import io.kikwiflow.exception.NotImplementedException;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 
 import java.util.Objects;
 

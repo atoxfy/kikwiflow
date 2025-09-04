@@ -17,6 +17,7 @@
 
 package io.kikwiflow.model.event;
 
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 
 import java.time.Instant;
@@ -33,7 +34,7 @@ public class ProcessInstanceFinished implements CriticalEvent {
     private String businessKey;
     private ProcessInstanceStatus status;
     private String processDefinitionId;
-    private Map<String, Object> variables;
+    private Map<String, ProcessVariable> variables;
     private Instant startedAt;
     private Instant endedAt;
 
@@ -47,8 +48,8 @@ public class ProcessInstanceFinished implements CriticalEvent {
     public void setStatus(ProcessInstanceStatus status) { this.status = status; }
     public String getProcessDefinitionId() { return processDefinitionId; }
     public void setProcessDefinitionId(String processDefinitionId) { this.processDefinitionId = processDefinitionId; }
-    public Map<String, Object> getVariables() { return variables; }
-    public void setVariables(Map<String, Object> variables) { this.variables = variables; }
+    public Map<String, ProcessVariable> getVariables() { return variables; }
+    public void setVariables(Map<String, ProcessVariable> variables) { this.variables = variables; }
     public Instant getStartedAt() { return startedAt; }
     public void setStartedAt(Instant startedAt) { this.startedAt = startedAt; }
     public Instant getEndedAt() { return endedAt; }
@@ -63,7 +64,7 @@ public class ProcessInstanceFinished implements CriticalEvent {
         private String businessKey;
         private ProcessInstanceStatus status;
         private String processDefinitionId;
-        private Map<String, Object> variables;
+        private Map<String, ProcessVariable> variables;
         private Instant startedAt;
         private Instant endedAt;
 
@@ -89,7 +90,7 @@ public class ProcessInstanceFinished implements CriticalEvent {
             return this;
         }
 
-        public Builder variables(Map<String, Object> variables) {
+        public Builder variables(Map<String, ProcessVariable> variables) {
             this.variables = variables;
             return this;
         }

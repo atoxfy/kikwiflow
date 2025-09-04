@@ -19,7 +19,7 @@ package io.kikwiflow.bpmn.mapper.task;
 
 import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
 import io.kikwiflow.bpmn.model.task.HumanTask;
-import io.kikwiflow.model.bpmn.elements.HumanTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.HumanTaskDefinition;
 
 import java.util.Objects;
 import java.util.stream.Collectors;

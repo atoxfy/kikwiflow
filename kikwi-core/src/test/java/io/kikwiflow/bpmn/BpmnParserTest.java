@@ -19,12 +19,12 @@ package io.kikwiflow.bpmn;
 
 
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
-import io.kikwiflow.model.bpmn.elements.EndEventDefinition;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.bpmn.elements.HumanTaskDefinition;
-import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinition;
-import io.kikwiflow.model.bpmn.elements.StartEventDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.HumanTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

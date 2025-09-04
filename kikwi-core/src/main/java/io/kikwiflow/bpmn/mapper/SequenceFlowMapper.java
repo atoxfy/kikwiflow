@@ -18,7 +18,7 @@
 package io.kikwiflow.bpmn.mapper;
 
 import io.kikwiflow.bpmn.model.SequenceFlow;
-import io.kikwiflow.model.bpmn.elements.SequenceFlowDefinition;
+import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 
 import java.util.Objects;
 

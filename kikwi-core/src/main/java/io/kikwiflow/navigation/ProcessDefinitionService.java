@@ -18,7 +18,7 @@ package io.kikwiflow.navigation;
 
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.cache.ProcessDefinitionCache;
 

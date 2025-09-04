@@ -16,6 +16,7 @@
  */
 package io.kikwiflow.execution;
 
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 
 import java.time.Instant;
@@ -36,7 +37,7 @@ public class ProcessInstanceExecution {
     private String businessKey;
     private ProcessInstanceStatus status;
     private String processDefinitionId;
-    private Map<String, Object> variables;
+    private Map<String, ProcessVariable> variables;
     private Instant startedAt;
     private Instant endedAt;
 
@@ -74,11 +75,11 @@ public class ProcessInstanceExecution {
         this.processDefinitionId = processDefinitionId;
     }
 
-    public Map<String, Object> getVariables() {
+    public Map<String, ProcessVariable> getVariables() {
         return variables;
     }
 
-    public void setVariables(Map<String, Object> variables) {
+    public void setVariables(Map<String, ProcessVariable> variables) {
         this.variables = variables;
     }
 
@@ -110,7 +111,7 @@ public class ProcessInstanceExecution {
     public static class Builder {
         private String businessKey;
         private String processDefinitionId;
-        private Map<String, Object> variables;
+        private Map<String, ProcessVariable> variables;
 
         private Builder() {
         }
@@ -140,7 +141,7 @@ public class ProcessInstanceExecution {
          * @param variables O mapa de variáveis.
          * @return O próprio builder, para encadeamento de chamadas.
          */
-        public Builder variables(Map<String, Object> variables) {
+        public Builder variables(Map<String, ProcessVariable> variables) {
             this.variables = variables;
             return this;
         }

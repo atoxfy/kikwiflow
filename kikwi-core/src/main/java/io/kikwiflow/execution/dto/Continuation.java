@@ -17,7 +17,7 @@
 
 package io.kikwiflow.execution.dto;
 
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 
 import java.util.List;
 

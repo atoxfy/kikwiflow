@@ -17,8 +17,8 @@
 package io.kikwiflow.bpmn.mapper;
 
 import io.kikwiflow.bpmn.model.ProcessDefinitionGraph;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 
 import java.util.Map;
 import java.util.Objects;

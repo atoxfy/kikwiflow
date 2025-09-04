@@ -16,6 +16,8 @@
  */
 package io.kikwiflow.execution;
 
+import io.kikwiflow.model.execution.ProcessVariable;
+
 import java.util.Map;
 
 /**
@@ -31,7 +33,7 @@ public final class ProcessInstanceExecutionFactory {
         // Classe utilitária, não deve ser instanciada.
     }
 
-    public static ProcessInstanceExecution create(String businessKey, String processDefinitionId, Map<String, Object> variables){
+    public static ProcessInstanceExecution create(String businessKey, String processDefinitionId, Map<String, ProcessVariable> variables){
         return ProcessInstanceExecution.builder()
                 .businessKey(businessKey)
                 .processDefinitionId(processDefinitionId)

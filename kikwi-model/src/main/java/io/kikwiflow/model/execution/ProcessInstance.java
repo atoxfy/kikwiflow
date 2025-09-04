@@ -25,7 +25,7 @@ import java.util.Map;
 
 public record ProcessInstance(
     String id, String businessKey, ProcessInstanceStatus status, String processDefinitionId,
-    Map<String, Object> variables, Instant startedAt, Instant endedAt) {
+    Map<String, ProcessVariable> variables, Instant startedAt, Instant endedAt) {
 
     public static Builder builder() {
         return new Builder();
@@ -36,7 +36,7 @@ public record ProcessInstance(
         private String businessKey;
         private ProcessInstanceStatus status;
         private String processDefinitionId;
-        private Map<String, Object> variables;
+        private Map<String, ProcessVariable> variables;
         private Instant startedAt;
         private Instant endedAt;
 
@@ -62,7 +62,7 @@ public record ProcessInstance(
             return this;
         }
 
-        public Builder variables(Map<String, Object> variables) {
+        public Builder variables(Map<String, ProcessVariable> variables) {
             this.variables = variables;
             return this;
         }

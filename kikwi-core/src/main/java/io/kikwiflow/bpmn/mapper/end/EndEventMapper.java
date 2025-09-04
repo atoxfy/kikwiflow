@@ -18,8 +18,7 @@
 package io.kikwiflow.bpmn.mapper.end;
 
 import io.kikwiflow.bpmn.model.end.EndEvent;
-import io.kikwiflow.model.bpmn.elements.EndEventDefinition;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 
 import java.util.Objects;
 

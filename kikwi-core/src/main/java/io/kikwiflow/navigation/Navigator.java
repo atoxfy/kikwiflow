@@ -16,9 +16,9 @@
  */
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.model.bpmn.ProcessDefinition;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.bpmn.elements.SequenceFlowDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.ProcessInstanceExecution;
 

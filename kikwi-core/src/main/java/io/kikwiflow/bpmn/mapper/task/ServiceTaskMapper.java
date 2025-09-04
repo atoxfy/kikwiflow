@@ -18,8 +18,7 @@
 package io.kikwiflow.bpmn.mapper.task;
 
 import io.kikwiflow.bpmn.model.task.ServiceTask;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
-import io.kikwiflow.model.bpmn.elements.ServiceTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
 
 import java.util.Objects;
 import java.util.stream.Collectors;

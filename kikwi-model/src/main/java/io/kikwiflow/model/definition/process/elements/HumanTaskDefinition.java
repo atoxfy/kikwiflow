@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.bpmn.elements;
+package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.execution.node.WaitState;
 

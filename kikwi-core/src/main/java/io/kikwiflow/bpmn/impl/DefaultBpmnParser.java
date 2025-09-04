@@ -25,7 +25,7 @@ import io.kikwiflow.bpmn.model.end.EndEvent;
 import io.kikwiflow.bpmn.model.start.StartEvent;
 import io.kikwiflow.bpmn.model.task.HumanTask;
 import io.kikwiflow.bpmn.model.task.ServiceTask;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;

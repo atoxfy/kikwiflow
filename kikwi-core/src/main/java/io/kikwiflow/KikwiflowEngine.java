@@ -23,7 +23,6 @@ import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
-import io.kikwiflow.execution.dto.StartableProcessRecord;
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
@@ -32,10 +31,11 @@ import io.kikwiflow.execution.ProcessInstanceExecutionFactory;
 import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
-import io.kikwiflow.model.bpmn.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.ProcessInstanceExecution;
-import io.kikwiflow.model.bpmn.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.Executable;
 import io.kikwiflow.model.execution.node.WaitState;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -57,7 +57,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -97,7 +96,7 @@ public class KikwiflowEngine {
      * @throws TaskNotFoundException se nenhuma tarefa com o ID fornecido for encontrada.
      * @throws ProcessInstanceNotFoundException se a instância de processo associada não for encontrada.
      */
-    public ProcessInstance completeExternalTask(String externalTaskId, Map<String, Object> variables) {
+    public ProcessInstance completeExternalTask(String externalTaskId, Map<String, ProcessVariable> variables) {
         // 1. Encontrar a tarefa a ser completada.
         ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)
             .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
@@ -238,7 +237,7 @@ public class KikwiflowEngine {
         private final KikwiflowEngine engine;
         private String processDefinitionKey;
         private String businessKey;
-        private Map<String, Object> variables = new HashMap<>();
+        private Map<String, ProcessVariable> variables = new HashMap<>();
 
         private ProcessStarter(KikwiflowEngine engine) {
             this.engine = engine;
@@ -254,7 +253,7 @@ public class KikwiflowEngine {
             return this;
         }
 
-        public ProcessStarter withVariables(Map<String, Object> vars) {
+        public ProcessStarter withVariables(Map<String, ProcessVariable> vars) {
             if (vars != null) {
                 this.variables = new HashMap<>(vars);
             }
