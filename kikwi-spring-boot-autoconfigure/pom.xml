@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>kikwi-spring-boot-autoconfigure</artifactId>
+    <name>kikwiflow :: Spring Boot Autoconfigure</name>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
