@@ -30,5 +30,6 @@ public record UnitOfWork(
         ProcessInstance instanceToDelete,
         List<ExecutableTask> executableTasksToCreate,
         List<ExternalTask> externalTasksToCreate,
-        List<String> tasksToDelete,
+        List<String> executableTasksToDelete,
+        List<String> externalTasksToDelete,
         List<OutboxEventEntity> events) {}

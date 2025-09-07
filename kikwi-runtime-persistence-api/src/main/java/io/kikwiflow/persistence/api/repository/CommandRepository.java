@@ -7,6 +7,8 @@ import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -43,4 +45,6 @@ public interface CommandRepository {
     void deleteProcessInstanceById(String processInstanceId);
 
     void commitWork(UnitOfWork unitOfWork);
+
+    List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId);
 }

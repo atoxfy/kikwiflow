@@ -31,6 +31,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.util.HashMap;
+import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
@@ -99,23 +101,59 @@ public class DefaultBpmnParser implements BpmnParser {
         return ProcessDefinitionMapper.toSnapshot(processDefinitionGraphDeploy);
     }
 
-    private FlowNode parseEvent(Element element, FlowNode node) {
+    private void parseCommonFlowNodeAttributes(Element element, FlowNode node) {
         node.setId(element.getAttribute("id"));
         node.setName(element.getAttribute("name"));
+
+        // Use the standard Camunda attributes for asynchronous continuations.
+        // These are semantically equivalent to our "commit-before" and "commit-after".
+        String asyncBefore = element.getAttributeNS(CAMUNDA_NS, "asyncBefore");
+        String asyncAfter = element.getAttributeNS(CAMUNDA_NS, "asyncAfter");
+
+        node.setCommitBefore(Boolean.parseBoolean(asyncBefore));
+        node.setCommitAfter(Boolean.parseBoolean(asyncAfter));
+    }
+
+
+    //USAR FUTURAMENTE PARA DEFINIR ATRIBUTOS ADICIONAIS COMO SLA
+    private Map<String, String> parseCamundaExtensionProperties(Element parentElement) {
+        Map<String, String> properties = new HashMap<>();
+        NodeList extensionElementsList = parentElement.getElementsByTagName("bpmn:extensionElements");
+        if (extensionElementsList.getLength() > 0) {
+            Element extensionElements = (Element) extensionElementsList.item(0);
+            // Busca por <camunda:properties> dentro de <extensionElements>
+            NodeList propertiesList = extensionElements.getElementsByTagNameNS(CAMUNDA_NS, "properties");
+            if (propertiesList.getLength() > 0) {
+                Element propertiesElement = (Element) propertiesList.item(0);
+                // Itera sobre cada <camunda:property>
+                NodeList propertyList = propertiesElement.getElementsByTagNameNS(CAMUNDA_NS, "property");
+                for (int i = 0; i < propertyList.getLength(); i++) {
+                    Element propertyElement = (Element) propertyList.item(i);
+                    String name = propertyElement.getAttribute("name");
+                    String value = propertyElement.getAttribute("value");
+                    if (name != null && !name.isEmpty()) {
+                        properties.put(name, value);
+                    }
+                }
+            }
+        }
+        return properties;
+    }
+
+    private FlowNode parseEvent(Element element, FlowNode node) {
+        parseCommonFlowNodeAttributes(element, node);
         return node;
     }
 
     private HumanTask parseHumanTask(Element element) {
         HumanTask node = new HumanTask();
-        node.setId(element.getAttribute("id"));
-        node.setName(element.getAttribute("name"));
+        parseCommonFlowNodeAttributes(element, node);
         return node;
     }
 
     private ServiceTask parseServiceTask(Element element) {
         ServiceTask node = new ServiceTask();
-        node.setId(element.getAttribute("id"));
-        node.setName(element.getAttribute("name"));
+        parseCommonFlowNodeAttributes(element, node);
         node.setDelegateExpression(element.getAttributeNS(CAMUNDA_NS, "delegateExpression"));
         return node;
     }

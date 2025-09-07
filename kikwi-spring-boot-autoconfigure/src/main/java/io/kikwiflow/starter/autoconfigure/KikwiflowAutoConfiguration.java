@@ -57,7 +57,7 @@ public class KikwiflowAutoConfiguration {
         return new SpringDelegateResolver(applicationContext);
     }
 
-    @Bean
+    @Bean(initMethod = "start", destroyMethod = "stop")
     @ConditionalOnMissingBean
     public KikwiflowEngine kikwiflowEngine(
             KikwiEngineRepository repository,

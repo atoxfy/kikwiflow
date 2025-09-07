@@ -44,7 +44,28 @@ public class KikwiflowConfig {
      */
     private boolean isOutboxEventsEnabled = false;
 
+
+    private long taskAcquisitionIntervalMillis = 5000L;
+    private int taskAcquisitionMaxTasks = 10;
+
+
     public KikwiflowConfig() {
+    }
+
+    public long getTaskAcquisitionIntervalMillis() {
+        return taskAcquisitionIntervalMillis;
+    }
+
+    public void setTaskAcquisitionIntervalMillis(long taskAcquisitionIntervalMillis) {
+        this.taskAcquisitionIntervalMillis = taskAcquisitionIntervalMillis;
+    }
+
+    public int getTaskAcquisitionMaxTasks() {
+        return taskAcquisitionMaxTasks;
+    }
+
+    public void setTaskAcquisitionMaxTasks(int taskAcquisitionMaxTasks) {
+        this.taskAcquisitionMaxTasks = taskAcquisitionMaxTasks;
     }
 
     public void statsEnabled() {

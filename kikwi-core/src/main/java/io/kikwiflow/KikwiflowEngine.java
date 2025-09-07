@@ -20,20 +20,15 @@ import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.exception.ProcessInstanceNotFoundException;
 import io.kikwiflow.exception.TaskNotFoundException;
-import io.kikwiflow.execution.FlowNodeExecutor;
-import io.kikwiflow.execution.ProcessExecutionManager;
+import io.kikwiflow.execution.*;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
-import io.kikwiflow.execution.DelegateResolver;
-import io.kikwiflow.execution.ProcessInstanceExecutionFactory;
-import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.execution.dto.Continuation;
-import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.Executable;
@@ -70,7 +65,7 @@ public class KikwiflowEngine {
     private final List<ExecutionEventListener> eventListeners;
     private final AsynchronousEventPublisher asynchronousEventPublisher;
     private final KikwiEngineRepository kikwiEngineRepository;
-
+    private final TaskAcquirer taskAcquirer;
 
     public KikwiflowEngine(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, DelegateResolver delegateResolver, List<ExecutionEventListener> executionEventListeners){
         this.kikwiEngineRepository = kikwiEngineRepository;
@@ -83,9 +78,17 @@ public class KikwiflowEngine {
         this.processExecutionManager = new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(delegateResolver)), navigator, kikwiflowConfig);
         this.kikwiflowConfig = kikwiflowConfig;
         this.eventListeners = executionEventListeners;
-
+        this.taskAcquirer = new TaskAcquirer(this, kikwiEngineRepository, kikwiflowConfig );
     }
 
+
+    public void start(){
+        taskAcquirer.start();
+    }
+
+    public void stop(){
+        taskAcquirer.stop();
+    }
 
     /**
      * Completa uma tarefa externa e continua a execução do processo.
@@ -122,15 +125,28 @@ public class KikwiflowEngine {
         ExecutionResult executionResult;
         if (continuation != null && !continuation.nextNodes().isEmpty()) {
             FlowNodeDefinition startPoint = continuation.nextNodes().get(0); // Simplificado para fluxo linear
-            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition);
+            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
         } else {
             executionResult = new ExecutionResult(new ExecutionOutcome(processInstanceExecution, Collections.emptyList()), null);
         }
 
         // 6. Persistir o resultado e o estado da tarefa completada.
-        return handleContinuation(executionResult, taskToComplete.id());
+        return handleContinuation(executionResult, taskToComplete.id(), null);
     }
 
+    public ProcessInstance executeFromTask(ExecutableTask executableTask){
+        ProcessInstance processInstanceRecord = kikwiEngineRepository.findProcessInstanceById(executableTask.processInstanceId())
+                .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found with id: " + executableTask.processInstanceId()));
+
+        ProcessDefinition processDefinition = processDefinitionService.getById(processInstanceRecord.processDefinitionId())
+                .orElseThrow();
+
+        ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
+        FlowNodeDefinition flowNodeDefinition = processDefinition.flowNodes().get(executableTask.taskDefinitionId());
+
+        ExecutionResult executionResult = processExecutionManager.executeFlow(flowNodeDefinition, processInstanceExecution, processDefinition, true);
+        return handleContinuation(executionResult, null, executableTask.id());
+    }
 
     private void registerListeners(List<ExecutionEventListener> executionEventListeners){
         if(Objects.nonNull(executionEventListeners)){
@@ -143,17 +159,18 @@ public class KikwiflowEngine {
     }
 
     private ProcessInstance handleContinuation(ExecutionResult executionResult){
-        return handleContinuation(executionResult, null);
+        return handleContinuation(executionResult, null, null);
     }
 
     /**
      * Orquestra a persistência do estado final de uma execução síncrona.
      * Este método constrói e comita a {@link UnitOfWork}.
      */
-    private ProcessInstance handleContinuation(ExecutionResult executionResult, String completedExternalTaskId) {
+    private ProcessInstance handleContinuation(ExecutionResult executionResult, String completedExternalTaskId,
+                                               String completedExecutableTaskId) {
         Continuation continuation = executionResult.continuation();
-        ExecutionOutcome executionOutcomea = executionResult.outcome();
-        ProcessInstanceExecution processInstance = executionOutcomea.processInstance();
+        ExecutionOutcome executionOutcome = executionResult.outcome();
+        ProcessInstanceExecution processInstance = executionOutcome.processInstance();
 
         // O processo parou em uma tarefa assíncrona (ou estado de espera).
         List<ExecutableTask> nextExecutableTasks = new ArrayList<>();
@@ -184,7 +201,7 @@ public class KikwiflowEngine {
         }
 
 
-        List<OutboxEventEntity> events = new ArrayList<>(executionOutcomea.events());
+        List<OutboxEventEntity> events = new ArrayList<>(executionOutcome.events());
         if(ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus())){
            ProcessInstanceFinished processInstanceFinished = ProcessInstanceFinished.builder()
                     .processDefinitionId(processInstance.getProcessDefinitionId())
@@ -202,9 +219,14 @@ public class KikwiflowEngine {
 
         ProcessInstance processInstanceToSave = ProcessInstanceMapper.mapToRecord(processInstance);
 
-        List<String> tasksToDelete = new ArrayList<>();
+        List<String> executableTasksToDelete = new ArrayList<>();
+        if (completedExecutableTaskId!= null) {
+            executableTasksToDelete.add(completedExecutableTaskId);
+        }
+
+        List<String> externalTasksToDelete = new ArrayList<>();
         if (completedExternalTaskId != null) {
-            tasksToDelete.add(completedExternalTaskId);
+            externalTasksToDelete.add(completedExternalTaskId);
         }
 
         UnitOfWork updatedUnitOfWork = new UnitOfWork(
@@ -212,8 +234,9 @@ public class KikwiflowEngine {
                 ProcessInstanceStatus.COMPLETED.equals(processInstanceToSave.status()) ? processInstanceToSave : null,
                 nextExecutableTasks,
                 nextExternalTasks,
-                tasksToDelete,
-               events
+                executableTasksToDelete,
+                externalTasksToDelete,
+                events
         );
 
         kikwiEngineRepository.commitWork(updatedUnitOfWork);
@@ -275,7 +298,7 @@ public class KikwiflowEngine {
             processInstanceExecution.setId(processInstance.id());
 
             FlowNodeDefinition startPoint = processDefinition.defaultStartPoint();
-            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition);
+            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
 
             return engine.handleContinuation(executionResult);
         }

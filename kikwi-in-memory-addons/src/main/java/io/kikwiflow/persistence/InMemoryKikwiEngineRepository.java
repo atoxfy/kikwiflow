@@ -20,18 +20,16 @@ import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.variable.ProcessVariableDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.UUID;
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
@@ -219,8 +217,12 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
             unitOfWork.externalTasksToCreate().forEach(this::createExternalTask);
         }
 
-        if (unitOfWork.tasksToDelete() != null) {
-            unitOfWork.tasksToDelete().forEach(externalTaskCollection::remove);
+        if (unitOfWork.externalTasksToDelete() != null) {
+            unitOfWork.externalTasksToDelete().forEach(externalTaskCollection::remove);
+        }
+
+        if (unitOfWork.executableTasksToDelete() != null) {
+            unitOfWork.executableTasksToDelete().forEach(executableTaskCollection::remove);
         }
 
         if(unitOfWork.events() != null){
@@ -229,7 +231,43 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId) {
+        List<ExecutableTask> candidates = this.executableTaskCollection.values().stream()
+                .filter(task -> task.status() == ExecutableTaskStatus.PENDING)
+                .filter(task -> task.dueDate() == null || !task.dueDate().isAfter(now))
+                .sorted(Comparator.comparing(task -> task.dueDate() == null ? Instant.MIN : task.dueDate()))
+                .limit(limit)
+                .toList();
+
+        List<ExecutableTask> lockedTasks = new ArrayList<>();
+        for (ExecutableTask candidate : candidates){
+            ExecutableTask lockedTask = candidate.toBuilder()
+                    .status(ExecutableTaskStatus.EXECUTING)
+                    .executorId(workerId)
+                    .acquiredAt(Instant.now())
+                    .build();
+            this.executableTaskCollection.put(candidate.id(), lockedTask);
+            lockedTasks.add(lockedTask);
+        }
+
+        return lockedTasks;
+    }
+
+    @Override
     public Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId) {
         return Optional.empty();
+    }
+
+    @Override
+    public Optional<ExecutableTask> findExecutableTaskById(String executableTaskId) {
+        return Optional.ofNullable(this.executableTaskCollection.get(executableTaskId));
+    }
+
+    @Override
+    public Optional<ExecutableTask> findAndGetFirstPendingExecutableTask(String id) {
+        return executableTaskCollection.values()
+                .stream()
+                .filter(task -> task.status() == ExecutableTaskStatus.PENDING)
+                .findFirst();
     }
 }

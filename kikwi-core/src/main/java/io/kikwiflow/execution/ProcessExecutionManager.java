@@ -79,11 +79,22 @@ public class ProcessExecutionManager {
      * @param processDefinition A definição do processo correspondente.
      * @return O {@link ExecutionResult} que contém o resultado da execução síncrona.
      */
-    public ExecutionResult executeFlow(FlowNodeDefinition startPoint, ProcessInstanceExecution processInstance, ProcessDefinition processDefinition) {
+    public ExecutionResult executeFlow(FlowNodeDefinition startPoint, ProcessInstanceExecution processInstance, ProcessDefinition processDefinition, boolean isResumingFromAsyncBefore) {
         FlowNodeDefinition currentNode = startPoint;
         List<OutboxEventEntity> criticalEvents = new ArrayList<>();
+        boolean isFirstNodeInLoop = true;
 
-        while (currentNode != null && !isWaitState(currentNode) && !isCommitBefore(currentNode)) {
+        while (currentNode != null){
+
+            final boolean shouldStopForCommitBefore = isCommitBefore(currentNode) && !(isFirstNodeInLoop && isResumingFromAsyncBefore);
+
+            if(isWaitState(currentNode) || shouldStopForCommitBefore){
+                return new ExecutionResult(
+                        new ExecutionOutcome(processInstance, criticalEvents),
+                        new Continuation(List.of(currentNode), true)
+                );
+            }
+
             Instant startedAt = Instant.now();
             NodeExecutionStatus status;
 
@@ -120,6 +131,7 @@ public class ProcessExecutionManager {
 
             boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());
             Continuation continuation = navigator.determineNextContinuation(currentNode, processDefinition, isCommitAfter);
+            isFirstNodeInLoop = false;
 
             if (continuation == null || continuation.isAsynchronous()) {
                 return new ExecutionResult(new ExecutionOutcome(processInstance, criticalEvents), continuation);
@@ -128,14 +140,6 @@ public class ProcessExecutionManager {
                 currentNode = continuation.nextNodes().get(0);
             }
         }
-
-        if (currentNode != null) {
-            return new ExecutionResult(
-                new ExecutionOutcome(processInstance, criticalEvents),
-                new Continuation(List.of(currentNode), true)
-            );
-        }
-
         return new ExecutionResult(new ExecutionOutcome(processInstance, criticalEvents), null);
     }
 

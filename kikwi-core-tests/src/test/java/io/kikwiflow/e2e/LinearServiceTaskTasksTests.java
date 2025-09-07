@@ -106,7 +106,7 @@ public class LinearServiceTaskTasksTests {
         doAnswer(invocation -> {
             ExecutionContext context = invocation.getArgument(0);
             assertTrue(context.hasVariable("food"), "The 'food' variable should exist when removeVariableDelegate is called.");
-            assertEquals("cheeseburger", context.getVariable("food"));
+            assertEquals("cheeseburger", (String) context.getVariable("food").value());
             invocation.callRealMethod(); // Proceed with the actual delegate logic
             return null;
         }).when(removeVariableDelegate).execute(any(ExecutionContext.class));
@@ -125,7 +125,7 @@ public class LinearServiceTaskTasksTests {
         assertEquals(businessKey, processInstance.businessKey());
         assertEquals(processDefinition.id(), processInstance.processDefinitionId());
         assertEquals(ProcessInstanceStatus.COMPLETED, processInstance.status());
-        assertEquals(initialVar, processInstance.variables().get(initialVarKey));
+        assertEquals(initialVar, processInstance.variables().get(initialVarKey).value());
 
         assertableKikwiEngine.assertThatProcessInstanceNotExistsInRuntimeContext(processInstance.id());
         assertableKikwiEngine.evaluateEvents();

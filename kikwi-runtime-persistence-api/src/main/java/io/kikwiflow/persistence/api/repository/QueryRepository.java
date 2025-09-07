@@ -19,6 +19,7 @@ package io.kikwiflow.persistence.api.repository;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 
 import java.util.List;
@@ -36,4 +37,7 @@ public interface QueryRepository {
 
     Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId);
 
+    Optional<ExecutableTask> findExecutableTaskById(String executableTaskId);
+
+    Optional<ExecutableTask> findAndGetFirstPendingExecutableTask(String id);
 }

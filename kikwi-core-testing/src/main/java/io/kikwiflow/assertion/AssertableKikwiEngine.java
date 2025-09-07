@@ -30,6 +30,7 @@ import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.persistence.InMemoryKikwiEngineRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -112,6 +113,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId) {
+        return this.inMemoryKikwiEngineRepository.findAndLockDueTasks(now, limit, workerId);
+    }
+
+    @Override
     public Optional<ExternalTask> findExternalTaskById(String externalTaskId) {
         return inMemoryKikwiEngineRepository.findExternalTaskById(externalTaskId);
     }
@@ -119,6 +125,16 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId) {
         return Optional.empty();
+    }
+
+    @Override
+    public Optional<ExecutableTask> findExecutableTaskById(String executableTaskId) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ExecutableTask> findAndGetFirstPendingExecutableTask(String id) {
+        return this.inMemoryKikwiEngineRepository.findAndGetFirstPendingExecutableTask(id);
     }
 
     public void evaluateEvents(){

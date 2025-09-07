@@ -33,10 +33,30 @@ public record ExecutableTask (String id,
                                String error,
                                ExecutableTaskStatus status,
                                String executorId,
-                               Instant acquiredAt){
+                               Instant acquiredAt,
+                              Instant dueDate){
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public Builder toBuilder(){
+        return new Builder()
+                .id(this.id)
+                .dueDate(this.dueDate)
+                .executions(this.executions)
+                .taskDefinitionId(this.taskDefinitionId)
+                .name(this.name)
+                .description(this.description)
+                .processDefinitionId(this.processDefinitionId)
+                .createdAt(this.createdAt)
+                .retries(this.retries)
+                .processInstanceId(this.processInstanceId)
+                .error(this.error)
+                .status(this.status)
+                .executorId(this.executorId)
+                .acquiredAt(this.acquiredAt);
+
     }
 
     public static class Builder {
@@ -53,6 +73,7 @@ public record ExecutableTask (String id,
         private ExecutableTaskStatus status = ExecutableTaskStatus.PENDING;
         private String executorId;
         private Instant acquiredAt;
+        private Instant dueDate;
 
         private Builder() {}
 
@@ -69,6 +90,7 @@ public record ExecutableTask (String id,
         public Builder status(ExecutableTaskStatus status) { this.status = status; return this; }
         public Builder executorId(String executorId) { this.executorId = executorId; return this; }
         public Builder acquiredAt(Instant acquiredAt) { this.acquiredAt = acquiredAt; return this; }
+        public Builder dueDate(Instant dueDate) { this.dueDate = dueDate; return this; }
 
         public ExecutableTask build() {
             return new ExecutableTask(
@@ -84,7 +106,8 @@ public record ExecutableTask (String id,
                 this.error,
                 this.status,
                 this.executorId,
-                this.acquiredAt
+                this.acquiredAt,
+                this.dueDate
             );
         }
     }
