@@ -96,7 +96,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     @Override
     public ExecutableTask createExecutableTask(ExecutableTask executableTask) {
         ExecutableTask executableTaskToSave = ExecutableTask.builder()
-                .id(UUID.randomUUID().toString())
+                .id(executableTask.id())
                 .createdAt(executableTask.createdAt())
                 .executions(executableTask.executions())
                 .acquiredAt(executableTask.acquiredAt())
@@ -109,6 +109,10 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .processInstanceId(executableTask.processInstanceId())
                 .retries(executableTask.retries())
                 .status(executableTask.status())
+                .attachedToRefType(executableTask.attachedToRefType())
+                .attachedToRefId(executableTask.attachedToRefId())
+                .dueDate(executableTask.dueDate())
+                .boundaryEvents(executableTask.boundaryEvents())
                 .build();
 
         this.executableTaskCollection.put(executableTaskToSave.id(), executableTaskToSave);
@@ -121,13 +125,14 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .assignee(task.assignee())
                 .createdAt(task.createdAt())
                 .description(task.description())
-                .id(UUID.randomUUID().toString())
+                .id(task.id())
                 .name(task.name())
                 .processDefinitionId(task.processDefinitionId())
                 .taskDefinitionId(task.taskDefinitionId())
                 .status(task.status())
                 .topicName(task.topicName())
                 .processInstanceId(task.processInstanceId())
+                .boundaryEvents(task.boundaryEvents())
                 .build();
 
         this.externalTaskCollection.put(externalTask.id(), externalTask);

@@ -21,10 +21,14 @@ import io.kikwiflow.bpmn.mapper.ProcessDefinitionMapper;
 import io.kikwiflow.bpmn.model.FlowNode;
 import io.kikwiflow.bpmn.model.ProcessDefinitionGraph;
 import io.kikwiflow.bpmn.model.SequenceFlow;
+import io.kikwiflow.bpmn.model.boundary.BoundaryEvent;
+import io.kikwiflow.bpmn.model.boundary.InterruptiveTimerBoundaryEvent;
 import io.kikwiflow.bpmn.model.end.EndEvent;
+import io.kikwiflow.bpmn.model.gateway.ExclusiveGateway;
 import io.kikwiflow.bpmn.model.start.StartEvent;
-import io.kikwiflow.bpmn.model.task.HumanTask;
+import io.kikwiflow.bpmn.model.task.ManualTask;
 import io.kikwiflow.bpmn.model.task.ServiceTask;
+import io.kikwiflow.exception.NotImplementedException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -39,7 +43,7 @@ import java.io.InputStream;
 
 public class DefaultBpmnParser implements BpmnParser {
     private static final String CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn";
-
+    private static final String BPMN_NS = "http://www.omg.org/spec/BPMN/20100524/MODEL";
     @Override
     public ProcessDefinition parse(InputStream bpmnXmlFileStream) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -77,6 +81,28 @@ public class DefaultBpmnParser implements BpmnParser {
                     case "bpmn:userTask":
                         flowNode = parseHumanTask(element);
                         break;
+                    case "bpmn:exclusiveGateway":
+                        flowNode = parseExclusiveGateway(element);
+                        break;
+                    case "bpmn:boundaryEvent":{
+
+                        InterruptiveTimerBoundaryEvent boundaryEvent = new InterruptiveTimerBoundaryEvent();
+                        parseCommonFlowNodeAttributes(element, boundaryEvent);
+                        boundaryEvent.setAttachedToRef(element.getAttribute("attachedToRef"));
+                        NodeList timerDefs = element.getElementsByTagNameNS(BPMN_NS, "timerEventDefinition");
+                        if(timerDefs.getLength() > 0){
+                            Element timerDef = (Element) timerDefs.item(0);
+                            NodeList durationNodes = timerDef.getElementsByTagNameNS(BPMN_NS,  "timeDuration");
+                            if (durationNodes.getLength() > 0){
+                                String durationText = durationNodes.item(0).getTextContent();
+                                boundaryEvent.setDuration(durationText.trim());
+                            }
+                        }
+
+                        flowNode = boundaryEvent;
+
+                        break;
+                    }
                 }
 
                 if (flowNode != null) {
@@ -85,6 +111,7 @@ public class DefaultBpmnParser implements BpmnParser {
                 }
             }
         }
+
 
         NodeList sequenceFlows = processElement.getElementsByTagName("bpmn:sequenceFlow");
         for (int i = 0; i < sequenceFlows.getLength(); i++) {
@@ -95,6 +122,19 @@ public class DefaultBpmnParser implements BpmnParser {
             if (sourceNode != null) {
                 SequenceFlow sequenceFlow = parseSequenceFlow(flowElement);
                 sourceNode.addOutgoing(sequenceFlow);
+            }
+        }
+
+        for (FlowNode node : processDefinitionGraphDeploy.getFlowNodes().values()){
+            if(node instanceof BoundaryEvent boundaryEvent){
+                FlowNode fn = processDefinitionGraphDeploy.getFlowNodes().get(boundaryEvent.getAttachedToRef());
+                if(fn instanceof ServiceTask st){
+                    st.addBoundaryEvent(boundaryEvent);
+                } else if (fn instanceof ManualTask mt) {
+                    mt.addBoundaryEvent(boundaryEvent);
+                }else{
+                    throw new NotImplementedException("Boundary event not implemented for type");
+                }
             }
         }
 
@@ -145,8 +185,8 @@ public class DefaultBpmnParser implements BpmnParser {
         return node;
     }
 
-    private HumanTask parseHumanTask(Element element) {
-        HumanTask node = new HumanTask();
+    private ManualTask parseHumanTask(Element element) {
+        ManualTask node = new ManualTask();
         parseCommonFlowNodeAttributes(element, node);
         return node;
     }
@@ -162,6 +202,23 @@ public class DefaultBpmnParser implements BpmnParser {
         SequenceFlow flow = new SequenceFlow();
         flow.setId(element.getAttribute("id"));
         flow.setTargetNodeId(element.getAttribute("targetRef"));
+
+        // A condição não é um atributo, mas sim o conteúdo de um elemento filho.
+        // Precisamos buscar o elemento <bpmn:conditionExpression> e ler seu conteúdo.
+        NodeList conditionNodes = element.getElementsByTagName("bpmn:conditionExpression");
+        if (conditionNodes.getLength() > 0) {
+            Node conditionNode = conditionNodes.item(0);
+            String conditionText = conditionNode.getTextContent();
+            if (conditionText != null && !conditionText.trim().isEmpty()) {
+                flow.setCondition(conditionText.trim());
+            }
+        }
         return flow;
+    }
+
+    private ExclusiveGateway parseExclusiveGateway(Element element){
+        ExclusiveGateway node = new ExclusiveGateway();
+        parseCommonFlowNodeAttributes(element, node);
+        return node;
     }
 }

@@ -20,6 +20,7 @@ package io.kikwiflow.model.execution.node;
 import io.kikwiflow.model.execution.enumerated.ExternalTaskStatus;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Represents a task waiting for an external trigger (e.g., Human Task, Receive Task).
@@ -35,7 +36,8 @@ public record ExternalTask (
          ExternalTaskStatus status,
          Instant createdAt,
          String topicName,
-         String assignee){
+         String assignee,
+         List<String> boundaryEvents){
 
     public static Builder builder() {
         return new Builder();
@@ -52,6 +54,7 @@ public record ExternalTask (
         private Instant createdAt = Instant.now();
         private String topicName;
         private String assignee;
+        private List<String> boundaryEvents;
 
         private Builder() {}
 
@@ -65,6 +68,7 @@ public record ExternalTask (
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder topicName(String topicName) { this.topicName = topicName; return this; }
         public Builder assignee(String assignee) { this.assignee = assignee; return this; }
+        public Builder boundaryEvents(List<String> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
 
         public ExternalTask build() {
             return new ExternalTask(
@@ -77,7 +81,8 @@ public record ExternalTask (
                 this.status,
                 this.createdAt,
                 this.topicName,
-                this.assignee
+                this.assignee,
+                this.boundaryEvents
             );
         }
     }

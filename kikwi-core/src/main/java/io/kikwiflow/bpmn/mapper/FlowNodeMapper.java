@@ -16,14 +16,18 @@
  */
 package io.kikwiflow.bpmn.mapper;
 
+import io.kikwiflow.bpmn.mapper.boundary.BoundaryEventMapper;
 import io.kikwiflow.bpmn.mapper.end.EndEventMapper;
+import io.kikwiflow.bpmn.mapper.gateway.ExclusiveGatewayMapper;
 import io.kikwiflow.bpmn.mapper.start.StartEventMapper;
-import io.kikwiflow.bpmn.mapper.task.HumanTaskMapper;
+import io.kikwiflow.bpmn.mapper.task.ManualTaskMapper;
 import io.kikwiflow.bpmn.mapper.task.ServiceTaskMapper;
 import io.kikwiflow.bpmn.model.FlowNode;
+import io.kikwiflow.bpmn.model.boundary.InterruptiveTimerBoundaryEvent;
 import io.kikwiflow.bpmn.model.end.EndEvent;
+import io.kikwiflow.bpmn.model.gateway.ExclusiveGateway;
 import io.kikwiflow.bpmn.model.start.StartEvent;
-import io.kikwiflow.bpmn.model.task.HumanTask;
+import io.kikwiflow.bpmn.model.task.ManualTask;
 import io.kikwiflow.bpmn.model.task.ServiceTask;
 import io.kikwiflow.exception.NotImplementedException;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
@@ -43,20 +47,25 @@ public final class FlowNodeMapper {
             return null;
         }
 
-        if(node instanceof ServiceTask) {
-            return ServiceTaskMapper.toSnapshot((ServiceTask) node);
+        if(node instanceof ServiceTask st) {
+            return ServiceTaskMapper.toSnapshot(st);
 
-        } else if (node instanceof StartEvent) {
-            return StartEventMapper.toSnapshot((StartEvent) node);
+        } else if (node instanceof StartEvent se) {
+            return StartEventMapper.toSnapshot(se);
 
-        } else if (node instanceof EndEvent ) {
-            return EndEventMapper.toSnapshot((EndEvent) node);
+        } else if (node instanceof EndEvent endEvent ) {
+            return EndEventMapper.toSnapshot(endEvent);
 
-        } else if(node instanceof HumanTask){
-            return HumanTaskMapper.toSnapshot((HumanTask) node);
+        } else if(node instanceof ManualTask ht){
+            return ManualTaskMapper.toSnapshot(ht);
+
+        } else if(node instanceof ExclusiveGateway eg){
+            return ExclusiveGatewayMapper.toSnapshot(eg);
+        } else if (node instanceof InterruptiveTimerBoundaryEvent interruptiveTimer) {
+            return BoundaryEventMapper.toSnapshot(interruptiveTimer);
+        } else{
+            throw new NotImplementedException("Node type " + node.getClass().getSimpleName() + " is not implemented yet");
+
         }
-
-        throw new NotImplementedException("Node type " + node.getClass().getSimpleName() + " is not implemented yet");
     }
-
 }

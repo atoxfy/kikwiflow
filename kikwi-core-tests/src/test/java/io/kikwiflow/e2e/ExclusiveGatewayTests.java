@@ -19,6 +19,8 @@ package io.kikwiflow.e2e;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.assertion.AssertableKikwiEngine;
 import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.execution.DecisionRuleResolver;
+import io.kikwiflow.execution.TestDecisionRuleResolver;
 import io.kikwiflow.execution.TestDelegateResolver;
 import io.kikwiflow.execution.api.JavaDelegate;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
@@ -26,6 +28,7 @@ import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
+import io.kikwiflow.rule.api.DecisionRule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,54 +36,44 @@ import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
-public class AsynchronousContinuationsTests {
+public class ExclusiveGatewayTests {
 
     private KikwiflowEngine kikwiflowEngine;
     private AssertableKikwiEngine assertableKikwiEngine;
     private TestDelegateResolver delegateResolver;
 
-    private JavaDelegate delegate1;
-    private JavaDelegate delegate2;
-    private JavaDelegate delegate3;
-    private JavaDelegate delegate4;
+    private JavaDelegate findPersonDataDelegate;
+    private JavaDelegate doPaymentDelegate;
+    private DecisionRule isPersonDataFilled;
+    private TestDecisionRuleResolver decisionRuleResolver;
 
     @BeforeEach
     void setUp() {
         this.assertableKikwiEngine = new AssertableKikwiEngine();
         this.delegateResolver = new TestDelegateResolver();
+        this.decisionRuleResolver = new TestDecisionRuleResolver();
 
-        // Criando spies para os delegates para que possamos verificar suas chamadas
-        // Usamos uma classe concreta para evitar problemas do Mockito com lambdas.
-        delegate1 = spy(new TestJavaDelegate(context -> {
+        findPersonDataDelegate = spy(new TestJavaDelegate(context -> {
             context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, "done"));
         }));
-        delegate2 = spy(new TestJavaDelegate(context -> {
+
+        doPaymentDelegate = spy(new TestJavaDelegate(context -> {
             context.setVariable("step2", new ProcessVariable("step2", ProcessVariableVisibility.PUBLIC, null, "done"));
         }));
-        delegate3 = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step3", new ProcessVariable("step3", ProcessVariableVisibility.PUBLIC, null, "done"));
-        }));
-        delegate4 = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step4", new ProcessVariable("step4", ProcessVariableVisibility.PUBLIC, null, "done"));
-        }));
 
-        delegateResolver.register("delegate1", delegate1);
-        delegateResolver.register("delegate2", delegate2);
-        delegateResolver.register("delegate3", delegate3);
-        delegateResolver.register("delegate4", delegate4);
+        isPersonDataFilled = spy(new TestDecisionRule());
+        decisionRuleResolver.register("isPersonDataFilled", isPersonDataFilled);
+        delegateResolver.register("findPersonDataDelegate", findPersonDataDelegate);
+        delegateResolver.register("doPaymentDelegate", doPaymentDelegate);
 
-        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, new KikwiflowConfig(), delegateResolver, null, Collections.emptyList());
+        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, new KikwiflowConfig(), delegateResolver, decisionRuleResolver,  Collections.emptyList());
         // Não iniciamos o JobAcquirer aqui para ter controle total sobre a execução dos jobs no teste.
     }
 
@@ -90,60 +83,57 @@ public class AsynchronousContinuationsTests {
     }
 
     @Test
-    @DisplayName("Deve executar um processo com limites de transação (commit-before/after) corretamente")
-    void shouldExecuteProcessWithCommitBeforeAndAfter() throws Exception {
+    @DisplayName("Deve executar um processo com gateway exclusivo (XOR)")
+    void shouldExecuteProcessWithXORGateway() throws Exception {
         // Arrange: Deploy do processo
-        InputStream bpmnStream = getClass().getClassLoader().getResourceAsStream("async-continuations-process.bpmn");
+        InputStream bpmnStream = getClass().getClassLoader().getResourceAsStream("gateway-process-test.bpmn");
         ProcessDefinition processDefinition = kikwiflowEngine.deployDefinition(bpmnStream);
 
         // Act: Inicia o processo. A execução síncrona deve parar após a Task_Commit_After.
         ProcessInstance processInstance = kikwiflowEngine.startProcess()
-            .byKey(processDefinition.key()).withBusinessKey(UUID.randomUUID().toString())
+            .byKey(processDefinition.key())
+            .withBusinessKey(UUID.randomUUID().toString())
             .execute();
 
         // Assert: Fase 1 - Após o start
         assertEquals(ProcessInstanceStatus.ACTIVE, processInstance.status(), "O processo deve estar ativo.");
-        verify(delegate1, times(1)).execute(any());
-        verify(delegate2, times(1)).execute(any());
-        verify(delegate3, times(0)).execute(any()); // Ainda não foi executado
-        verify(delegate4, times(0)).execute(any()); // Ainda não foi executado
+        verify(findPersonDataDelegate, times(1)).execute(any());
+        verify(doPaymentDelegate, times(0)).execute(any()); // Ainda não foi executado
 
         assertTrue(processInstance.variables().containsKey("step1"), "A variável da step 1 deve existir.");
-        assertTrue(processInstance.variables().containsKey("step2"), "A variável da step 2 deve existir.");
+        assertFalse(processInstance.variables().containsKey("step2"), "A variável da step 2 NÃO deve existir.");
 
-        // Verifica se um job foi criado para a próxima tarefa (Task_Async_3)
+        // Verifica se um job foi criado para a próxima tarefa (doPaymentTask)
         var optTask = assertableKikwiEngine.findAndGetFirstPendingExecutableTask(processInstance.id());
-        assertTrue(optTask.isPresent(), "Deveria existir um job pendente para a Task_Async_3.");
+        assertTrue(optTask.isPresent(), "Deveria existir um job pendente para a doPaymentTask.");
         var task = optTask.get();
-        assertEquals("Task_Async_3", task.taskDefinitionId());
+        assertEquals("doPaymentTask", task.taskDefinitionId());
 
         // Act: Simula o worker executando o primeiro job
         processInstance = kikwiflowEngine.executeFromTask(task);
 
-        // Assert: Fase 2 - Após o primeiro job
-        assertEquals(ProcessInstanceStatus.ACTIVE, processInstance.status(), "O processo ainda deve estar ativo.");
-        verify(delegate3, times(1)).execute(any()); // Agora foi executado
-        verify(delegate4, times(0)).execute(any()); // Ainda não
-
-        assertTrue(processInstance.variables().containsKey("step3"), "A variável da step 3 deve existir.");
-
-        // Verifica se um NOVO job foi criado para a Task_Commit_Before
-        var job2 = assertableKikwiEngine.findAndGetFirstPendingExecutableTask(processInstance.id());
-        assertTrue(job2.isPresent(), "Deveria existir um novo job pendente para a Task_Commit_Before.");
-        assertEquals("Task_Commit_Before", job2.get().taskDefinitionId());
-
-        // Act: Simula o worker executando o segundo job
-        processInstance = kikwiflowEngine.executeFromTask(job2.get());
-
         // Assert: Fase 3 - Finalização
         assertEquals(ProcessInstanceStatus.COMPLETED, processInstance.status(), "O processo deveria estar completo.");
         assertNotNull(processInstance.endedAt(), "O processo deveria ter uma data de término.");
-        verify(delegate4, times(1)).execute(any()); // Agora foi executado
+        verify(doPaymentDelegate, times(1)).execute(any()); // Agora foi executado
 
-        assertTrue(processInstance.variables().containsKey("step4"), "A variável da step 4 deve existir.");
+        assertTrue(processInstance.variables().containsKey("step2"), "A variável da step 4 deve existir.");
 
         // Garante que não há mais jobs pendentes para esta instância
         assertFalse(assertableKikwiEngine.findAndGetFirstPendingExecutableTask(processInstance.id()).isPresent(), "Não deveria haver mais jobs pendentes.");
+    }
+
+    private static class TestDecisionRule implements DecisionRule {
+
+        @Override
+        public String getKey() {
+            return "isPersonDataFilled";
+        }
+
+        @Override
+        public boolean evaluate(Map<String, ProcessVariable> variables) {
+            return true;
+        }
     }
 
     /**

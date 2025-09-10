@@ -15,10 +15,24 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.bpmn.model.task;
+package io.kikwiflow.execution;
 
-import io.kikwiflow.bpmn.model.FlowNode;
-import io.kikwiflow.model.execution.node.WaitState;
+import io.kikwiflow.rule.api.DecisionRule;
 
-public class HumanTask extends FlowNode implements WaitState {
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+public class TestDecisionRuleResolver implements DecisionRuleResolver{
+
+    private final Map<String, DecisionRule> rulesMap = new HashMap<>();
+
+    public void register(String name, DecisionRule rule){
+        rulesMap.put(name, rule);
+    }
+
+    @Override
+    public Optional<DecisionRule> resolve(String ruleKey) {
+        return Optional.ofNullable(rulesMap.get(ruleKey));
+    }
 }

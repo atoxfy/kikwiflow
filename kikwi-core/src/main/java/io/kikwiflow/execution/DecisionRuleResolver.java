@@ -15,16 +15,12 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.definition.process.elements;
+package io.kikwiflow.execution;
 
-import java.util.List;
+import io.kikwiflow.rule.api.DecisionRule;
 
-public sealed interface FlowNodeDefinition permits StartEventDefinition, ManualTaskDefinition, ServiceTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition {
-    String id();
-    String name();
-    String description();
-    Boolean commitAfter();
-    Boolean commitBefore();
-    List<SequenceFlowDefinition> outgoing();
+import java.util.Optional;
 
+public interface DecisionRuleResolver {
+    Optional<DecisionRule> resolve(String ruleKey);
 }

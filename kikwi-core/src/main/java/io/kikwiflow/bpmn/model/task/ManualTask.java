@@ -15,28 +15,24 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.bpmn.mapper.start;
+package io.kikwiflow.bpmn.model.task;
 
-import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
-import io.kikwiflow.bpmn.model.start.StartEvent;
-import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
+import io.kikwiflow.bpmn.model.FlowNode;
+import io.kikwiflow.bpmn.model.boundary.BoundaryEvent;
+import io.kikwiflow.model.execution.node.WaitState;
 
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
-public class StartEventMapper {
+public class ManualTask extends FlowNode implements WaitState {
 
-    private StartEventMapper() {
-        // Utility class
+    private List<BoundaryEvent> boundaryEvents = new ArrayList<>();
+
+    public void addBoundaryEvent(BoundaryEvent boundaryEvent){
+        this.boundaryEvents.add(boundaryEvent);
     }
 
-    public static StartEventDefinition toSnapshot(StartEvent node) {
-        return StartEventDefinition.builder()
-                .id(node.getId())
-                .name(node.getName())
-                .description(node.getDescription())
-                .commitAfter(node.getCommitAfter())
-                .commitBefore(node.getCommitBefore())
-                .outgoing(SequenceFlowMapper.toSnapshot(node.getOutgoing()))
-                .build();
+    public List<BoundaryEvent> getBoundaryEvents() {
+        return boundaryEvents;
     }
 }

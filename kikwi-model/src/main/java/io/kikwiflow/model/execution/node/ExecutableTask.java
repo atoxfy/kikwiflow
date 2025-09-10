@@ -20,6 +20,7 @@ package io.kikwiflow.model.execution.node;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 
 import java.time.Instant;
+import java.util.List;
 
 public record ExecutableTask (String id,
                                String taskDefinitionId,
@@ -34,7 +35,10 @@ public record ExecutableTask (String id,
                                ExecutableTaskStatus status,
                                String executorId,
                                Instant acquiredAt,
-                              Instant dueDate){
+                               Instant dueDate,
+                               String attachedToRefId,
+                               AttachedTaskType attachedToRefType,
+                               List<String> boundaryEvents){
 
     public static Builder builder() {
         return new Builder();
@@ -55,8 +59,10 @@ public record ExecutableTask (String id,
                 .error(this.error)
                 .status(this.status)
                 .executorId(this.executorId)
-                .acquiredAt(this.acquiredAt);
-
+                .acquiredAt(this.acquiredAt)
+                .attachedToRefId(this.attachedToRefId)
+                .attachedToRefType(this.attachedToRefType)
+                .boundaryEvents(this.boundaryEvents);
     }
 
     public static class Builder {
@@ -74,6 +80,10 @@ public record ExecutableTask (String id,
         private String executorId;
         private Instant acquiredAt;
         private Instant dueDate;
+        private String attachedToRefId;
+        private AttachedTaskType attachedToRefType;
+        private List<String> boundaryEvents;
+
 
         private Builder() {}
 
@@ -90,6 +100,9 @@ public record ExecutableTask (String id,
         public Builder status(ExecutableTaskStatus status) { this.status = status; return this; }
         public Builder executorId(String executorId) { this.executorId = executorId; return this; }
         public Builder acquiredAt(Instant acquiredAt) { this.acquiredAt = acquiredAt; return this; }
+        public Builder attachedToRefId(String attachedToRefId) { this.attachedToRefId = attachedToRefId; return this; }
+        public Builder attachedToRefType(AttachedTaskType attachedToRefType) { this.attachedToRefType = attachedToRefType; return this; }
+        public Builder boundaryEvents(List<String> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
         public Builder dueDate(Instant dueDate) { this.dueDate = dueDate; return this; }
 
         public ExecutableTask build() {
@@ -107,7 +120,10 @@ public record ExecutableTask (String id,
                 this.status,
                 this.executorId,
                 this.acquiredAt,
-                this.dueDate
+                this.dueDate,
+                this.attachedToRefId,
+                this.attachedToRefType,
+                this.boundaryEvents
             );
         }
     }

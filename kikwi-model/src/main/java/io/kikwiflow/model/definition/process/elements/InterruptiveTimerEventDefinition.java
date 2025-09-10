@@ -17,22 +17,21 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
-import io.kikwiflow.model.execution.node.Executable;
-
 import java.util.Collections;
 import java.util.List;
 
-public record ServiceTaskDefinition(String id,
-                                    String name,
-                                    String description,
-                                    String delegateExpression,
-                                    Boolean commitAfter,
-                                    Boolean commitBefore,
-                                    List<SequenceFlowDefinition> outgoing,
-                                    List<BoundaryEventDefinition> boundaryEvents) implements FlowNodeDefinition, Executable {
+public record InterruptiveTimerEventDefinition(String id,
+                                               String name,
+                                               String description,
+                                               String delegateExpression,
+                                               Boolean commitAfter,
+                                               Boolean commitBefore,
+                                               List<SequenceFlowDefinition> outgoing,
+                                               String attachedToRef, 
+                                               String duration) implements BoundaryEventDefinition, FlowNodeDefinition {
 
-    public static Builder builder() {
-        return new Builder();
+    public static InterruptiveTimerEventDefinition.Builder builder() {
+        return new InterruptiveTimerEventDefinition.Builder();
     }
 
     public static class Builder {
@@ -42,9 +41,9 @@ public record ServiceTaskDefinition(String id,
         private String delegateExpression;
         private Boolean commitAfter;
         private Boolean commitBefore;
-
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
-        private  List<BoundaryEventDefinition> boundaryEvents = Collections.emptyList();
+        private String attachedToRef;
+        private String duration;
 
         private Builder() {}
 
@@ -55,6 +54,16 @@ public record ServiceTaskDefinition(String id,
 
         public Builder name(String name) {
             this.name = name;
+            return this;
+        }
+
+        public Builder attachedToRef(String attachedToRef) {
+            this.attachedToRef = attachedToRef;
+            return this;
+        }
+
+        public Builder duration(String duration) {
+            this.duration = duration;
             return this;
         }
 
@@ -85,15 +94,8 @@ public record ServiceTaskDefinition(String id,
             return this;
         }
 
-        public Builder boundaryEvents(List<BoundaryEventDefinition> boundaryEventDefinitions) {
-            if (boundaryEventDefinitions != null) {
-                this.boundaryEvents = boundaryEventDefinitions;
-            }
-            return this;
-        }
-
-        public ServiceTaskDefinition build() {
-            return new ServiceTaskDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing, boundaryEvents);
+        public InterruptiveTimerEventDefinition build() {
+            return new InterruptiveTimerEventDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing, attachedToRef, duration);
         }
     }
 

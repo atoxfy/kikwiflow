@@ -22,14 +22,12 @@ import io.kikwiflow.model.execution.node.Executable;
 import java.util.Collections;
 import java.util.List;
 
-public record ServiceTaskDefinition(String id,
-                                    String name,
-                                    String description,
-                                    String delegateExpression,
-                                    Boolean commitAfter,
-                                    Boolean commitBefore,
-                                    List<SequenceFlowDefinition> outgoing,
-                                    List<BoundaryEventDefinition> boundaryEvents) implements FlowNodeDefinition, Executable {
+public record ExclusiveGatewayDefinition(String id,
+                                         String name,
+                                         String description,
+                                         Boolean commitAfter,
+                                         Boolean commitBefore,
+                                         List<SequenceFlowDefinition> outgoing) implements FlowNodeDefinition {
 
     public static Builder builder() {
         return new Builder();
@@ -39,12 +37,10 @@ public record ServiceTaskDefinition(String id,
         private String id;
         private String name;
         private String description;
-        private String delegateExpression;
         private Boolean commitAfter;
         private Boolean commitBefore;
 
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
-        private  List<BoundaryEventDefinition> boundaryEvents = Collections.emptyList();
 
         private Builder() {}
 
@@ -55,11 +51,6 @@ public record ServiceTaskDefinition(String id,
 
         public Builder name(String name) {
             this.name = name;
-            return this;
-        }
-
-        public Builder delegateExpression(String delegateExpression) {
-            this.delegateExpression = delegateExpression;
             return this;
         }
 
@@ -85,16 +76,8 @@ public record ServiceTaskDefinition(String id,
             return this;
         }
 
-        public Builder boundaryEvents(List<BoundaryEventDefinition> boundaryEventDefinitions) {
-            if (boundaryEventDefinitions != null) {
-                this.boundaryEvents = boundaryEventDefinitions;
-            }
-            return this;
-        }
-
-        public ServiceTaskDefinition build() {
-            return new ServiceTaskDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing, boundaryEvents);
+        public ExclusiveGatewayDefinition build() {
+            return new ExclusiveGatewayDefinition(id, name, description, commitAfter, commitBefore, outgoing);
         }
     }
-
 }

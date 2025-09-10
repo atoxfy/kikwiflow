@@ -16,14 +16,22 @@
  */
 package io.kikwiflow.navigation;
 
+import io.kikwiflow.bpmn.model.SequenceFlow;
+import io.kikwiflow.execution.DecisionRuleResolver;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.ProcessInstanceExecution;
+import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.rule.api.DecisionRule;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Responsável pela lógica de navegação dentro do grafo de um processo BPMN.
@@ -36,15 +44,16 @@ import java.util.List;
 public class Navigator {
 
     private final ProcessDefinitionService processDefinitionService;
-
+    private final DecisionRuleResolver decisionRuleResolver;
     /**
      * Constrói uma nova instância do Navigator.
      *
      * @param processDefinitionService O gestor de definições de processo, usado para obter
      *                                 informações sobre o grafo do processo quando necessário.
      */
-    public Navigator(ProcessDefinitionService processDefinitionService) {
+    public Navigator(ProcessDefinitionService processDefinitionService, DecisionRuleResolver decisionRuleResolver) {
         this.processDefinitionService = processDefinitionService;
+        this.decisionRuleResolver = decisionRuleResolver;
     }
 
     /**
@@ -69,7 +78,7 @@ public class Navigator {
      * @return Um objeto {@link Continuation} descrevendo os próximos nós e se a execução
      *         deve ser síncrona ou assíncrona. Retorna {@code null} se for um nó final.
      */
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, boolean forceAsync) {
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync) {
 
         List<SequenceFlowDefinition> outgoingFlows = completedNode.outgoing();
 
@@ -80,33 +89,43 @@ public class Navigator {
 
         List<FlowNodeDefinition> nextNodes = new ArrayList<>();
 
-        /*
+
+
+
         // Aqui futuramente adicionar logica por tipo de node
-        if (completedNode instanceof ExclusiveGatewayNode) {
+        if (completedNode instanceof ExclusiveGatewayDefinition) {
+
+            FlowNodeDefinition defaultNextNode = null;
             // encontrar o primeiro caminho cuja condição é verdadeira.
-            for (SequenceFlow flow : outgoingFlows) {
-                if (flow.getConditionExpression() == null) {
-                    nextNodes.add(definition.getFlowNodes().get(flow.getTargetNodeId()));
-                    break;
+            for (SequenceFlowDefinition flow : outgoingFlows) {
+                if (flow.condition() == null || flow.condition().isEmpty() ) {
+                   //É saida de um gateway e não possui condição
+                    if(defaultNextNode == null){
+                        defaultNextNode = processDefinition.flowNodes().get(flow.targetNodeId());
+                    }
+                    continue;
                 }
-                if (evaluateExpression(flow.getConditionExpression(), instance.getVariables())) {
-                    nextNodes.add(definition.getFlowNodes().get(flow.getTargetNodeId()));
+
+                DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition()).orElseThrow();
+                if (decisionRule.evaluate(variables)) {
+                    nextNodes.add(processDefinition.flowNodes().get(flow.targetNodeId()));
                     break;
                 }
             }
-        } else {*/
-        // }
 
-        //para nodos de uma saida só
-        String targetNodeId = outgoingFlows.get(0).targetNodeId();
-        nextNodes.add(processDefinition.flowNodes().get(targetNodeId));
+            if(nextNodes.isEmpty() && defaultNextNode != null){
+                nextNodes.add(defaultNextNode);
+            }
 
-        /*
+            if(nextNodes.isEmpty()){
+                throw new RuntimeException("Execution Error: cannot determine sequence flow");
+            }
 
-        if (nextNodes.isEmpty()) {
-            // Nenhum caminho foi satisfeito no gateway.
-            throw new RuntimeException("Nenhum caminho de saída válido encontrado para o nó " + completedNode.getId());
-        } */
+        } else {
+            //para nodos de uma saida só
+            String targetNodeId = outgoingFlows.get(0).targetNodeId();
+            nextNodes.add(processDefinition.flowNodes().get(targetNodeId));
+        }
 
         // Agora, determinar se a continuação é síncrona ou assíncrona.
         boolean isAsync = false;
@@ -133,9 +152,9 @@ public class Navigator {
      * @param forceAsync Se a continuação deve ser forçada a ser assíncrona.
      * @return Um objeto {@link Continuation} ou {@code null}.
      */
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessInstanceExecution instance, boolean forceAsync) {
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessInstanceExecution instance, Map<String, ProcessVariable> variables, boolean forceAsync) {
 
-        ProcessDefinition definition = processDefinitionService.getByKey(instance.getProcessDefinitionId()).get();//todo
-        return determineNextContinuation(completedNode, definition, forceAsync);
+        ProcessDefinition definition = processDefinitionService.getByKey(instance.getProcessDefinitionId()).orElseThrow();
+        return determineNextContinuation(completedNode, definition, variables, forceAsync);
     }
 }

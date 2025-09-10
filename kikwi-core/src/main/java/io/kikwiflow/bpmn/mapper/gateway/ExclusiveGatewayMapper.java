@@ -15,34 +15,31 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.bpmn.mapper.task;
+package io.kikwiflow.bpmn.mapper.gateway;
 
 import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
-import io.kikwiflow.bpmn.model.task.HumanTask;
-import io.kikwiflow.model.definition.process.elements.HumanTaskDefinition;
+import io.kikwiflow.bpmn.model.gateway.ExclusiveGateway;
+import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class HumanTaskMapper {
-
-    private HumanTaskMapper() {
+public class ExclusiveGatewayMapper {
+    private ExclusiveGatewayMapper() {
         // Utility class
     }
 
-    public static HumanTaskDefinition toSnapshot(final HumanTask serviceTask) {
-        if (Objects.isNull(serviceTask)) {
+    public static ExclusiveGatewayDefinition toSnapshot(final ExclusiveGateway exclusiveGateway) {
+        if (Objects.isNull(exclusiveGateway)) {
             return null;
         }
-        return HumanTaskDefinition.builder()
-                .id(serviceTask.getId())
-                .name(serviceTask.getName())
-                .description(serviceTask.getDescription())
-                .commitAfter(serviceTask.getCommitAfter())
-                .commitBefore(serviceTask.getCommitBefore())
-                .outgoing(serviceTask.getOutgoing().stream()
-                        .map(SequenceFlowMapper::toSnapshot)
-                        .collect(Collectors.toList()))
+        return ExclusiveGatewayDefinition.builder()
+                .id(exclusiveGateway.getId())
+                .name(exclusiveGateway.getName())
+                .description(exclusiveGateway.getDescription())
+                .commitAfter(exclusiveGateway.getCommitAfter())
+                .commitBefore(exclusiveGateway.getCommitBefore())
+                .outgoing(SequenceFlowMapper.toSnapshot(exclusiveGateway.getOutgoing()))
                 .build();
     }
 }

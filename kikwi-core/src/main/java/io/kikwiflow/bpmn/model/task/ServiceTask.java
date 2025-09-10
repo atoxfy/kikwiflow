@@ -18,11 +18,25 @@ package io.kikwiflow.bpmn.model.task;
 
 
 import io.kikwiflow.bpmn.model.FlowNode;
+import io.kikwiflow.bpmn.model.boundary.BoundaryEvent;
 import io.kikwiflow.model.execution.node.Executable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ServiceTask extends FlowNode implements Executable {
 
     private String delegateExpression;
+
+    private List<BoundaryEvent> boundaryEvents = new ArrayList<>();
+
+    public void  addBoundaryEvent(BoundaryEvent boundaryEvent){
+        this.boundaryEvents.add(boundaryEvent);
+    }
+
+    public List<BoundaryEvent> getBoundaryEvents() {
+        return boundaryEvents;
+    }
 
     public String getDelegateExpression() {
         return delegateExpression;

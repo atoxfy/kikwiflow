@@ -22,7 +22,7 @@ import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.definition.process.elements.HumanTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import org.junit.jupiter.api.BeforeEach;
@@ -127,7 +127,7 @@ class BpmnParserTest {
         // 4. Assert a specific Human Task and its connectivity
         FlowNodeDefinition task1 = processDefinition.flowNodes().get("external-task-1");
         assertNotNull(task1);
-        assertTrue(task1 instanceof HumanTaskDefinition, "O nó deveria ser uma HumanTask");
+        assertTrue(task1 instanceof ManualTaskDefinition, "O nó deveria ser uma HumanTask");
         assertEquals("External Task 1", task1.name());
         assertEquals(1, task1.outgoing().size(), "A Tarefa 1 deveria ter um fluxo de saída");
         assertEquals("external-task-2", task1.outgoing().get(0).targetNodeId(), "A Tarefa 1 deveria fluir para a Tarefa 2");

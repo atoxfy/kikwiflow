@@ -22,12 +22,13 @@ import io.kikwiflow.model.execution.node.WaitState;
 import java.util.Collections;
 import java.util.List;
 
-public record HumanTaskDefinition(String id,
-                                  String name,
-                                  String description,
-                                  Boolean commitAfter,
-                                  Boolean commitBefore,
-                                  List<SequenceFlowDefinition> outgoing) implements FlowNodeDefinition, WaitState {
+public record ManualTaskDefinition(String id,
+                                   String name,
+                                   String description,
+                                   Boolean commitAfter,
+                                   Boolean commitBefore,
+                                   List<SequenceFlowDefinition> outgoing,
+                                   List<BoundaryEventDefinition> boundaryEvents) implements FlowNodeDefinition, WaitState {
 
     public static Builder builder() {
         return new Builder();
@@ -41,6 +42,7 @@ public record HumanTaskDefinition(String id,
         private Boolean commitBefore;
 
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
+        private  List<BoundaryEventDefinition> boundaryEvents = Collections.emptyList();
 
         private Builder() {}
 
@@ -76,8 +78,16 @@ public record HumanTaskDefinition(String id,
             return this;
         }
 
-        public HumanTaskDefinition build() {
-            return new HumanTaskDefinition(id, name, description, commitAfter, commitBefore, outgoing);
+        public Builder boundaryEvents(List<BoundaryEventDefinition> boundaryEventDefinitions) {
+            if (boundaryEventDefinitions != null) {
+                this.boundaryEvents = boundaryEventDefinitions;
+            }
+            return this;
+        }
+
+
+        public ManualTaskDefinition build() {
+            return new ManualTaskDefinition(id, name, description, commitAfter, commitBefore, outgoing, boundaryEvents);
         }
     }
 }

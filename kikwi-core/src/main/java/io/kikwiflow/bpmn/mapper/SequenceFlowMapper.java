@@ -20,13 +20,24 @@ package io.kikwiflow.bpmn.mapper;
 import io.kikwiflow.bpmn.model.SequenceFlow;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 
+import java.util.List;
 import java.util.Objects;
-
+import java.util.stream.Collectors;
 
 public final class SequenceFlowMapper {
 
     private SequenceFlowMapper() {
         // Utility class
+    }
+
+    public static List<SequenceFlowDefinition> toSnapshot(final List<SequenceFlow> sequenceFlows) {
+        if (Objects.isNull(sequenceFlows)) {
+            return null;
+        }
+
+        return sequenceFlows.stream()
+                .map(SequenceFlowMapper::toSnapshot)
+                .collect(Collectors.toList());
     }
 
     public static SequenceFlowDefinition toSnapshot(final SequenceFlow sequenceFlow) {

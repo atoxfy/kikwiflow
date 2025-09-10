@@ -72,7 +72,7 @@ public class LinearServiceTaskTasksTests {
         this.delegateResolver.register("addVariableDelegate", addVariableDelegate);
         this.removeVariableDelegate =  spy(new RemoveVariableDelegate());
         this.delegateResolver.register("removeVariableDelegate", removeVariableDelegate);
-        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, kikwiflowConfig, delegateResolver, Collections.emptyList());
+        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, kikwiflowConfig, delegateResolver, null, Collections.emptyList());
     }
 
 

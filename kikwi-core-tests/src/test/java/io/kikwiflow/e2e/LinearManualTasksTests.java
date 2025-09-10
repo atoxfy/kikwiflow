@@ -50,7 +50,7 @@ import static org.mockito.Mockito.verify;
  * O objetivo principal é validar que a engine pausa corretamente nos "wait states" (estados de espera)
  * e cria as tarefas externas correspondentes.
  */
-public class LinearHumanTasksTests {
+public class LinearManualTasksTests {
 
     private final KikwiflowEngine kikwiflowEngine;
     private final AssertableKikwiEngine assertableKikwiEngine;
@@ -64,11 +64,11 @@ public class LinearHumanTasksTests {
         return kikwiflowConfig1;
     }
 
-    public LinearHumanTasksTests(){
+    public LinearManualTasksTests(){
         this.assertableKikwiEngine = new AssertableKikwiEngine();
         this.kikwiflowConfig = getAndInitConfig();
         this.delegateResolver = new TestDelegateResolver();
-        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, kikwiflowConfig, delegateResolver, Collections.emptyList());
+        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, kikwiflowConfig, delegateResolver, null, Collections.emptyList());
     }
 
 

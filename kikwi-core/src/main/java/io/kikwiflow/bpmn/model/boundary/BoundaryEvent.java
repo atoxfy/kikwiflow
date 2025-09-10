@@ -15,28 +15,18 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.bpmn.mapper.start;
+package io.kikwiflow.bpmn.model.boundary;
 
-import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
-import io.kikwiflow.bpmn.model.start.StartEvent;
-import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
+import io.kikwiflow.bpmn.model.FlowNode;
 
-import java.util.stream.Collectors;
+public class BoundaryEvent extends FlowNode {
+    private String attachedToRef;
 
-public class StartEventMapper {
-
-    private StartEventMapper() {
-        // Utility class
+    public String getAttachedToRef() {
+        return attachedToRef;
     }
 
-    public static StartEventDefinition toSnapshot(StartEvent node) {
-        return StartEventDefinition.builder()
-                .id(node.getId())
-                .name(node.getName())
-                .description(node.getDescription())
-                .commitAfter(node.getCommitAfter())
-                .commitBefore(node.getCommitBefore())
-                .outgoing(SequenceFlowMapper.toSnapshot(node.getOutgoing()))
-                .build();
+    public void setAttachedToRef(String attachedToRef) {
+        this.attachedToRef = attachedToRef;
     }
 }

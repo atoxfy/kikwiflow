@@ -17,33 +17,31 @@
 
 package io.kikwiflow.bpmn.mapper.task;
 
-import io.kikwiflow.bpmn.model.task.ServiceTask;
-import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
+import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
+import io.kikwiflow.bpmn.mapper.boundary.BoundaryEventMapper;
+import io.kikwiflow.bpmn.model.task.ManualTask;
+import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
 
 import java.util.Objects;
-import java.util.stream.Collectors;
 
-import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
+public class ManualTaskMapper {
 
-public final class ServiceTaskMapper {
-
-    private ServiceTaskMapper() {
+    private ManualTaskMapper() {
         // Utility class
     }
 
-    public static ServiceTaskDefinition toSnapshot(final ServiceTask serviceTask) {
+    public static ManualTaskDefinition  toSnapshot(final ManualTask serviceTask) {
         if (Objects.isNull(serviceTask)) {
             return null;
         }
-        return ServiceTaskDefinition.builder()
+        return ManualTaskDefinition.builder()
                 .id(serviceTask.getId())
                 .name(serviceTask.getName())
                 .description(serviceTask.getDescription())
-                .delegateExpression(serviceTask.getDelegateExpression())
                 .commitAfter(serviceTask.getCommitAfter())
                 .commitBefore(serviceTask.getCommitBefore())
                 .outgoing(SequenceFlowMapper.toSnapshot(serviceTask.getOutgoing()))
+                .boundaryEvents(BoundaryEventMapper.toSnapshot(serviceTask.getBoundaryEvents()))
                 .build();
     }
 }
-

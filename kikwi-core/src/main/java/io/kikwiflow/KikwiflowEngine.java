@@ -30,28 +30,24 @@ import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
+import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
 import io.kikwiflow.model.execution.ProcessVariable;
-import io.kikwiflow.model.execution.node.Executable;
-import io.kikwiflow.model.execution.node.WaitState;
+import io.kikwiflow.model.execution.node.*;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
-import io.kikwiflow.model.execution.node.ExecutableTask;
-import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.io.InputStream;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -67,14 +63,14 @@ public class KikwiflowEngine {
     private final KikwiEngineRepository kikwiEngineRepository;
     private final TaskAcquirer taskAcquirer;
 
-    public KikwiflowEngine(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, DelegateResolver delegateResolver, List<ExecutionEventListener> executionEventListeners){
+    public KikwiflowEngine(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, DelegateResolver delegateResolver, DecisionRuleResolver decisionRuleResolver, List<ExecutionEventListener> executionEventListeners){
         this.kikwiEngineRepository = kikwiEngineRepository;
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.asynchronousEventPublisher = new AsynchronousEventPublisher(executorService);
         this.registerListeners(executionEventListeners);
         final BpmnParser bpmnParser = new DefaultBpmnParser();
         this.processDefinitionService = new ProcessDefinitionService(bpmnParser, kikwiEngineRepository);
-        this.navigator = new Navigator(processDefinitionService);
+        this.navigator = new Navigator(processDefinitionService, decisionRuleResolver);
         this.processExecutionManager = new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(delegateResolver)), navigator, kikwiflowConfig);
         this.kikwiflowConfig = kikwiflowConfig;
         this.eventListeners = executionEventListeners;
@@ -119,7 +115,7 @@ public class KikwiflowEngine {
 
         // 4. Navegar: encontrar o nó que foi completado e determinar o próximo passo.
         FlowNodeDefinition completedNode = processDefinition.flowNodes().get(taskToComplete.taskDefinitionId());
-        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, false);
+        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false);
 
         // 5. Executar: se houver um próximo passo, delegar ao executor.
         ExecutionResult executionResult;
@@ -131,7 +127,7 @@ public class KikwiflowEngine {
         }
 
         // 6. Persistir o resultado e o estado da tarefa completada.
-        return handleContinuation(executionResult, taskToComplete.id(), null);
+        return handleContinuation(executionResult, taskToComplete, null);
     }
 
     public ProcessInstance executeFromTask(ExecutableTask executableTask){
@@ -145,7 +141,7 @@ public class KikwiflowEngine {
         FlowNodeDefinition flowNodeDefinition = processDefinition.flowNodes().get(executableTask.taskDefinitionId());
 
         ExecutionResult executionResult = processExecutionManager.executeFlow(flowNodeDefinition, processInstanceExecution, processDefinition, true);
-        return handleContinuation(executionResult, null, executableTask.id());
+        return handleContinuation(executionResult, null, executableTask);
     }
 
     private void registerListeners(List<ExecutionEventListener> executionEventListeners){
@@ -166,8 +162,8 @@ public class KikwiflowEngine {
      * Orquestra a persistência do estado final de uma execução síncrona.
      * Este método constrói e comita a {@link UnitOfWork}.
      */
-    private ProcessInstance handleContinuation(ExecutionResult executionResult, String completedExternalTaskId,
-                                               String completedExecutableTaskId) {
+    private ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask,
+                                               ExecutableTask completedExecutableTask) {
         Continuation continuation = executionResult.continuation();
         ExecutionOutcome executionOutcome = executionResult.outcome();
         ProcessInstanceExecution processInstance = executionOutcome.processInstance();
@@ -178,28 +174,81 @@ public class KikwiflowEngine {
         if (continuation != null && continuation.isAsynchronous()) {
             //TODO classificar entre external e executable
             continuation.nextNodes().forEach(flowNodeDefinitionSnapshot -> {
-                if(flowNodeDefinitionSnapshot instanceof WaitState){
-                    nextExternalTasks.add(ExternalTask.builder()
+                if(flowNodeDefinitionSnapshot instanceof ManualTaskDefinition mt){
+
+                    String externalTaskNodeId = UUID.randomUUID().toString();
+                    ExternalTask.Builder externalTask = ExternalTask.builder()
+                            .id(externalTaskNodeId)
                             .processDefinitionId(processInstance.getProcessDefinitionId())
                             .taskDefinitionId(flowNodeDefinitionSnapshot.id())
                             .processInstanceId(processInstance.getId())
                             .name(flowNodeDefinitionSnapshot.name())
-                            .description(flowNodeDefinitionSnapshot.description())
-                            .build());
+                            .description(flowNodeDefinitionSnapshot.description());
 
-                }else if (flowNodeDefinitionSnapshot instanceof Executable){
-                    nextExecutableTasks.add(ExecutableTask.builder()
-                            .processDefinitionId(processInstance.getProcessDefinitionId())
-                            .taskDefinitionId(flowNodeDefinitionSnapshot.id())
-                            .processInstanceId(processInstance.getId())
-                            .build());
+                    if(Objects.nonNull(mt.boundaryEvents())
+                            && !mt.boundaryEvents().isEmpty()){
+                        List<String> boundaryEvents = new ArrayList<>();
+                        mt.boundaryEvents()
+                                .forEach(boundaryEventDefinition -> {
+                                    ExecutableTask boundaryEvent = ExecutableTask.builder()
+                                            .id(UUID.randomUUID().toString())
+                                            .processDefinitionId(processInstance.getProcessDefinitionId())
+                                            .taskDefinitionId(boundaryEventDefinition.id())
+                                            .processInstanceId(processInstance.getId())
+                                            .dueDate(parseDuration(((InterruptiveTimerEventDefinition)boundaryEventDefinition).duration()))
+                                            .attachedToRefId(externalTaskNodeId)
+                                            .attachedToRefType(AttachedTaskType.EXTERNAL_TASK)
+                                            .build();
+
+                                    boundaryEvents.add(boundaryEvent.id());
+                                    nextExecutableTasks.add(boundaryEvent);
+
+                                });
+
+                        externalTask.boundaryEvents(boundaryEvents);
+                        nextExternalTasks.add(externalTask.build());
+                    }
+
+                }else if (flowNodeDefinitionSnapshot instanceof ServiceTaskDefinition st){
+                   String executableTaskNodeId = UUID.randomUUID().toString();
+                   ExecutableTask.Builder executableTaskBuilder = ExecutableTask.builder()
+                                    .id(executableTaskNodeId)
+                                    .processDefinitionId(processInstance.getProcessDefinitionId())
+                                    .taskDefinitionId(flowNodeDefinitionSnapshot.id())
+                                    .processInstanceId(processInstance.getId());
+
+                    if( Objects.nonNull(st.boundaryEvents())
+                            && !st.boundaryEvents().isEmpty()){
+                        List<String> boundaryEvents = new ArrayList<>();
+
+                        st.boundaryEvents()
+                                .forEach(boundaryEventDefinition ->  {
+
+                                    ExecutableTask boundaryExecutableTask = ExecutableTask.builder()
+                                            .id(UUID.randomUUID().toString())
+                                            .processDefinitionId(processInstance.getProcessDefinitionId())
+                                            .taskDefinitionId(boundaryEventDefinition.id())
+                                            .processInstanceId(processInstance.getId())
+                                            .attachedToRefId(executableTaskNodeId)
+                                            .attachedToRefType(AttachedTaskType.EXECUTABLE_TASK)
+                                            .dueDate(parseDuration(((InterruptiveTimerEventDefinition)boundaryEventDefinition).duration()))
+                                            .build();
+
+                                    nextExecutableTasks.add(boundaryExecutableTask);
+                                    boundaryEvents.add(boundaryExecutableTask.id());
+                                });
+
+                        executableTaskBuilder.boundaryEvents(boundaryEvents);
+                    }
+
+                    nextExecutableTasks.add(executableTaskBuilder.build());
                 }
             });
+
         }else{
             processInstance.setEndedAt(Instant.now());
             processInstance.setStatus(ProcessInstanceStatus.COMPLETED);
         }
-
 
         List<OutboxEventEntity> events = new ArrayList<>(executionOutcome.events());
         if(ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus())){
@@ -213,20 +262,34 @@ public class KikwiflowEngine {
                     .endedAt(processInstance.getEndedAt())
                     .build();
 
-
             events.add(new OutboxEventEntity(processInstanceFinished));
         }
 
         ProcessInstance processInstanceToSave = ProcessInstanceMapper.mapToRecord(processInstance);
-
         List<String> executableTasksToDelete = new ArrayList<>();
-        if (completedExecutableTaskId!= null) {
-            executableTasksToDelete.add(completedExecutableTaskId);
+        List<String> externalTasksToDelete = new ArrayList<>();
+
+        if (completedExecutableTask!= null) {
+            executableTasksToDelete.add(completedExecutableTask.id());
+            if(Objects.nonNull(completedExecutableTask.boundaryEvents())){
+                executableTasksToDelete.addAll(completedExecutableTask.boundaryEvents());
+            }
+
+            if(Objects.nonNull(completedExecutableTask.attachedToRefId())){
+                if(completedExecutableTask.attachedToRefType().equals(AttachedTaskType.EXECUTABLE_TASK)){
+                    executableTasksToDelete.add(completedExecutableTask.attachedToRefId());
+
+                }else{
+                    externalTasksToDelete.add(completedExecutableTask.attachedToRefId());
+                }
+            }
         }
 
-        List<String> externalTasksToDelete = new ArrayList<>();
-        if (completedExternalTaskId != null) {
-            externalTasksToDelete.add(completedExternalTaskId);
+        if (completedExternalTask != null) {
+            externalTasksToDelete.add(completedExternalTask.id());
+            if(Objects.nonNull(completedExternalTask.boundaryEvents())){
+                executableTasksToDelete.addAll(completedExternalTask.boundaryEvents());
+            }
         }
 
         UnitOfWork updatedUnitOfWork = new UnitOfWork(
@@ -241,6 +304,11 @@ public class KikwiflowEngine {
 
         kikwiEngineRepository.commitWork(updatedUnitOfWork);
         return processInstanceToSave;
+    }
+
+    //TODO
+    private Instant parseDuration(String duration){
+        return Instant.now().plus(Duration.parse(duration));
     }
 
     /**

@@ -19,6 +19,7 @@ package io.kikwiflow.starter.autoconfigure;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.ExecutionEventListener;
+import io.kikwiflow.execution.DecisionRuleResolver;
 import io.kikwiflow.execution.DelegateResolver;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import org.springframework.beans.factory.ObjectProvider;
@@ -63,12 +64,13 @@ public class KikwiflowAutoConfiguration {
             KikwiEngineRepository repository,
             KikwiflowConfig config,
             DelegateResolver delegateResolver,
+            DecisionRuleResolver decisionRuleResolver,
             ObjectProvider<List<ExecutionEventListener>> listenersProvider) {
 
         // O Spring injetará automaticamente uma lista de todos os beans
         // do tipo ExecutionEventListener que o usuário tenha definido.
         List<ExecutionEventListener> listeners = listenersProvider.getIfAvailable(Collections::emptyList);
 
-        return new KikwiflowEngine(repository, config, delegateResolver, listeners);
+        return new KikwiflowEngine(repository, config, delegateResolver, decisionRuleResolver, listeners);
     }
 }

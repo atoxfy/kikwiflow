@@ -15,16 +15,10 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.definition.process.elements;
+package io.kikwiflow.bpmn.model.gateway;
 
-import java.util.List;
+import io.kikwiflow.bpmn.model.FlowNode;
 
-public sealed interface FlowNodeDefinition permits StartEventDefinition, ManualTaskDefinition, ServiceTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition {
-    String id();
-    String name();
-    String description();
-    Boolean commitAfter();
-    Boolean commitBefore();
-    List<SequenceFlowDefinition> outgoing();
+public class ExclusiveGateway extends FlowNode {
 
 }

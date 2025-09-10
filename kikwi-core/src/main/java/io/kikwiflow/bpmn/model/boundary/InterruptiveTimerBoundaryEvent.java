@@ -15,28 +15,16 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.bpmn.mapper.start;
+package io.kikwiflow.bpmn.model.boundary;
 
-import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
-import io.kikwiflow.bpmn.model.start.StartEvent;
-import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
+public class InterruptiveTimerBoundaryEvent extends BoundaryEvent{
+    private String duration;
 
-import java.util.stream.Collectors;
-
-public class StartEventMapper {
-
-    private StartEventMapper() {
-        // Utility class
+    public String getDuration() {
+        return duration;
     }
 
-    public static StartEventDefinition toSnapshot(StartEvent node) {
-        return StartEventDefinition.builder()
-                .id(node.getId())
-                .name(node.getName())
-                .description(node.getDescription())
-                .commitAfter(node.getCommitAfter())
-                .commitBefore(node.getCommitBefore())
-                .outgoing(SequenceFlowMapper.toSnapshot(node.getOutgoing()))
-                .build();
+    public void setDuration(String duration) {
+        this.duration = duration;
     }
 }

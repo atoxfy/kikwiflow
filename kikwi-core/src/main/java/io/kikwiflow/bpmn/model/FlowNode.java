@@ -16,6 +16,8 @@
  */
 package io.kikwiflow.bpmn.model;
 
+import io.kikwiflow.bpmn.model.boundary.BoundaryEvent;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +36,9 @@ public class FlowNode {
     public void  addOutgoing(SequenceFlow sequenceFlow){
         this.outgoing.add(sequenceFlow);
     }
+
+
+
     public void setId(String id) {
         this.id = id;
     }

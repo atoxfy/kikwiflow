@@ -157,6 +157,13 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
         assertEquals(1, tasks.size(), "Expected exactly one active external task, but found " + tasks.size());
     }
 
+    public void assertHasntActiveExternalTaskOn(String processInstanceId, String taskDefinitionId) {
+        List<ExternalTask> tasks = inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
+        assertTrue(tasks.stream().noneMatch(task -> task.taskDefinitionId().equals(taskDefinitionId)),
+                "Expected to not find an active external task with definition ID '" + taskDefinitionId + "' but one was found.");
+        assertEquals(0, tasks.size(), "Expected exactly no one active external task, but found " + tasks.size());
+    }
+
     public void assertThatProcessInstanceIsActive(String processInstanceId) {
         Optional<ProcessInstance> hotProcessInstanceOpt = inMemoryKikwiEngineRepository.findProcessInstanceById(processInstanceId);
         assertTrue(hotProcessInstanceOpt.isPresent(), "Process instance should still be active in runtime context.");

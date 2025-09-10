@@ -17,14 +17,6 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
-import java.util.List;
-
-public sealed interface FlowNodeDefinition permits StartEventDefinition, ManualTaskDefinition, ServiceTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition {
-    String id();
-    String name();
-    String description();
-    Boolean commitAfter();
-    Boolean commitBefore();
-    List<SequenceFlowDefinition> outgoing();
-
+public sealed interface BoundaryEventDefinition extends FlowNodeDefinition  permits InterruptiveTimerEventDefinition {
+     String attachedToRef();
 }
