@@ -33,6 +33,13 @@
     <packaging>jar</packaging>
     <name>kikwiflow :: History API</name>
     <artifactId>kikwi-history-api</artifactId>
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Atoxfy Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/atoxfy/kikwiflow</url>
+        </repository>
+    </distributionManagement>
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>

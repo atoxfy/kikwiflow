@@ -28,7 +28,13 @@
 
     <artifactId>kikwi-runtime-query-spring-boot-starter</artifactId>
     <name>kikwiflow :: Runtime Query Spring Boot Starter</name>
-
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Atoxfy Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/atoxfy/kikwiflow</url>
+        </repository>
+    </distributionManagement>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>

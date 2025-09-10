@@ -11,7 +11,13 @@
 
     <artifactId>kikwi-in-memory-spring-boot-autoconfigure</artifactId>
     <name>Kikwiflow :: InMemory :: Spring Boot In-Memory AutoConfiguration</name>
-
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Atoxfy Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/atoxfy/kikwiflow</url>
+        </repository>
+    </distributionManagement>
     <dependencyManagement>
         <dependencies>
             <dependency>
