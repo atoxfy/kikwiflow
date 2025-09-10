@@ -28,6 +28,7 @@ import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 import io.kikwiflow.model.execution.node.ExecutableTask;
+import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.rule.api.DecisionRule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -119,6 +120,54 @@ public class InterruptiveTimerTests {
         assertableKikwiEngine.assertHasntActiveExternalTaskOn(processInstance.id(), "doContactTask");
 
     }
+
+
+    @Test
+    @DisplayName("Cenário 2: Deve cancelar o timer quando a tarefa principal é concluida")
+    void shouldCancelTimerWhenMainTaskIsCompleted() throws Exception {
+        // Arrange: Deploy do processo
+        InputStream bpmnStream = getClass().getClassLoader().getResourceAsStream("interruptive-timer.bpmn");
+        ProcessDefinition processDefinition = kikwiflowEngine.deployDefinition(bpmnStream);
+
+        // Act: Inicia o processo. A execução síncrona deve parar após a Task_Commit_After.
+        ProcessInstance processInstance = kikwiflowEngine.startProcess()
+                .byKey(processDefinition.key())
+                .withBusinessKey(UUID.randomUUID().toString())
+                .execute();
+
+        assertNotNull(processInstance.id());
+        assertEquals(ProcessInstanceStatus.ACTIVE, processInstance.status());
+        assertableKikwiEngine.assertHasActiveExternalTaskOn(processInstance.id(), "doContactTask");
+        verify(sendToRecovery, times(0)).execute(any()); // Ainda não foi executado
+
+        Optional<ExecutableTask> executableTask = assertableKikwiEngine.findAndGetFirstPendingExecutableTask(processInstance.id());
+        assertTrue(executableTask.isPresent(), "Deveria existir um job pendente para a sendToRecoveryTask.");
+        var task = executableTask.get();
+        assertEquals("interruptiveTimerEvent", task.taskDefinitionId());
+
+        ExternalTask taskToComplete = assertableKikwiEngine.findExternalTasksByProcessInstanceId(processInstance.id())
+                .stream()
+                .filter(et -> et.taskDefinitionId().equals("doContactTask"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Tarefa não encontrada: doContactTask"));
+
+
+        ProcessVariable processVariable = new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, true);
+        Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
+        processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), completionVariables);
+        // Assert: Fase 3 - Finalização
+        assertEquals(ProcessInstanceStatus.COMPLETED, processInstance.status(), "O processo deveria estar completo.");
+        assertNotNull(processInstance.endedAt(), "O processo deveria ter uma data de término.");
+        verify(sendToRecovery, times(0)).execute(any()); // Agora foi executado
+
+        assertTrue(processInstance.variables().containsKey("step1"), "A variável da step 4 deve existir.");
+
+        // Garante que não há mais jobs pendentes para esta instância
+        assertFalse(assertableKikwiEngine.findAndGetFirstPendingExecutableTask(processInstance.id()).isPresent(), "Não deveria haver mais jobs pendentes.");
+        assertableKikwiEngine.assertHasntActiveExternalTaskOn(processInstance.id(), "doContactTask");
+    }
+
+
 
     /**
      * A concrete, test-friendly implementation of JavaDelegate.
