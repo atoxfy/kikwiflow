@@ -102,6 +102,7 @@ public class InterruptiveTimerTests {
         assertTrue(sendToRecoveryTaskOpt.isPresent(), "Deveria existir um job pendente para a sendToRecoveryTask.");
         var sendToRecoveryTask = sendToRecoveryTaskOpt.get();
         assertEquals("sendToRecoveryTask", sendToRecoveryTask.taskDefinitionId());
+        verify(sendToRecovery, times(0)).execute(any()); // Ainda não foi executado
 
 
         processInstance = kikwiflowEngine.executeFromTask(sendToRecoveryTask);
