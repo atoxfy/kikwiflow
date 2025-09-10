@@ -206,8 +206,8 @@ public class KikwiflowEngine {
                                 });
 
                         externalTask.boundaryEvents(boundaryEvents);
-                        nextExternalTasks.add(externalTask.build());
                     }
+                    nextExternalTasks.add(externalTask.build());
 
                 }else if (flowNodeDefinitionSnapshot instanceof ServiceTaskDefinition st){
                    String executableTaskNodeId = UUID.randomUUID().toString();
