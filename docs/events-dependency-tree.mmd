@@ -1,0 +1,12 @@
+graph TD
+    A[kikwi-core] --> B[kikwi-persistence-api]
+    A --> C[kikwi-events-api]
+
+    D[kikwi-persistence-mongodb] --> B
+
+    E[kikwi-event-relay-core] --> F[kikwi-event-relay-api]
+    E --> C
+
+    F --> B
+
+    B --> C

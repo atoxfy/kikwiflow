@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant Core as "kikwi-core"
+    participant UoW as "UnitOfWork"
+    participant RepoAPI as "ProcessExecutionRepository<br>(Interface)"
+    participant MongoRepo as "MongoProcessExecutionRepository<br>(Implementação)"
+    participant Mapper as "WaitStateMapper"
+    participant MongoDB as "MongoDB"
+
+    Note over Core: Engine chega a um nó de UserTask.
+    Core->>Core: Cria um record 'WaitState' (modelo de domínio).
+    Core->>UoW: addWaitStateToCreate(waitState)
+
+    Note over Core: Fim do bloco síncrono.
+    Core->>RepoAPI: commit(unitOfWork)
+
+    Note over RepoAPI, MongoRepo: A chamada é polimórfica. O core não conhece a implementação.
+
+    MongoRepo->>+Mapper: toEntity(waitState)
+    Mapper-->>-MongoRepo: Retorna POJO 'ExternalTaskEntity'
+
+    MongoRepo->>+MongoDB: INICIAR TRANSAÇÃO
+    MongoDB->>MongoDB: Insere o documento 'ExternalTaskEntity'
+    MongoDB-->>-MongoRepo: COMMIT TRANSAÇÃO
+
+    MongoRepo-->>Core: Retorno do commit

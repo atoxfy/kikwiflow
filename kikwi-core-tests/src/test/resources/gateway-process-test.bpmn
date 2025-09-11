@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_02fnmsk" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.38.1" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.23.0">
+  <bpmn:process id="gateway-process-test" name="Gateway Process Test" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="">
+      <bpmn:outgoing>Flow_0xlkqvz</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_0xlkqvz" sourceRef="StartEvent_1" targetRef="findPersonDataTask" />
+    <bpmn:serviceTask id="findPersonDataTask" name="Find Person Data" camunda:delegateExpression="findPersonDataDelegate">
+      <bpmn:incoming>Flow_0xlkqvz</bpmn:incoming>
+      <bpmn:outgoing>Flow_0086yyv</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_1wjxchi" default="Flow_0z56319">
+      <bpmn:incoming>Flow_0086yyv</bpmn:incoming>
+      <bpmn:outgoing>Flow_0z56319</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0mozr1r</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0086yyv" sourceRef="findPersonDataTask" targetRef="Gateway_1wjxchi" />
+    <bpmn:sequenceFlow id="Flow_0z56319" sourceRef="Gateway_1wjxchi" targetRef="Activity_1fmef0w" />
+    <bpmn:sequenceFlow id="Flow_0bkhwch" sourceRef="Activity_1fmef0w" targetRef="doPaymentTask" />
+    <bpmn:sequenceFlow id="Flow_0mozr1r" name="is person data filled" sourceRef="Gateway_1wjxchi" targetRef="doPaymentTask">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">isPersonDataFilled</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="doPaymentTask" name="Do Payment" camunda:asyncBefore="true" camunda:delegateExpression="doPaymentDelegate">
+      <bpmn:incoming>Flow_0bkhwch</bpmn:incoming>
+      <bpmn:incoming>Flow_0mozr1r</bpmn:incoming>
+      <bpmn:outgoing>Flow_14kyn24</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="Event_0zn6tak">
+      <bpmn:incoming>Flow_14kyn24</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_14kyn24" sourceRef="doPaymentTask" targetRef="Event_0zn6tak" />
+    <bpmn:userTask id="Activity_1fmef0w" name="Fill Person Data Manually">
+      <bpmn:incoming>Flow_0z56319</bpmn:incoming>
+      <bpmn:outgoing>Flow_0bkhwch</bpmn:outgoing>
+    </bpmn:userTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="gateway-process-test">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="182" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="196" y="145" width="8" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ccr7hz_di" bpmnElement="findPersonDataTask">
+        <dc:Bounds x="270" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1wjxchi_di" bpmnElement="Gateway_1wjxchi" isMarkerVisible="true">
+        <dc:Bounds x="415" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1trcr9g_di" bpmnElement="doPaymentTask">
+        <dc:Bounds x="680" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0zn6tak_di" bpmnElement="Event_0zn6tak">
+        <dc:Bounds x="842" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_04jx8gu_di" bpmnElement="Activity_1fmef0w">
+        <dc:Bounds x="520" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0xlkqvz_di" bpmnElement="Flow_0xlkqvz">
+        <di:waypoint x="218" y="120" />
+        <di:waypoint x="270" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0086yyv_di" bpmnElement="Flow_0086yyv">
+        <di:waypoint x="370" y="120" />
+        <di:waypoint x="415" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0z56319_di" bpmnElement="Flow_0z56319">
+        <di:waypoint x="465" y="120" />
+        <di:waypoint x="520" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0mozr1r_di" bpmnElement="Flow_0mozr1r">
+        <di:waypoint x="440" y="145" />
+        <di:waypoint x="440" y="260" />
+        <di:waypoint x="730" y="260" />
+        <di:waypoint x="730" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="550" y="226" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0bkhwch_di" bpmnElement="Flow_0bkhwch">
+        <di:waypoint x="620" y="120" />
+        <di:waypoint x="680" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14kyn24_di" bpmnElement="Flow_14kyn24">
+        <di:waypoint x="780" y="120" />
+        <di:waypoint x="842" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

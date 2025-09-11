@@ -1,0 +1,24 @@
+graph TD
+    subgraph "Aplicação do Utilizador"
+        A[kikwi-example-app]
+    end
+
+    subgraph "Módulos kikwi-flow"
+        B[kikwi-spring-boot-starter]
+        C[kikwi-core]
+        D[kikwi-persistence-api]
+        E[kikwi-persistence-mongodb]
+        F[kikwi-model]
+    end
+
+    A -- depende de --> B
+
+    B -- depende de --> C
+    B -- depende de --> E
+
+    C -- depende de --> D
+    C -- depende de --> F
+
+    E -- depende de --> D
+
+    D -- depende de --> F

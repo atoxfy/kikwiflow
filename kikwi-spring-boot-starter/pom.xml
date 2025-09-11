@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.kikwiflow</groupId>
+        <artifactId>kikwiflow-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>kikwi-spring-boot-starter</artifactId>
+    <name>Kikwiflow :: Spring Boot Starter</name>
+    <description>Starter for using Kikwiflow with Spring Boot</description>
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Atoxfy Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/atoxfy/kikwiflow</url>
+        </repository>
+    </distributionManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-spring-boot-autoconfigure</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
+</project>

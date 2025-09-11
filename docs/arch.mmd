@@ -1,0 +1,42 @@
+graph TD
+    subgraph "Sua Aplicação (Spring Boot)"
+        direction LR
+        style UserApp fill:#f3e8ff,stroke:#a855f7,stroke-width:2px
+        UserCode["Seu Código de Negócio<br><i>(Controllers, Services)</i>"]
+        KikwiRestApi["API REST de Gerenciamento<br><i>(Opcional)</i>"]
+    end
+
+    subgraph "Plataforma Kikwiflow (Embarcada)"
+        direction LR
+        style KikwiflowPlatform fill:#e0f2fe,stroke:#0ea5e9,stroke-width:2px
+
+        subgraph "Orquestração e Consulta (CQRS)"
+            CommandEngine["<b>Motor de Comando</b><br>(KikwiflowEngine)"]
+            QueryService["<b>Serviço de Consulta</b><br>(ExternalTaskQueryService)"]
+        end
+
+        subgraph "Pontos de Extensão (Lógica Segura)"
+            Rules["<b>Regras de Negócio</b><br>(DecisionRule)"]
+            Delegates["<b>Automações</b><br>(JavaDelegate)"]
+        end
+    end
+
+    subgraph "Camada de Dados (Pluggable)"
+        style DataLayer fill:#dcfce7,stroke:#22c55e,stroke-width:2px
+        Persistence["Banco de Dados<br><i>(InMemory, MongoDB, etc.)</i>"]
+    end
+
+%% Conexões
+    UserCode --> CommandEngine
+    UserCode --> QueryService
+    KikwiRestApi --> CommandEngine
+    KikwiRestApi --> QueryService
+
+    CommandEngine --> Rules
+    CommandEngine --> Delegates
+    CommandEngine --> Persistence
+
+    QueryService --> Persistence
+
+    classDef default fill:#fff,stroke:#6b7280,stroke-width:2px,color:#1f2937
+    class UserApp,KikwiflowPlatform,DataLayer fill:#fff,stroke:#fff

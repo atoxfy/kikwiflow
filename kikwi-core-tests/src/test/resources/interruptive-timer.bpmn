@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_03t0scg" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.38.1" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.23.0">
+  <bpmn:process id="interruptive-timer" name="Interruptive Timer" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_10wtsp6</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_10wtsp6" sourceRef="StartEvent_1" targetRef="doContactTask" />
+    <bpmn:endEvent id="Event_0tnc6jb">
+      <bpmn:incoming>Flow_1ahzzow</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1ahzzow" sourceRef="doContactTask" targetRef="Event_0tnc6jb" />
+    <bpmn:userTask id="doContactTask" name="Do Contact">
+      <bpmn:incoming>Flow_10wtsp6</bpmn:incoming>
+      <bpmn:outgoing>Flow_1ahzzow</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:boundaryEvent id="interruptiveTimerEvent" name="Wait SLA" camunda:asyncAfter="true" attachedToRef="doContactTask">
+      <bpmn:extensionElements>
+        <camunda:failedJobRetryTimeCycle></camunda:failedJobRetryTimeCycle>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_0igzl8r</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_14266ix">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT1S</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_0igzl8r" sourceRef="interruptiveTimerEvent" targetRef="sendToRecoveryTask" />
+    <bpmn:endEvent id="Event_1kk16cv">
+      <bpmn:incoming>Flow_1nq5v3i</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1nq5v3i" sourceRef="sendToRecoveryTask" targetRef="Event_1kk16cv" />
+    <bpmn:serviceTask id="sendToRecoveryTask" name="Send to recovery" camunda:delegateExpression="sendToRecovery">
+      <bpmn:incoming>Flow_0igzl8r</bpmn:incoming>
+      <bpmn:outgoing>Flow_1nq5v3i</bpmn:outgoing>
+    </bpmn:serviceTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="interruptive-timer">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="182" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0tnc6jb_di" bpmnElement="Event_0tnc6jb">
+        <dc:Bounds x="422" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0y0gg3j_di" bpmnElement="doContactTask">
+        <dc:Bounds x="270" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1kk16cv_di" bpmnElement="Event_1kk16cv">
+        <dc:Bounds x="592" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0yqxrz9_di" bpmnElement="sendToRecoveryTask">
+        <dc:Bounds x="440" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0rjne8u_di" bpmnElement="interruptiveTimerEvent">
+        <dc:Bounds x="352" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="377" y="183" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_10wtsp6_di" bpmnElement="Flow_10wtsp6">
+        <di:waypoint x="218" y="120" />
+        <di:waypoint x="270" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ahzzow_di" bpmnElement="Flow_1ahzzow">
+        <di:waypoint x="370" y="120" />
+        <di:waypoint x="422" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1nq5v3i_di" bpmnElement="Flow_1nq5v3i">
+        <di:waypoint x="540" y="240" />
+        <di:waypoint x="592" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0igzl8r_di" bpmnElement="Flow_0igzl8r">
+        <di:waypoint x="370" y="178" />
+        <di:waypoint x="370" y="240" />
+        <di:waypoint x="440" y="240" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
