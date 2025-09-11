@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.management.rest.processInstances;
+package br.com.anultech.controller.processInstances;
 
+import br.com.anultech.controller.processInstances.request.StartProcessRequest;
+import br.com.anultech.mapper.VariablesMapper;
 import io.kikwiflow.KikwiflowEngine;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.query.api.ExternalTaskQueryService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
+import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/process-instance")
@@ -38,15 +41,13 @@ public class ProcessInstanceController {
     }
 
     @PostMapping("/start/{processKey}")
-    public ResponseEntity<ProcessInstance> startProcess(@PathVariable String processKey) {
+    public ResponseEntity<ProcessInstance> startProcess(@PathVariable String processKey, @RequestBody StartProcessRequest startProcessRequest) {
         ProcessInstance instance = commandEngine.startProcess()
                 .byKey(processKey)
-                .withBusinessKey("test-bk-" + UUID.randomUUID())
+                .withBusinessKey(startProcessRequest.businessKey())
+                .withVariables(VariablesMapper.map(startProcessRequest.variables()))
                 .execute();
 
         return ResponseEntity.ok(instance);
     }
-
-
-
 }

@@ -17,10 +17,13 @@
 package io.kikwiflow.starter.autoconfigure;
 
 import io.kikwiflow.KikwiflowEngine;
+import io.kikwiflow.bpmn.BpmnParser;
+import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.ExecutionEventListener;
-import io.kikwiflow.execution.DecisionRuleResolver;
-import io.kikwiflow.execution.DelegateResolver;
+import io.kikwiflow.execution.*;
+import io.kikwiflow.navigation.Navigator;
+import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -37,6 +40,36 @@ import java.util.List;
 @ConditionalOnClass(KikwiflowEngine.class)
 @EnableConfigurationProperties(KikwiflowProperties.class)
 public class KikwiflowAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    public BpmnParser bpmnParser() {
+        return new DefaultBpmnParser();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ProcessDefinitionService processDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository repository) {
+        return new ProcessDefinitionService(bpmnParser, repository);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public Navigator navigator(DecisionRuleResolver decisionRuleResolver) {
+        return new Navigator(decisionRuleResolver);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ProcessExecutionManager processExecutionManager(DelegateResolver delegateResolver, Navigator navigator, KikwiflowConfig config) {
+        return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(delegateResolver)), navigator, config);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ContinuationService continuationService(KikwiEngineRepository repository) {
+        return new ContinuationService(repository);
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -58,6 +91,12 @@ public class KikwiflowAutoConfiguration {
         return new SpringDelegateResolver(applicationContext);
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public DecisionRuleResolver decisionRuleResolver(ApplicationContext applicationContext){
+        return new SpringDecisionRuleResolver(applicationContext);
+    }
+
     @Bean(initMethod = "start", destroyMethod = "stop")
     @ConditionalOnMissingBean
     public KikwiflowEngine kikwiflowEngine(
@@ -65,12 +104,16 @@ public class KikwiflowAutoConfiguration {
             KikwiflowConfig config,
             DelegateResolver delegateResolver,
             DecisionRuleResolver decisionRuleResolver,
-            ObjectProvider<List<ExecutionEventListener>> listenersProvider) {
+            ObjectProvider<List<ExecutionEventListener>> listenersProvider,
+            ProcessDefinitionService processDefinitionService,
+            Navigator navigator,
+            ProcessExecutionManager processExecutionManager) {
 
         // O Spring injetará automaticamente uma lista de todos os beans
         // do tipo ExecutionEventListener que o usuário tenha definido.
         List<ExecutionEventListener> listeners = listenersProvider.getIfAvailable(Collections::emptyList);
 
-        return new KikwiflowEngine(repository, config, delegateResolver, decisionRuleResolver, listeners);
+        return new KikwiflowEngine(processDefinitionService, navigator,
+                processExecutionManager, repository, config, listeners);
     }
 }

@@ -43,27 +43,10 @@ import java.util.Optional;
  */
 public class Navigator {
 
-    private final ProcessDefinitionService processDefinitionService;
     private final DecisionRuleResolver decisionRuleResolver;
-    /**
-     * Constrói uma nova instância do Navigator.
-     *
-     * @param processDefinitionService O gestor de definições de processo, usado para obter
-     *                                 informações sobre o grafo do processo quando necessário.
-     */
-    public Navigator(ProcessDefinitionService processDefinitionService, DecisionRuleResolver decisionRuleResolver) {
-        this.processDefinitionService = processDefinitionService;
-        this.decisionRuleResolver = decisionRuleResolver;
-    }
 
-    /**
-     * Encontra o ponto de início padrão para uma dada definição de processo.
-     *
-     * @param processDefinition A definição do processo.
-     * @return O {@link FlowNodeDefinition} que representa o evento de início padrão.
-     */
-    public FlowNodeDefinition findStartPoint(ProcessDefinition processDefinition){
-        return processDefinition.defaultStartPoint();
+    public Navigator(DecisionRuleResolver decisionRuleResolver) {
+        this.decisionRuleResolver = decisionRuleResolver;
     }
 
     /**
@@ -88,9 +71,6 @@ public class Navigator {
         }
 
         List<FlowNodeDefinition> nextNodes = new ArrayList<>();
-
-
-
 
         // Aqui futuramente adicionar logica por tipo de node
         if (completedNode instanceof ExclusiveGatewayDefinition) {
@@ -139,22 +119,5 @@ public class Navigator {
         }
 
         return new Continuation(nextNodes, isAsync);
-    }
-
-    /**
-     * Método de conveniência para determinar a próxima continuação a partir de uma instância de processo.
-     * <p>
-     * <strong>Nota:</strong> Este método busca a definição do processo a cada chamada, o que pode
-     * introduzir sobrecarga. Prefira a versão que recebe a {@link ProcessDefinition} diretamente.
-     *
-     * @param completedNode O nó que acabou de ser executado.
-     * @param instance A instância de processo em execução.
-     * @param forceAsync Se a continuação deve ser forçada a ser assíncrona.
-     * @return Um objeto {@link Continuation} ou {@code null}.
-     */
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessInstanceExecution instance, Map<String, ProcessVariable> variables, boolean forceAsync) {
-
-        ProcessDefinition definition = processDefinitionService.getByKey(instance.getProcessDefinitionId()).orElseThrow();
-        return determineNextContinuation(completedNode, definition, variables, forceAsync);
     }
 }

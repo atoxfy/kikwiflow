@@ -14,19 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.management.rest.autoconfigure;
 
-import io.kikwiflow.management.rest.controller.navigation.NavigationController;
-import io.kikwiflow.management.rest.controller.processDefinitions.ProcessDefinitionController;
-import io.kikwiflow.management.rest.controller.processInstances.ProcessInstanceController;
-import io.kikwiflow.management.rest.controller.tasks.TaskController;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.context.annotation.Import;
+package io.kikwiflow.management.rest.controller.processInstances.request;
 
-@AutoConfiguration
-@Import({ProcessInstanceController.class,
-        TaskController.class,
-        ProcessDefinitionController.class,
-        NavigationController.class})
-public class KikwiManagementRestAutoConfiguration {
+import io.kikwiflow.model.execution.ProcessVariable;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+public record StartProcessRequest(String businessKey, BigDecimal businessValue, List<ProcessVariable> variables, String tenantId) {
+
 }

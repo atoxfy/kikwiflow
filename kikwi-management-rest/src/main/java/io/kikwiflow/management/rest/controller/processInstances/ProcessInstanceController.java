@@ -14,46 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package io.kikwiflow.management.rest.tasks;
+package io.kikwiflow.management.rest.controller.processInstances;
 
 import io.kikwiflow.KikwiflowEngine;
+import io.kikwiflow.management.rest.controller.processInstances.request.StartProcessRequest;
+import io.kikwiflow.management.rest.mapper.VariablesMapper;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
-import io.kikwiflow.model.execution.node.ExternalTask;
-import io.kikwiflow.query.api.ExternalTaskQueryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
-@RequestMapping("/api/task")
-public class TaskController {
+@RequestMapping("/api/process-instance")
+public class ProcessInstanceController {
 
-
-    private final ExternalTaskQueryService queryService;
     private final KikwiflowEngine commandEngine;
 
-    public TaskController(ExternalTaskQueryService queryService, KikwiflowEngine commandEngine) {
-        this.queryService = queryService;
+    public ProcessInstanceController(KikwiflowEngine commandEngine) {
         this.commandEngine = commandEngine;
     }
 
-    @GetMapping
-    public ResponseEntity<List<ExternalTask>> findTasksByInstance(@RequestParam String processInstanceId) {
-        List<ExternalTask> tasks = queryService.findByProcessInstanceId(processInstanceId);
-        if (tasks.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(tasks);
-    }
+    @PostMapping("/start/{processKey}")
+    public ResponseEntity<ProcessInstance> startProcess(@PathVariable String processKey, @RequestBody StartProcessRequest startProcessRequest) {
+        ProcessInstance instance = commandEngine.startProcess()
+                .byKey(processKey)
+                .withBusinessKey(startProcessRequest.businessKey())
+                .withVariables(VariablesMapper.map(startProcessRequest.variables()))
+                .execute();
 
-
-    @PostMapping("/tasks/{taskId}/complete")
-    public ResponseEntity<ProcessInstance> completeTask(@PathVariable String taskId, @RequestBody(required = false) Map<String, ProcessVariable> variables) {
-        ProcessInstance instance = commandEngine.completeExternalTask(taskId, variables);
         return ResponseEntity.ok(instance);
     }
 }

@@ -18,14 +18,21 @@ package io.kikwiflow.e2e;
 
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.assertion.AssertableKikwiEngine;
+import io.kikwiflow.bpmn.BpmnParser;
+import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
-import io.kikwiflow.execution.TestDelegateResolver;
+import io.kikwiflow.event.ExecutionEventListener;
+import io.kikwiflow.execution.*;
 import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.factory.SingletonsFactory;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
+import io.kikwiflow.navigation.Navigator;
+import io.kikwiflow.navigation.ProcessDefinitionService;
+import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +40,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,6 +62,9 @@ public class AsynchronousContinuationsTests {
     private JavaDelegate delegate2;
     private JavaDelegate delegate3;
     private JavaDelegate delegate4;
+
+
+
 
     @BeforeEach
     void setUp() {
@@ -80,9 +91,14 @@ public class AsynchronousContinuationsTests {
         delegateResolver.register("delegate3", delegate3);
         delegateResolver.register("delegate4", delegate4);
 
-        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, new KikwiflowConfig(), delegateResolver, null, Collections.emptyList());
-        // Não iniciamos o JobAcquirer aqui para ter controle total sobre a execução dos jobs no teste.
-    }
+        KikwiflowConfig kikwiflowConfig = new KikwiflowConfig();
+        DecisionRuleResolver decisionRuleResolver = new TestDecisionRuleResolver();
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine);
+        Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
+        ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator, kikwiflowConfig);
+        List<ExecutionEventListener> executionEventListeners = null;
+        this.kikwiflowEngine = new KikwiflowEngine(processDefinitionService, navigator, processExecutionManager, assertableKikwiEngine, kikwiflowConfig, executionEventListeners);
+ }
 
     @AfterEach
     public void resetEngine() {

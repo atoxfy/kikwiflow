@@ -14,19 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.management.rest.autoconfigure;
 
-import io.kikwiflow.management.rest.controller.navigation.NavigationController;
-import io.kikwiflow.management.rest.controller.processDefinitions.ProcessDefinitionController;
-import io.kikwiflow.management.rest.controller.processInstances.ProcessInstanceController;
-import io.kikwiflow.management.rest.controller.tasks.TaskController;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.context.annotation.Import;
+package io.kikwiflow.management.rest.mapper;
 
-@AutoConfiguration
-@Import({ProcessInstanceController.class,
-        TaskController.class,
-        ProcessDefinitionController.class,
-        NavigationController.class})
-public class KikwiManagementRestAutoConfiguration {
+import io.kikwiflow.model.execution.ProcessVariable;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+public class VariablesMapper {
+    private VariablesMapper(){
+        //Utility class!
+    }
+
+    public static Map<String, ProcessVariable> map(List<ProcessVariable> variables){
+        Map<String, ProcessVariable> variableMap = new HashMap<>();
+        if(Objects.isNull(variables)) return variableMap;
+
+        variables.forEach(variable -> {
+            variableMap.put(variable.name(), variable);
+        });
+
+        return variableMap;
+    }
 }

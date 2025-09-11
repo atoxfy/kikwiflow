@@ -16,37 +16,29 @@
  */
 package io.kikwiflow;
 
+import io.kikwiflow.bpmn.BpmnParser;
+import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
+import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.exception.ProcessInstanceNotFoundException;
 import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.execution.*;
+import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
-import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
-import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
-import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
-import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
-import io.kikwiflow.model.execution.ProcessVariable;
-import io.kikwiflow.model.execution.node.*;
 import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.node.ExecutableTask;
+import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
-import io.kikwiflow.persistence.api.data.UnitOfWork;
-import io.kikwiflow.model.event.OutboxEventEntity;
-import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.io.InputStream;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,15 +56,14 @@ public class KikwiflowEngine {
     private final TaskAcquirer taskAcquirer;
     private final ContinuationService continuationService;
 
-    public KikwiflowEngine(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, DelegateResolver delegateResolver, DecisionRuleResolver decisionRuleResolver, List<ExecutionEventListener> executionEventListeners){
+    public KikwiflowEngine(ProcessDefinitionService processDefinitionService, Navigator navigator, ProcessExecutionManager processExecutionManager, KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, List<ExecutionEventListener> executionEventListeners){
+        this.processDefinitionService = processDefinitionService;
+        this.navigator = navigator;
+        this.processExecutionManager = processExecutionManager;
         this.kikwiEngineRepository = kikwiEngineRepository;
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.asynchronousEventPublisher = new AsynchronousEventPublisher(executorService);
         this.registerListeners(executionEventListeners);
-        final BpmnParser bpmnParser = new DefaultBpmnParser();
-        this.processDefinitionService = new ProcessDefinitionService(bpmnParser, kikwiEngineRepository);
-        this.navigator = new Navigator(processDefinitionService, decisionRuleResolver);
-        this.processExecutionManager = new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(delegateResolver)), navigator, kikwiflowConfig);
         this.kikwiflowConfig = kikwiflowConfig;
         this.eventListeners = executionEventListeners;
         this.taskAcquirer = new TaskAcquirer(this, kikwiEngineRepository, kikwiflowConfig );
