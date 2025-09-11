@@ -1,73 +1,87 @@
-# Kikwiflow - Visão Geral da Arquitetura Técnica
+# Kikwiflow - Manifesto da Arquitetura
 
-Este documento fornece uma visão geral técnica do motor Kikwiflow, destinado a um público com formação em arquitetura ou engenharia de software.
+Este documento fornece uma visão geral da arquitetura e da filosofia de design do Kikwiflow. Ele é destinado a desenvolvedores e arquitetos que desejam entender o "porquê" por trás de nossas decisões técnicas.
 
-## 1. Princípios Fundamentais
+## 1. Filosofia e Princípios Fundamentais
 
-A arquitetura do Kikwiflow é guiada por vários princípios fundamentais:
+A arquitetura do Kikwiflow é guiada por princípios que visam resolver as dores crônicas das plataformas de BPM tradicionais:
 
-*   **Desacoplamento:** Um design altamente modular para garantir a separação de responsabilidades e a manutenibilidade.
-*   **Performance:** Aproveitamento de recursos modernos do Java (Virtual Threads) para execução de alto rendimento e sem bloqueio.
-*   **Confiabilidade:** Garantia de integridade transacional e entrega de eventos críticos através dos padrões *Unit of Work* e *Outbox*.
-*   **Testabilidade:** Um design que facilita testes unitários e de ponta a ponta robustos.
+*   **Segurança e Governança por Design:** Segurança não é um "add-on", é a nossa fundação. Abandonamos padrões inseguros em favor de mecanismos que promovem código seguro, testável e governado.
+*   **Performance Nativa para a Nuvem:** Construído sobre Java 21+ e Virtual Threads, o Kikwiflow foi projetado para alta concorrência e baixa latência, ideal para arquiteturas de microserviços.
+*   **Developer Experience (DX):** Acreditamos que um framework poderoso deve ser um prazer de usar. Nossa arquitetura modular e baseada em Spring Boot visa maximizar a produtividade do desenvolvedor.
+*   **Desacoplamento Rigoroso (SOLID na Prática):** Uma separação clara de responsabilidades entre módulos (`api`, `core`, `autoconfigure`, `starter`) garante um sistema coeso, testável e extensível.
 
 ## 2. Arquitetura Modular
 
-O sistema é dividido em módulos Maven distintos, cada um com uma responsabilidade clara:
+O sistema é dividido em módulos Maven distintos, cada um com uma responsabilidade clara, organizados em camadas lógicas:
 
-*   `kikwi-model`: Contém o modelo de domínio (DTOs/records como `ProcessDefinitionSnapshot`, `ProcessInstanceSnapshot`) que representa o estado de um processo. Estes são imutáveis e usados para comunicação.
-*   `kikwi-runtime-persistence-api`: Define os contratos (`KikwiEngineRepository`, `UnitOfWork`) para a camada de persistência. Também contém as classes de entidade mutáveis (`ProcessInstanceEntity`).
-*   `kikwi-core`: O coração do motor. Contém a lógica de execução (`FlowNodeExecutor`), orquestração (`KikwiflowEngine`) e parsing de BPMN (`DefaultBpmnParser`). Depende dos módulos de API, mas não de nenhuma implementação específica.
-*   `kikwi-in-memory-addons`: Uma implementação em memória da API de persistência, principalmente para testes e implantações simples.
-*   `kikwi-core-testing`: Fornece *test harnesses* e utilitários (`AssertableKikwiEngine`) para simplificar a escrita de testes de ponta a ponta limpos e legíveis.
-*   `kikwi-lightweight-events-api` & `kikwi-critical-event-relay-api`: Definem os contratos para o subsistema de eventos.
+*   **Contratos (APIs):** Módulos leves (`kikwi-model`, `kikwi-delegate-api`, `kikwi-rule-api`, `kikwi-runtime-persistence-api`) que definem as interfaces e modelos de dados públicos e estáveis.
+*   **Core (A Engine):** O `kikwi-core` contém a lógica de execução, o parser de BPMN e os serviços internos. Ele é agnóstico a frameworks.
+*   **Integração (Spring):** Módulos `-autoconfigure` e `-starter` que integram o Kikwiflow de forma transparente ao ecossistema Spring Boot.
+*   **Implementações (Addons):** Módulos "plugáveis" que fornecem implementações concretas, como o `kikwi-in-memory-addons`.
 
-## 3. Fluxo de Execução e Componentes Chave
+## 3. Componentes e Padrões Chave
 
 A execução de um processo é orquestrada por um conjunto de componentes centrais:
 
-1.  **`KikwiflowEngine`**: O ponto de entrada principal e orquestrador. Lida com solicitações para implantar, iniciar e completar processos. É o componente responsável por commitar a `UnitOfWork`.
-2.  **`ProcessExecutionManager`**: Gere o ciclo de vida de uma única execução de processo. Delega a execução passo a passo para o `FlowNodeExecutor`.
-3.  **`FlowNodeExecutor`**: O "cavalo de batalha" do motor. Itera sobre o grafo do processo, executando nós um por um num loop (`runWhileNotFindAStopPoint`).
-4.  **Lógica `isWaitState()`**: O `FlowNodeExecutor` interrompe de forma inteligente o seu loop de execução síncrona quando encontra um "estado de espera" (*wait state*). Este é um conceito crucial e inclui:
-    *   **`ExternalTask`**: Nós que requerem um gatilho externo para continuar (ex: `HumanTask`, `ReceiveTask`).
-    *   **`ExecutableTask` (com continuação assíncrona)**: Nós que são executados por um executor de jobs interno (ex: uma `ServiceTask` assíncrona).
-5.  **`TaskExecutor`**: Responsável por executar a lógica dentro de uma tarefa específica, como invocar um `JavaDelegate`.
+1.  **`KikwiflowEngine`**: A fachada principal para comandos (`startProcess`, `completeExternalTask`).
+2.  **`ProcessExecutionManager`**: Orquestra a execução síncrona de um segmento do processo, iterando sobre o grafo de nós.
+3.  **`ContinuationService`**: Responsável por lidar com o resultado de uma execução. Ele interpreta a "continuação", cria as tarefas pendentes (`ExternalTask`, `ExecutableTask`) e orquestra a persistência através da `UnitOfWork`.
+4.  **`JobAcquirer`**: Um worker de background, rodando em uma Virtual Thread, que busca e executa `ExecutableTask`s pendentes (jobs), como timers e continuidades assíncronas.
 
-## 4. Persistência e Gestão de Transações
+## 4. Decisões de Design Críticas
 
-A integridade transacional é primordial e é alcançada através do padrão **Unit of Work**.
+Nossas escolhas arquiteturais visam maximizar a segurança, clareza e manutenibilidade.
 
-*   **`UnitOfWork` Record**: Um transportador de dados simples e imutável que agrupa todas as alterações de estado destinadas a uma única transação atómica. Isto inclui:
-    *   Instância a ser atualizada.
-    *   Instância a ser eliminada.
-    *   Novas tarefas (executáveis ou externas) a serem criadas.
-    *   Eventos críticos a serem adicionados ao *outbox*.
-*   **`KikwiEngineRepository.commitWork(UnitOfWork)`**: Este é o único método que escreve na base de dados. O orquestrador do motor (`KikwiflowEngine`) constrói a `UnitOfWork` durante a execução e chama `commitWork` no final de um bloco síncrono ou num estado de espera. Isto garante que, por exemplo, a atualização do estado de uma instância de processo e a criação de uma nova tarefa ocorram atomicamente.
+### 4.1. Lógica de Decisão: O Padrão "Rule Directory"
+**O Problema:** Linguagens de expressão (SPEL/JUEL) embutidas no BPMN são inseguras, difíceis de manter e ilegíveis para analistas de negócio.
 
-## 5. Arquitetura de Eventos (Modelo Híbrido)
+**A Solução Kikwiflow:** Abandonamos completamente as expressões. A lógica de decisão em gateways é definida através de `DecisionRule`s, que são classes Java puras, seguras e testáveis. O BPMN apenas referencia a regra por uma chave, desacoplando o fluxo da implementação.
 
-O Kikwiflow emprega uma estratégia de eventos híbrida para equilibrar performance e fiabilidade:
+### 4.2. Privacidade de Dados: Role Based Access Control (RBAC) Nativo
+**O Problema:** Variáveis de processo frequentemente contêm dados sensíveis (LGPD/GDPR), e as plataformas tradicionais não oferecem controle de acesso granular.
 
-*   **Eventos Críticos (Padrão Outbox)**: Eventos que devem ser entregues de forma fiável (ex: `ProcessInstanceFinished`, `FlowNodeExecuted` para auditoria) não são publicados diretamente. Em vez disso, são persistidos como parte da transação de negócio principal dentro da `UnitOfWork`. Um processo separado (o "Event Relay") lê desta tabela *outbox* e garante a sua entrega a um *message broker*, lidando com novas tentativas e falhas. Isto previne a perda de dados se o *message broker* estiver temporariamente indisponível.
-*   **Eventos Leves (Fire-and-Forget)**: Eventos usados para fins não críticos, como métricas em tempo real ou logging, podem ser publicados diretamente para uma fila em memória para tratamento assíncrono. Isto é mais rápido, mas não oferece as mesmas garantias de entrega que o padrão *outbox*.
+**A Solução Kikwiflow:** Nosso `ProcessVariable` permite que cada variável tenha um conjunto de `visibleToRoles`. A camada de consulta (`kikwi-query-api`) é responsável por filtrar as variáveis com base nas permissões do usuário, garantindo a privacidade por design.
 
-## 6. Estratégia de Concorrência
+### 4.3. Governança: Validação em Tempo de Deploy
+**O Problema:** É comum implantar processos com referências quebradas a classes Java ou regras, causando erros em tempo de execução.
 
-O motor foi construído de raiz para tirar partido das **Virtual Threads do Java 21+**. Todas as operações assíncronas, como *event listeners* e futuros *job executors*, usarão um `ExecutorService` baseado em *virtual threads*. Isto permite que o motor lide com um número muito grande de processos concorrentes com uma sobrecarga mínima de threads do sistema operativo, resultando numa excelente escalabilidade e eficiência de recursos.
+**A Solução Kikwiflow:** Implementamos um `DeployValidator` que é executado **antes** de um processo ser persistido. Ele verifica se todas as referências a `JavaDelegate`s e `DecisionRule`s são válidas e resolvíveis, impedindo o deploy de processos "quebrados".
+
+### 4.4. Persistência e Transações: O Padrão Unit of Work
+**O Problema:** Garantir que múltiplas alterações no estado de um processo (atualizar a instância, criar uma tarefa, deletar outra) sejam salvas atomicamente.
+
+**A Solução Kikwiflow:** Usamos o padrão `Unit of Work`. Todas as operações de escrita são agrupadas em um objeto `UnitOfWork`, que é então comitado em uma única transação pelo método `KikwiEngineRepository.commitWork()`. Isso garante a consistência total do estado.
+
+### 4.5. Concorrência: Virtual Threads
+**O Problema:** Motores de processo precisam lidar com milhares de instâncias concorrentes, muitas delas em estados de espera (I/O). Threads de plataforma tradicionais são um recurso caro e limitante.
+
+**A Solução Kikwiflow:** O Kikwiflow é construído sobre **Java 21+ e Virtual Threads**. Nosso `TaskAcquirer` e outros componentes assíncronos usam um `ExecutorService` baseado em threads virtuais, permitindo uma escalabilidade massiva com uma pegada de recursos mínima.
+
+### 4.6. CQRS Nativo: Performance e Escalabilidade
+**O Problema:** Em sistemas transacionais, as mesmas estruturas de dados usadas para escrita (otimizadas para consistência) são frequentemente usadas para leitura, resultando em consultas lentas e complexas que podem degradar a performance do sistema como um todo.
+
+**A Solução Kikwiflow:** Implementamos o padrão **Command Query Responsibility Segregation (CQRS)** de forma nativa e pragmática:
+*   **O Lado do Comando (Command):** A `KikwiflowEngine` é a única porta de entrada para alterar o estado do sistema. Suas operações (`startProcess`, `completeExternalTask`) são otimizadas para a execução e consistência transacional, culminando em um `UnitOfWork` atômico.
+*   **O Lado da Consulta (Query):** A `kikwi-query-api` (`ExternalTaskQueryService`) oferece uma fachada de leitura completamente separada. Ela é projetada para ser rápida, eficiente e é a camada responsável por aplicar lógicas de leitura, como a filtragem de variáveis baseada em RBAC.
+*   **O Benefício:** Esta separação nos permite escalar os lados de leitura e escrita de forma independente e garante que consultas complexas para dashboards ou UIs nunca degradem a performance da orquestração dos seus processos críticos.
 
 
+## 5. Funcionalidades Atuais da Engine
 
+A versão atual do Kikwiflow suporta um conjunto robusto de funcionalidades para a orquestração de processos:
 
-
-**Arquitetura de Módulos**: Definição da estrutura de módulos desacoplada (core, model, events-api, runtime-persistence-api, management-api, etc.).
-
-**Arquitetura CQRS**: Separação formal entre Comandos (responsabilidade do core) e Queries (responsabilidade da camada de gestão), permitindo a separação de cargas de trabalho.
-
-**Arquitetura de Eventos Híbrida**: Design do sistema de eventos com dois canais (fire-and-forget para métricas e outbox para eventos críticos), dando ao utilizador o controlo sobre o trade-off entre performance e fiabilidade.
-
-**Padrão Unit of Work**: Definição do contrato UnitOfWork como o mecanismo central para garantir commits atómicos na camada de persistência.
-
-**Estratégia de Concorrência**: Decisão de utilizar Threads Virtuais (Java 21+) como a base para a nossa performance e escalabilidade.
-
-**Estratégia de Testes**: Definição da abordagem de testes, incluindo a criação de módulos de utilitários (testing, in-memory-addons) e o uso de wrappers Assertable para testes limpos.
+*   **Deploy de Processos:** Implantação de definições de processo a partir de arquivos `.bpmn`.
+*   **Elementos BPMN Suportados:**
+    *   Eventos: `startEvent`, `endEvent`.
+    *   Tarefas: `serviceTask` (automação), `userTask` / `manualTask` (trabalho humano/externo).
+    *   Gateways: `exclusiveGateway` (baseado em `DecisionRule`s).
+    *   Eventos de Borda: `boundaryEvent` com `timerEventDefinition` (timers interruptivos).
+*   **Continuidades Assíncronas:** Suporte completo para os atributos `camunda:asyncBefore` e `camunda:asyncAfter` para definir limites de transação.
+*   **Execução de Lógica Customizada:**
+    *   **Automações:** Padrão `JavaDelegate` para executar código Java em `serviceTask`s.
+    *   **Decisões:** Padrão `DecisionRule` para encapsular a lógica de gateways.
+*   **API de Gerenciamento (CQRS):**
+    *   **Comandos:** Iniciar processos, completar tarefas externas.
+    *   **Consultas:** Buscar tarefas e instâncias de processo com segurança (RBAC).
+*   **Timers Interruptivos:** Capacidade de modelar e executar lógicas de timeout e SLA em qualquer atividade que represente um ponto de espera.
