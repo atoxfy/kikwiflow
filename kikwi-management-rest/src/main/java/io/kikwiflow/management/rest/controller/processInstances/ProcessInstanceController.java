@@ -45,6 +45,8 @@ public class ProcessInstanceController {
                 .byKey(processKey)
                 .withBusinessKey(startProcessRequest.businessKey())
                 .withVariables(VariablesMapper.map(startProcessRequest.variables()))
+                .onTenant(startProcessRequest.tenantId())
+                .withBusinessValue(startProcessRequest.businessValue())
                 .execute();
 
         return ResponseEntity.ok(instance);

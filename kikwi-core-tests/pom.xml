@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>0.1.1-SNAPSHOT</version>
     </parent>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -37,7 +37,7 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-core</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -55,7 +55,7 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-core-testing</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -67,7 +67,7 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-rule-api</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

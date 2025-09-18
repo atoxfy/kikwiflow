@@ -18,6 +18,7 @@ package io.kikwiflow.execution;
 
 import io.kikwiflow.model.execution.ProcessVariable;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -33,11 +34,13 @@ public final class ProcessInstanceExecutionFactory {
         // Classe utilitária, não deve ser instanciada.
     }
 
-    public static ProcessInstanceExecution create(String businessKey, String processDefinitionId, Map<String, ProcessVariable> variables){
+    public static ProcessInstanceExecution create(String businessKey, String processDefinitionId, Map<String, ProcessVariable> variables, BigDecimal businessValue, String tenantId){
         return ProcessInstanceExecution.builder()
                 .businessKey(businessKey)
                 .processDefinitionId(processDefinitionId)
                 .variables(variables)
+                .businessValue(businessValue)
+                .tenantId(tenantId)
                 .build();
     }
 }

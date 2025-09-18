@@ -19,6 +19,7 @@ package io.kikwiflow.execution;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 
@@ -40,7 +41,8 @@ public class ProcessInstanceExecution {
     private Map<String, ProcessVariable> variables;
     private Instant startedAt;
     private Instant endedAt;
-
+    private BigDecimal businessValue;
+    private String tenantId;
     
     
     public String getId() {
@@ -103,6 +105,22 @@ public class ProcessInstanceExecution {
         return new Builder();
     }
 
+    public BigDecimal getBusinessValue() {
+        return businessValue;
+    }
+
+    public void setBusinessValue(BigDecimal businessValue) {
+        this.businessValue = businessValue;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
     /**
      * Um builder para criar instâncias de {@link ProcessInstanceExecution} de forma fluente.
      * <p>
@@ -112,6 +130,8 @@ public class ProcessInstanceExecution {
         private String businessKey;
         private String processDefinitionId;
         private Map<String, ProcessVariable> variables;
+        private BigDecimal businessValue;
+        private String tenantId;
 
         private Builder() {
         }
@@ -123,6 +143,17 @@ public class ProcessInstanceExecution {
          */
         public Builder businessKey(String businessKey) {
             this.businessKey = businessKey;
+            return this;
+        }
+
+        public Builder tenantId(String tenantId) {
+            this.tenantId = tenantId;
+            return this;
+        }
+
+
+        public Builder businessValue(BigDecimal businessValue) {
+            this.businessValue = businessValue;
             return this;
         }
 
@@ -159,6 +190,8 @@ public class ProcessInstanceExecution {
             instance.setVariables(this.variables);
             instance.setStatus(ProcessInstanceStatus.ACTIVE);
             instance.setStartedAt(Instant.now());
+            instance.setBusinessValue(this.businessValue);
+            instance.setTenantId(this.tenantId);
             return instance;
         }
     }

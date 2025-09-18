@@ -39,6 +39,7 @@ import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -164,6 +165,8 @@ public class KikwiflowEngine {
         private String processDefinitionKey;
         private String businessKey;
         private Map<String, ProcessVariable> variables = new HashMap<>();
+        private BigDecimal businessValue;
+        private String tenantId;
 
         private ProcessStarter(KikwiflowEngine engine) {
             this.engine = engine;
@@ -171,6 +174,16 @@ public class KikwiflowEngine {
 
         public ProcessStarter byKey(String key) {
             this.processDefinitionKey = key;
+            return this;
+        }
+
+        public ProcessStarter onTenant(String tenantId) {
+            this.tenantId = tenantId;
+            return this;
+        }
+
+        public ProcessStarter withBusinessValue(BigDecimal businessValue) {
+            this.businessValue = businessValue;
             return this;
         }
 
@@ -196,7 +209,7 @@ public class KikwiflowEngine {
             Objects.requireNonNull(businessKey, "Business key cannot be null. Use withBusinessKey().");
 
             ProcessDefinition processDefinition = engine.processDefinitionService.getByKeyOrElseThrow(processDefinitionKey);
-            ProcessInstanceExecution processInstanceExecution = ProcessInstanceExecutionFactory.create(businessKey, processDefinition.id(), variables);
+            ProcessInstanceExecution processInstanceExecution = ProcessInstanceExecutionFactory.create(businessKey, processDefinition.id(), variables, businessValue, tenantId);
             ProcessInstance processInstance = engine.kikwiEngineRepository.saveProcessInstance(ProcessInstanceMapper.mapToRecord(processInstanceExecution));
             processInstanceExecution.setId(processInstance.id());
 

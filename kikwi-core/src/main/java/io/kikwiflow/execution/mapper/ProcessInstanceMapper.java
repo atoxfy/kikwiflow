@@ -45,6 +45,8 @@ public final class ProcessInstanceMapper {
         return new ProcessInstance(
             instance.getId(),
             instance.getBusinessKey(),
+            instance.getBusinessValue(),
+            instance.getTenantId(),
             instance.getStatus(),
             instance.getProcessDefinitionId(),
             Map.copyOf(instance.getVariables()),
