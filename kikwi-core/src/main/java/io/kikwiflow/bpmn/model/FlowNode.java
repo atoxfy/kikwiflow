@@ -16,6 +16,8 @@
  */
 package io.kikwiflow.bpmn.model;
 
+import io.kikwiflow.model.execution.ProcessInstance;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

@@ -23,7 +23,7 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.2-SNAPSHOT</version>
+        <version>0.1.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <properties>
@@ -34,6 +34,7 @@
     <packaging>jar</packaging>
     <name>kikwiflow :: Critical Event Relay API</name>
     <artifactId>kikwi-critical-event-relay-api</artifactId>
+    <description>Defines the API contract for the critical event relay system. This module provides the interfaces for a reliable event publisher that uses the Outbox Pattern to ensure at-least-once delivery of critical domain events.</description>
 
     <dependencies>
         <dependency>

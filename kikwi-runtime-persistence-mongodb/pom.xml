@@ -23,7 +23,7 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.2-SNAPSHOT</version>
+        <version>0.1.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <properties>
@@ -34,4 +34,5 @@
     <packaging>jar</packaging>
     <name>kikwiflow :: Persistence MongoDB</name>
     <artifactId>kikwi-runtime-persistence-mongodb</artifactId>
+    <description>Provides a production-ready persistence layer implementation using Spring Data MongoDB. This addon is designed to work with both self-hosted MongoDB and Amazon DocumentDB.</description>
 </project>

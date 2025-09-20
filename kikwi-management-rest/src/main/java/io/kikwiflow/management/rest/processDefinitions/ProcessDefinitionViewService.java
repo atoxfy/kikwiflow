@@ -19,17 +19,13 @@ package io.kikwiflow.management.rest.processDefinitions;
 import io.kikwiflow.management.rest.processDefinitions.dto.ProcessStagesView;
 import io.kikwiflow.management.rest.processDefinitions.dto.Stage;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class ProcessDefinitionViewService {

@@ -72,8 +72,8 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ContinuationService continuationService(KikwiEngineRepository repository) {
-        return new ContinuationService(repository);
+    public ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config) {
+        return new ContinuationService(repository, config);
     }
 
     @Bean

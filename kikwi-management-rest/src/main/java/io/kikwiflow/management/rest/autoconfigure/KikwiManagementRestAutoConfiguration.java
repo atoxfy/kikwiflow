@@ -16,6 +16,7 @@
  */
 package io.kikwiflow.management.rest.autoconfigure;
 
+import io.kikwiflow.management.rest.controller.navigation.NavigationController;
 import io.kikwiflow.management.rest.controller.processDefinitions.ProcessDefinitionController;
 import io.kikwiflow.management.rest.controller.processInstances.ProcessInstanceController;
 import io.kikwiflow.management.rest.controller.tasks.TaskController;

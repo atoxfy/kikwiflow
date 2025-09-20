@@ -8,7 +8,6 @@
     <artifactId>kikwiflow-parent</artifactId>
     <version>0.1.3-SNAPSHOT</version>
     <packaging>pom</packaging>
-
     <name>kikwiflow :: Parent</name>
     <scm>
         <connection>scm:git:https://github.com/atoxfy/kikwiflow.git</connection>
@@ -47,10 +46,8 @@
         <!-- Addons & Implementations -->
         <module>kikwi-in-memory-addons</module>
         <module>kikwi-runtime-persistence-mongodb</module>
-        <module>kikwi-pulse</module>
 
         <!-- Example Application (usually last) -->
-        <module>sample-linear-human-tasks-spring-boot</module>
         <module>kikwi-runtime-query-spring-boot-starter</module>
         <module>kikwi-in-memory-spring-boot-autoconfigure</module>
         <module>kikwi-in-memory-spring-boot-starter</module>

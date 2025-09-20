@@ -23,17 +23,13 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.2-SNAPSHOT</version>
+        <version>0.1.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
     <packaging>jar</packaging>
     <name>kikwiflow :: Persistence In-Memory Addons</name>
     <artifactId>kikwi-in-memory-addons</artifactId>
+    <description>Provides a complete in-memory implementation of the persistence APIs. It stores all process data (instances, tasks, jobs) in memory, making it ideal for rapid development, testing, and scenarios where data persistence across application restarts is not required.</description>
 
     <dependencies>
         <dependency>
@@ -54,14 +50,12 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-history-api</artifactId>
-              <version>${project.version}</version>
-            <scope>compile</scope>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-critical-event-relay-api</artifactId>
-              <version>${project.version}</version>
-            <scope>compile</scope>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>
