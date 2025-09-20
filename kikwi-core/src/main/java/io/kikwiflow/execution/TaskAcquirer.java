@@ -23,7 +23,6 @@ import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -74,7 +73,7 @@ public class TaskAcquirer implements Runnable{
             try {
                 List<ExecutableTask> taskList = kikwiEngineRepository.findAndLockDueTasks(Instant.now(), kikwiflowConfig.getTaskAcquisitionMaxTasks(), "kikwiflow-1");
                 for(ExecutableTask task : taskList){
-                    //TODO executar a task
+                    engine.executeFromTask(task);
                 }
                 Thread.sleep(kikwiflowConfig.getTaskAcquisitionIntervalMillis());
             }catch (InterruptedException e){

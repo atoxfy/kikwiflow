@@ -27,11 +27,11 @@ import io.kikwiflow.execution.TestDecisionRuleResolver;
 import io.kikwiflow.execution.TestDelegateResolver;
 import io.kikwiflow.factory.SingletonsFactory;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 import io.kikwiflow.model.execution.node.ExternalTask;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import org.junit.jupiter.api.AfterEach;
@@ -39,15 +39,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 /**
  * Testes de ponta a ponta para fluxos de processo que envolvem tarefas humanas sequenciais.
@@ -147,7 +146,7 @@ public class LinearManualTasksTests {
             // Complete the task
             ProcessVariable processVariable = new ProcessVariable("task" + i + "_completed", ProcessVariableVisibility.PUBLIC, null, true);
             Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
-            processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), completionVariables);
+            processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables);
 
             // Assert the state after each completion
             if (i < 5) {

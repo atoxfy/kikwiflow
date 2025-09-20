@@ -16,22 +16,18 @@
  */
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.bpmn.model.SequenceFlow;
 import io.kikwiflow.execution.DecisionRuleResolver;
+import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
-import io.kikwiflow.execution.dto.Continuation;
-import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.rule.api.DecisionRule;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Responsável pela lógica de navegação dentro do grafo de um processo BPMN.

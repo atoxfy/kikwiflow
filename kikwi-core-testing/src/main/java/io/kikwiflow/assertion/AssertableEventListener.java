@@ -17,18 +17,14 @@
 
 package io.kikwiflow.assertion;
 
+import io.kikwiflow.history.repository.FlowNodeExecutionSnapshotInMemoryRepository;
+import io.kikwiflow.history.repository.ProcessInstanceInMemorySnapshotRepository;
 import io.kikwiflow.model.event.CriticalEvent;
 import io.kikwiflow.model.event.FlowNodeExecuted;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
-import io.kikwiflow.history.repository.FlowNodeExecutionSnapshotInMemoryRepository;
-import io.kikwiflow.history.repository.ProcessInstanceInMemorySnapshotRepository;
 
 import java.util.Queue;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AssertableEventListener {
 

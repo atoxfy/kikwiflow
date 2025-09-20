@@ -17,13 +17,11 @@
 
 package io.kikwiflow.bpmn.mapper.task;
 
+import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
 import io.kikwiflow.bpmn.model.task.ServiceTask;
 import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
 
 import java.util.Objects;
-import java.util.stream.Collectors;
-
-import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
 
 public final class ServiceTaskMapper {
 

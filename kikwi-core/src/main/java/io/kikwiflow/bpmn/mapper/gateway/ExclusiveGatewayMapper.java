@@ -22,7 +22,6 @@ import io.kikwiflow.bpmn.model.gateway.ExclusiveGateway;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ExclusiveGatewayMapper {
     private ExclusiveGatewayMapper() {

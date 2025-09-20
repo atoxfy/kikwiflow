@@ -27,7 +27,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>io.kikwiflow</groupId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.1.2-SNAPSHOT</version>
     <artifactId>linear-human-tasks-spring-boot-example</artifactId>
     <name>kikwiflow :: Sample App</name>
     <packaging>jar</packaging>
@@ -49,23 +49,23 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-spring-boot-starter</artifactId>
-            <version>0.1.1-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-management-rest</artifactId>
-            <version>0.1.1-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-in-memory-spring-boot-starter</artifactId>
-            <version>0.1.1-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-runtime-query-spring-boot-starter</artifactId>
-            <version>0.1.1-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
     </dependencies>
     <build>

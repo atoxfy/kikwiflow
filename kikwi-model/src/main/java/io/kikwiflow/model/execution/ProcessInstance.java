@@ -21,12 +21,13 @@ import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
-
+import java.util.Objects;
+import java.util.UUID;
 
 
 public record ProcessInstance(
         String id, String businessKey, BigDecimal businessValue, String tenantId, ProcessInstanceStatus status, String processDefinitionId,
-        Map<String, ProcessVariable> variables, Instant startedAt, Instant endedAt) {
+        Map<String, ProcessVariable> variables, Instant startedAt, Instant endedAt, String origin) {
 
     public static Builder builder() {
         return new Builder();
@@ -42,6 +43,7 @@ public record ProcessInstance(
         private Instant endedAt;
         private BigDecimal businessValue;
         private String tenantId;
+        private String origin;
 
 
         private Builder() {}
@@ -53,6 +55,11 @@ public record ProcessInstance(
 
         public Builder businessKey(String businessKey) {
             this.businessKey = businessKey;
+            return this;
+        }
+
+        public Builder origin(String origin) {
+            this.origin = origin;
             return this;
         }
 
@@ -94,7 +101,13 @@ public record ProcessInstance(
         }
 
         public ProcessInstance build() {
-            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt);
+            if(Objects.isNull(id)){
+                id = UUID.randomUUID().toString();
+                startedAt = Instant.now();
+                status = ProcessInstanceStatus.ACTIVE;
+            }
+
+            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt, origin);
         }
     }
 }

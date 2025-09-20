@@ -17,7 +17,5 @@
 
 package io.kikwiflow.execution.dto;
 
-import io.kikwiflow.persistence.api.data.UnitOfWork;
-
 public record ExecutionResult(ExecutionOutcome outcome, Continuation continuation) {
 }

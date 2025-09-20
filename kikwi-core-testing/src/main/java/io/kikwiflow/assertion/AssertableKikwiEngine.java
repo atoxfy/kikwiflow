@@ -20,15 +20,15 @@ package io.kikwiflow.assertion;
 import io.kikwiflow.history.repository.FlowNodeExecutionSnapshotInMemoryRepository;
 import io.kikwiflow.history.repository.ProcessInstanceInMemorySnapshotRepository;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.execution.ProcessVariable;
-import io.kikwiflow.model.execution.node.ExternalTask;
-import io.kikwiflow.model.execution.node.ExecutableTask;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
-import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.node.ExecutableTask;
+import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.InMemoryKikwiEngineRepository;
+import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -135,6 +135,21 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public Optional<ExecutableTask> findAndGetFirstPendingExecutableTask(String id) {
         return this.inMemoryKikwiEngineRepository.findAndGetFirstPendingExecutableTask(id);
+    }
+
+    @Override
+    public List<ProcessInstance> findProcessInstanceByProcessDefinitionId(String processDefinitionId, String tenantId) {
+        return this.inMemoryKikwiEngineRepository.findProcessInstanceByProcessDefinitionId(processDefinitionId, tenantId);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, String tenantId) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByProcessDefinitionId(processDefinitionId, tenantId);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByAssignee(assignee, tenantId);
     }
 
     public void evaluateEvents(){

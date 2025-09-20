@@ -17,8 +17,6 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
-import io.kikwiflow.model.execution.node.Executable;
-
 import java.util.Collections;
 import java.util.List;
 

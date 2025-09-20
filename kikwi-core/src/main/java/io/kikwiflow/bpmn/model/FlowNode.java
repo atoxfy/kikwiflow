@@ -16,8 +16,6 @@
  */
 package io.kikwiflow.bpmn.model;
 
-import io.kikwiflow.bpmn.model.boundary.BoundaryEvent;
-
 import java.util.ArrayList;
 import java.util.List;
 

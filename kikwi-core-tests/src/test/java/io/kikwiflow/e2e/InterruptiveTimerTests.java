@@ -35,18 +35,25 @@ import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
-import io.kikwiflow.rule.api.DecisionRule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class InterruptiveTimerTests {
 
@@ -163,7 +170,7 @@ public class InterruptiveTimerTests {
 
         ProcessVariable processVariable = new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, true);
         Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
-        processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), completionVariables);
+        processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables);
         // Assert: Fase 3 - Finalização
         assertEquals(ProcessInstanceStatus.COMPLETED, processInstance.status(), "O processo deveria estar completo.");
         assertNotNull(processInstance.endedAt(), "O processo deveria ter uma data de término.");

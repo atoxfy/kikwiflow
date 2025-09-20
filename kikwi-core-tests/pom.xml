@@ -21,9 +21,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.1-SNAPSHOT</version>
+        <groupId>io.kikwiflow</groupId>
+        <version>0.1.2-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -37,7 +38,7 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-core</artifactId>
-            <version>0.1.1-SNAPSHOT</version>
+              <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -55,7 +56,7 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-core-testing</artifactId>
-            <version>0.1.1-SNAPSHOT</version>
+              <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -67,7 +68,7 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-rule-api</artifactId>
-            <version>0.1.1-SNAPSHOT</version>
+              <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

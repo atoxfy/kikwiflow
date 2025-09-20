@@ -17,8 +17,8 @@
 
 package io.kikwiflow.execution.dto;
 
-import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.execution.ProcessInstanceExecution;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
 
 public record StartableProcessRecord(ProcessDefinition processDefinition, ProcessInstanceExecution processInstance) {
 }

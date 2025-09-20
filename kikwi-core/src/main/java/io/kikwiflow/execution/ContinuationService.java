@@ -144,7 +144,6 @@ public class ContinuationService {
         return continuation != null && continuation.isAsynchronous();
     }
 
-
     private ExecutableTask getExecutableTaskFrom(String mainTaskId, String processInstanceId, String taskDefinitionId, String processDefinitionId, AttachedTaskType mainTaskType, String duration){
         return  ExecutableTask.builder()
                 .id(UUID.randomUUID().toString())
@@ -194,6 +193,7 @@ public class ContinuationService {
                     .name(flowNodeDefinition.name())
                     .description(flowNodeDefinition.description())
                     .boundaryEvents(boundaryEvents)
+                    .tenantId(processInstanceExecution.getTenantId())
                     .build();
 
             nextExternalTasks.add(externalTask);
@@ -201,7 +201,6 @@ public class ContinuationService {
         }else if (flowNodeDefinition instanceof ServiceTaskDefinition st){
             String executableTaskNodeId = UUID.randomUUID().toString();
             List<String> boundaryEvents = new ArrayList<>();
-
 
             if( Objects.nonNull(st.boundaryEvents())
                     && !st.boundaryEvents().isEmpty()){

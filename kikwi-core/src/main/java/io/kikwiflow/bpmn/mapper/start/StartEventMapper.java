@@ -21,8 +21,6 @@ import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
 import io.kikwiflow.bpmn.model.start.StartEvent;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 
-import java.util.stream.Collectors;
-
 public class StartEventMapper {
 
     private StartEventMapper() {

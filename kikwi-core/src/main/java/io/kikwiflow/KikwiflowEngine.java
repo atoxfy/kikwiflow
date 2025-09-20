@@ -16,14 +16,16 @@
  */
 package io.kikwiflow;
 
-import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.exception.ProcessInstanceNotFoundException;
 import io.kikwiflow.exception.TaskNotFoundException;
-import io.kikwiflow.execution.*;
+import io.kikwiflow.execution.ContinuationService;
+import io.kikwiflow.execution.ProcessExecutionManager;
+import io.kikwiflow.execution.ProcessInstanceExecution;
+import io.kikwiflow.execution.ProcessInstanceFactory;
+import io.kikwiflow.execution.TaskAcquirer;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
@@ -40,7 +42,11 @@ import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -83,43 +89,45 @@ public class KikwiflowEngine {
      * Completa uma tarefa externa e continua a execução do processo.
      *
      * @param externalTaskId O ID da tarefa externa a ser completada.
+     * @param tenantId O ID do tenant que está tentando completar a tarefa. A operação falhará se não corresponder ao tenant da instância.
      * @param variables Um mapa de variáveis a serem adicionadas ou atualizadas na instância do processo.
      * @return O estado final da instância do processo após a continuação da execução.
      * @throws TaskNotFoundException se nenhuma tarefa com o ID fornecido for encontrada.
      * @throws ProcessInstanceNotFoundException se a instância de processo associada não for encontrada.
+     * @throws SecurityException se o tenantId fornecido não corresponder ao tenantId da instância do processo.
      */
-    public ProcessInstance completeExternalTask(String externalTaskId, Map<String, ProcessVariable> variables) {
-        // 1. Encontrar a tarefa a ser completada.
+    public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables) {
         ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)
             .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
 
-        // 2. Obter os dados necessários para a continuação.
+        if (!Objects.equals(taskToComplete.tenantId(), tenantId)) {
+            throw new SecurityException(
+                    "Tenant mismatch: Task " + externalTaskId + " does not belong to the provided tenant."
+            );
+        }
+
         ProcessInstance processInstanceRecord = kikwiEngineRepository.findProcessInstanceById(taskToComplete.processInstanceId())
             .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found with id: " + taskToComplete.processInstanceId()));
 
         ProcessDefinition processDefinition = processDefinitionService.getById(processInstanceRecord.processDefinitionId())
-            .orElseThrow(); // Se a instância existe, a definição também deve existir.
+            .orElseThrow(); 
 
-        // 3. Preparar o estado de execução.
         ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
         if (variables != null) {
             processInstanceExecution.getVariables().putAll(variables);
         }
 
-        // 4. Navegar: encontrar o nó que foi completado e determinar o próximo passo.
         FlowNodeDefinition completedNode = processDefinition.flowNodes().get(taskToComplete.taskDefinitionId());
         Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false);
 
-        // 5. Executar: se houver um próximo passo, delegar ao executor.
         ExecutionResult executionResult;
         if (continuation != null && !continuation.nextNodes().isEmpty()) {
-            FlowNodeDefinition startPoint = continuation.nextNodes().get(0); // Simplificado para fluxo linear
+            FlowNodeDefinition startPoint = continuation.nextNodes().get(0); 
             executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
         } else {
             executionResult = new ExecutionResult(new ExecutionOutcome(processInstanceExecution, Collections.emptyList()), null);
         }
 
-        // 6. Persistir o resultado e o estado da tarefa completada.
         return continuationService.handleContinuation(executionResult, taskToComplete);
     }
 
@@ -167,6 +175,7 @@ public class KikwiflowEngine {
         private Map<String, ProcessVariable> variables = new HashMap<>();
         private BigDecimal businessValue;
         private String tenantId;
+        private String origin;
 
         private ProcessStarter(KikwiflowEngine engine) {
             this.engine = engine;
@@ -199,6 +208,11 @@ public class KikwiflowEngine {
             return this;
         }
 
+        public ProcessStarter from(String origin) {
+            this.origin = origin;
+            return this;
+        }
+
         /**
          * Executa a inicialização do processo com os parâmetros fornecidos.
          *
@@ -209,18 +223,12 @@ public class KikwiflowEngine {
             Objects.requireNonNull(businessKey, "Business key cannot be null. Use withBusinessKey().");
 
             ProcessDefinition processDefinition = engine.processDefinitionService.getByKeyOrElseThrow(processDefinitionKey);
-            ProcessInstanceExecution processInstanceExecution = ProcessInstanceExecutionFactory.create(businessKey, processDefinition.id(), variables, businessValue, tenantId);
-            ProcessInstance processInstance = engine.kikwiEngineRepository.saveProcessInstance(ProcessInstanceMapper.mapToRecord(processInstanceExecution));
-            processInstanceExecution.setId(processInstance.id());
-
+            ProcessInstance processInstance = engine.kikwiEngineRepository.saveProcessInstance(ProcessInstanceFactory.create(businessKey, processDefinition.id(), variables, businessValue, tenantId, origin));
+            ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstance);
             FlowNodeDefinition startPoint = processDefinition.defaultStartPoint();
             ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
 
-            return engine.handleContinuation(executionResult);
+            return engine.continuationService.handleContinuation(executionResult);
         }
-    }
-
-    private ProcessInstance handleContinuation(ExecutionResult executionResult){
-        return this.continuationService.handleContinuation(executionResult);
     }
 }

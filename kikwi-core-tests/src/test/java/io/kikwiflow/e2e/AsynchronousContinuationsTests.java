@@ -18,11 +18,12 @@ package io.kikwiflow.e2e;
 
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.assertion.AssertableKikwiEngine;
-import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.ExecutionEventListener;
-import io.kikwiflow.execution.*;
+import io.kikwiflow.execution.DecisionRuleResolver;
+import io.kikwiflow.execution.ProcessExecutionManager;
+import io.kikwiflow.execution.TestDecisionRuleResolver;
+import io.kikwiflow.execution.TestDelegateResolver;
 import io.kikwiflow.execution.api.JavaDelegate;
 import io.kikwiflow.factory.SingletonsFactory;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
@@ -32,14 +33,12 @@ import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
-import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 

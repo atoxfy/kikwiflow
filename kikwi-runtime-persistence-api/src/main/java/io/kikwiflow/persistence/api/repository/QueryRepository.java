@@ -40,4 +40,8 @@ public interface QueryRepository {
     Optional<ExecutableTask> findExecutableTaskById(String executableTaskId);
 
     Optional<ExecutableTask> findAndGetFirstPendingExecutableTask(String id);
+
+    List<ProcessInstance> findProcessInstanceByProcessDefinitionId(String processDefinitionId, String tenantId);
+    List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, String tenantId);
+    List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId);
 }

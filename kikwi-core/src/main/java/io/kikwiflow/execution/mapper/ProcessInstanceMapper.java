@@ -16,9 +16,9 @@
  */
 package io.kikwiflow.execution.mapper;
 
+import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.execution.ProcessInstanceExecution;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,10 +51,10 @@ public final class ProcessInstanceMapper {
             instance.getProcessDefinitionId(),
             Map.copyOf(instance.getVariables()),
             instance.getStartedAt(),
-            instance.getEndedAt()
+            instance.getEndedAt(), instance.getOrigin()
+
         );
     }
-
 
     public static ProcessInstanceExecution mapToInstanceExecution(ProcessInstance processInstance) {
         ProcessInstanceExecution processInstanceEntity = new ProcessInstanceExecution();
@@ -64,7 +64,8 @@ public final class ProcessInstanceMapper {
         processInstanceEntity.setProcessDefinitionId(processInstance.processDefinitionId());
         processInstanceEntity.setVariables(new HashMap<>(processInstance.variables()));
         processInstanceEntity.setStartedAt(processInstance.startedAt());
-        processInstanceEntity.setEndedAt(processInstance.endedAt());
+        processInstanceEntity.setOrigin(processInstance.origin());
+
         return processInstanceEntity;
     }
 }
