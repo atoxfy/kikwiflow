@@ -30,7 +30,6 @@ public final class ProcessDefinitionMapper {
         // Utility class
     }
 
-
     public static ProcessDefinition toSnapshot(final ProcessDefinitionGraph processDefinitionGraphDeploy) {
         if (Objects.isNull(processDefinitionGraphDeploy)) {
             return null;

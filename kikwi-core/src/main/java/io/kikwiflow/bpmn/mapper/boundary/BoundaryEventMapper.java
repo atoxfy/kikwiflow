@@ -59,6 +59,7 @@ public class BoundaryEventMapper {
                     .outgoing(SequenceFlowMapper.toSnapshot(interruptiveTimerBoundaryEvent.getOutgoing()))
                     .attachedToRef(interruptiveTimerBoundaryEvent.getAttachedToRef())
                     .duration(interruptiveTimerBoundaryEvent.getDuration())
+                    .extensionProperties(event.getExtensionProperties())
                     .build();
         }
 

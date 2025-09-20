@@ -17,6 +17,7 @@
 
 package io.kikwiflow.execution;
 
+import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
@@ -45,9 +46,11 @@ import java.util.UUID;
 public class ContinuationService {
 
     private final KikwiEngineRepository kikwiEngineRepository;
+    private final KikwiflowConfig kikwiflowConfig;
 
-    public ContinuationService(KikwiEngineRepository kikwiEngineRepository) {
+    public ContinuationService(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig) {
         this.kikwiEngineRepository = kikwiEngineRepository;
+        this.kikwiflowConfig = kikwiflowConfig;
     }
 
     public ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask){
@@ -85,7 +88,7 @@ public class ContinuationService {
         }
 
         List<OutboxEventEntity> events = new ArrayList<>(executionOutcome.events());
-        if(ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus())){
+        if(kikwiflowConfig.isOutboxEventsEnabled() && ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus())){
             ProcessInstanceFinished processInstanceFinished = ProcessInstanceFinished.builder()
                     .processDefinitionId(processInstance.getProcessDefinitionId())
                     .businessKey(processInstance.getBusinessKey())
@@ -96,7 +99,7 @@ public class ContinuationService {
                     .endedAt(processInstance.getEndedAt())
                     .build();
 
-            events.add(new OutboxEventEntity(processInstanceFinished));
+            events.add(new OutboxEventEntity("PROCESS_INSTANCE_FINISHED", processInstanceFinished));
         }
 
         ProcessInstance processInstanceToSave = ProcessInstanceMapper.mapToRecord(processInstance);

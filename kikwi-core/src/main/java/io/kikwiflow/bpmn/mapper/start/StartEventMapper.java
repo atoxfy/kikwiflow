@@ -35,6 +35,7 @@ public class StartEventMapper {
                 .commitAfter(node.getCommitAfter())
                 .commitBefore(node.getCommitBefore())
                 .outgoing(SequenceFlowMapper.toSnapshot(node.getOutgoing()))
+                .extensionProperties(node.getExtensionProperties())
                 .build();
     }
 }

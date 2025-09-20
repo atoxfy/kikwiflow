@@ -126,7 +126,7 @@ public class ProcessExecutionManager {
                     .finishedAt(snapshot.finishedAt())
                     .build();
 
-                criticalEvents.add(new OutboxEventEntity(flowNodeExecuted));
+                criticalEvents.add(new OutboxEventEntity("FLOW_NODE_EXECUTED", flowNodeExecuted));
             }
 
             boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());

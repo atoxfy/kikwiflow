@@ -44,7 +44,7 @@ public class AssertableEventListener {
         OutboxEventEntity outboxEvent;
         while ((outboxEvent = outboxEventQueue.poll()) != null) {
 
-            CriticalEvent event = outboxEvent.getEvent();
+            CriticalEvent event = outboxEvent.getPayload();
             if(event instanceof FlowNodeExecuted flowNodeExecuted){
                 flowNodeExecutionSnapshotRepository.save(flowNodeExecuted);
             } else if (event instanceof ProcessInstanceFinished processInstanceFinished) {

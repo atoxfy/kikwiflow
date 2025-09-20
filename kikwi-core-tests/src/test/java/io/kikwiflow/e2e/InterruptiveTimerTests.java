@@ -183,6 +183,7 @@ public class InterruptiveTimerTests {
         assertableKikwiEngine.assertHasntActiveExternalTaskOn(processInstance.id(), "doContactTask");
     }
 
+
     /**
      * A concrete, test-friendly implementation of JavaDelegate.
      * This avoids Mockito's issues with spying on lambda expressions.

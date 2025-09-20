@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0sjzx0n" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.38.1" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.23.0">
+  <bpmn:process id="manual-workflow-with-timed-tasks-and-derivation" name="manual-workflow-with-timed-tasks-and-derivation" isExecutable="true">
+    <bpmn:startEvent id="PROCESSO_INICIADO" name="START_EVENT">
+      <bpmn:outgoing>Flow_0l84bb0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="SUCCESS_END" name="SUCCESS_END">
+      <bpmn:incoming>Flow_1nudvco</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EXCEPTIONAL_END" name="EXCEPTIONAL_END">
+      <bpmn:incoming>Flow_13fe7n1</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="EXTERNAL_TASK_3" name="EXTERNAL_TASK_3">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="color" value="128, 128, 128" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0uqibfx</bpmn:incoming>
+      <bpmn:outgoing>Flow_05y77q6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="EXTERNAL_TASK_2" name="EXTERNAL_TASK_2">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="color" value="128, 128, 128" />
+          <camunda:property name="sla" value="PT1D" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0zdvyl6</bpmn:incoming>
+      <bpmn:outgoing>Flow_0uqibfx</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="FOO_SERVICE_TASK" name="Foo Service Task" camunda:delegateExpression="fooServiceTaskDelegate">
+      <bpmn:incoming>SLA_EXCEEDED_FLOW</bpmn:incoming>
+      <bpmn:incoming>NEE</bpmn:incoming>
+      <bpmn:outgoing>Flow_13fe7n1</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="EXTERNAL_TASK_1" name="EXTERNAL_TASK_1">
+      <bpmn:extensionElements>
+        <camunda:properties>
+          <camunda:property name="color" value="128, 128, 128" />
+        </camunda:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0l84bb0</bpmn:incoming>
+      <bpmn:outgoing>Flow_0zdvyl6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="AVALIAR_ENVIO_RECUPERACAO" default="Flow_1nudvco">
+      <bpmn:incoming>Flow_05y77q6</bpmn:incoming>
+      <bpmn:outgoing>Flow_1nudvco</bpmn:outgoing>
+      <bpmn:outgoing>NEE</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:boundaryEvent id="EXTERNAL_TASK_2_TIMER" camunda:asyncAfter="true" attachedToRef="EXTERNAL_TASK_2">
+      <bpmn:outgoing>SLA_EXCEEDED_FLOW</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_1qw4pll">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT1D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_0l84bb0" sourceRef="PROCESSO_INICIADO" targetRef="EXTERNAL_TASK_1" />
+    <bpmn:sequenceFlow id="Flow_1nudvco" sourceRef="AVALIAR_ENVIO_RECUPERACAO" targetRef="SUCCESS_END" />
+    <bpmn:sequenceFlow id="Flow_13fe7n1" sourceRef="FOO_SERVICE_TASK" targetRef="EXCEPTIONAL_END" />
+    <bpmn:sequenceFlow id="Flow_05y77q6" sourceRef="EXTERNAL_TASK_3" targetRef="AVALIAR_ENVIO_RECUPERACAO" />
+    <bpmn:sequenceFlow id="Flow_0uqibfx" sourceRef="EXTERNAL_TASK_2" targetRef="EXTERNAL_TASK_3" />
+    <bpmn:sequenceFlow id="SLA_EXCEEDED_FLOW" name="SLA_EXCEEDED" sourceRef="EXTERNAL_TASK_2_TIMER" targetRef="FOO_SERVICE_TASK" />
+    <bpmn:sequenceFlow id="NEE" name="GO_TO_EXCEPTION_FLOW" sourceRef="AVALIAR_ENVIO_RECUPERACAO" targetRef="FOO_SERVICE_TASK">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">is-exception-flow</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0zdvyl6" sourceRef="EXTERNAL_TASK_1" targetRef="EXTERNAL_TASK_2" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="manual-workflow-with-timed-tasks-and-derivation">
+      <bpmndi:BPMNShape id="BPMNShape_0emdw6b" bpmnElement="PROCESSO_INICIADO">
+        <dc:Bounds x="182" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="160" y="145" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_16wrrdn_di" bpmnElement="EXTERNAL_TASK_1">
+        <dc:Bounds x="250" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1i5qzc1_di" bpmnElement="EXTERNAL_TASK_2">
+        <dc:Bounds x="400" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1b28aqv_di" bpmnElement="EXTERNAL_TASK_3">
+        <dc:Bounds x="560" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0q6yb9s_di" bpmnElement="SUCCESS_END">
+        <dc:Bounds x="852" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="829" y="145" width="83" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1gjnm8j_di" bpmnElement="AVALIAR_ENVIO_RECUPERACAO" isMarkerVisible="true">
+        <dc:Bounds x="715" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_197k2bw_di" bpmnElement="EXCEPTIONAL_END">
+        <dc:Bounds x="852" y="295" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="828" y="341" width="85" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0jcdbdm_di" bpmnElement="FOO_SERVICE_TASK">
+        <dc:Bounds x="690" y="273" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_025pgdh_di" bpmnElement="EXTERNAL_TASK_2_TIMER">
+        <dc:Bounds x="482" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0l84bb0_di" bpmnElement="Flow_0l84bb0">
+        <di:waypoint x="218" y="120" />
+        <di:waypoint x="250" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1nudvco_di" bpmnElement="Flow_1nudvco">
+        <di:waypoint x="765" y="120" />
+        <di:waypoint x="852" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13fe7n1_di" bpmnElement="Flow_13fe7n1">
+        <di:waypoint x="790" y="313" />
+        <di:waypoint x="852" y="313" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05y77q6_di" bpmnElement="Flow_05y77q6">
+        <di:waypoint x="660" y="120" />
+        <di:waypoint x="715" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0uqibfx_di" bpmnElement="Flow_0uqibfx">
+        <di:waypoint x="500" y="120" />
+        <di:waypoint x="560" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0z7oub8_di" bpmnElement="SLA_EXCEEDED_FLOW">
+        <di:waypoint x="500" y="178" />
+        <di:waypoint x="500" y="313" />
+        <di:waypoint x="690" y="313" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="531" y="293" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0a7ipwu_di" bpmnElement="NEE">
+        <di:waypoint x="740" y="145" />
+        <di:waypoint x="740" y="273" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="748" y="196" width="83" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0zdvyl6_di" bpmnElement="Flow_0zdvyl6">
+        <di:waypoint x="350" y="120" />
+        <di:waypoint x="400" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

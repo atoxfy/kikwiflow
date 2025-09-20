@@ -19,13 +19,14 @@ package io.kikwiflow.model.definition.process.elements;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public record EndEventDefinition(String id,
                                  String name,
                                  String description,
                                  Boolean commitAfter,
                                  Boolean commitBefore,
-                                 List<SequenceFlowDefinition> outgoing) implements FlowNodeDefinition {
+                                 List<SequenceFlowDefinition> outgoing, Map<String, String> extensionProperties) implements FlowNodeDefinition {
 
     public static Builder builder() {
         return new Builder();
@@ -38,6 +39,7 @@ public record EndEventDefinition(String id,
         private Boolean commitAfter;
         private Boolean commitBefore;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
+        private Map<String, String> extensionProperties;
 
         private Builder() {}
 
@@ -73,8 +75,14 @@ public record EndEventDefinition(String id,
             return this;
         }
 
+
+        public Builder extensionProperties(Map<String, String> extensionProperties){
+            this.extensionProperties = extensionProperties;
+            return this;
+        }
+
         public EndEventDefinition build() {
-            return new EndEventDefinition(id, name, description, commitAfter, commitBefore, outgoing);
+            return new EndEventDefinition(id, name, description, commitAfter, commitBefore, outgoing,extensionProperties);
         }
     }
 }

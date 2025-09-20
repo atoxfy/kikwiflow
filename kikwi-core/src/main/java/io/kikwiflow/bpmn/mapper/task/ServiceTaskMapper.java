@@ -41,6 +41,7 @@ public final class ServiceTaskMapper {
                 .commitAfter(serviceTask.getCommitAfter())
                 .commitBefore(serviceTask.getCommitBefore())
                 .outgoing(SequenceFlowMapper.toSnapshot(serviceTask.getOutgoing()))
+                .extensionProperties(serviceTask.getExtensionProperties())
                 .build();
     }
 }

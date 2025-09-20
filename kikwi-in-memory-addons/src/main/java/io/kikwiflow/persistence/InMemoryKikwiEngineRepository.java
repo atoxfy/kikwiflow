@@ -180,6 +180,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .id(UUID.randomUUID().toString())
                 .version(version)
                 .key(key)
+                .name(processDefinition.name())
                 .defaultStartPoint(processDefinition.defaultStartPoint())
                 .flowNodes(processDefinition.flowNodes())
                 .build();

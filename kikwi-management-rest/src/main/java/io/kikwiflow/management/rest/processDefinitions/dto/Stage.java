@@ -14,19 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.kikwiflow.management.rest.processDefinitions.dto;
 
-package io.kikwiflow.model.definition.process.elements;
-
-import java.util.List;
-import java.util.Map;
-
-public sealed interface FlowNodeDefinition permits StartEventDefinition, ManualTaskDefinition, ServiceTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition {
-    String id();
-    String name();
-    String description();
-    Boolean commitAfter();
-    Boolean commitBefore();
-    List<SequenceFlowDefinition> outgoing();
-    Map<String, String> extensionProperties();
-
-}
+public record Stage(
+    String id,
+    String name,
+    String color,
+    String outgoing
+) {}

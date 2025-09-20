@@ -21,11 +21,13 @@ import java.time.Instant;
 
 public class OutboxEventEntity {
     private Instant timestamp;
-    private CriticalEvent event;
+    private String event;
+    private CriticalEvent payload;
 
-    public OutboxEventEntity(CriticalEvent event) {
+    public OutboxEventEntity(String event, CriticalEvent payload) {
         this.timestamp = Instant.now();
         this.event = event;
+        this.payload = payload;
     }
 
     public Instant getTimestamp() {
@@ -36,11 +38,19 @@ public class OutboxEventEntity {
         this.timestamp = timestamp;
     }
 
-    public CriticalEvent getEvent() {
+    public String getEvent() {
         return event;
     }
 
-    public void setEvent(CriticalEvent event) {
+    public void setEvent(String event) {
         this.event = event;
+    }
+
+    public CriticalEvent getPayload() {
+        return payload;
+    }
+
+    public void setPayload(CriticalEvent payload) {
+        this.payload = payload;
     }
 }

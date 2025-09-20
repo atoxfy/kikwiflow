@@ -16,10 +16,10 @@
  */
 package io.kikwiflow.management.rest.autoconfigure;
 
-import io.kikwiflow.management.rest.controller.navigation.NavigationController;
 import io.kikwiflow.management.rest.controller.processDefinitions.ProcessDefinitionController;
 import io.kikwiflow.management.rest.controller.processInstances.ProcessInstanceController;
 import io.kikwiflow.management.rest.controller.tasks.TaskController;
+import io.kikwiflow.management.rest.processDefinitions.ProcessDefinitionViewService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Import;
 
@@ -27,6 +27,6 @@ import org.springframework.context.annotation.Import;
 @Import({ProcessInstanceController.class,
         TaskController.class,
         ProcessDefinitionController.class,
-        NavigationController.class})
+        ProcessDefinitionViewService.class})
 public class KikwiManagementRestAutoConfiguration {
 }

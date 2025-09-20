@@ -74,7 +74,7 @@ public class KikwiflowEngine {
         this.kikwiflowConfig = kikwiflowConfig;
         this.eventListeners = executionEventListeners;
         this.taskAcquirer = new TaskAcquirer(this, kikwiEngineRepository, kikwiflowConfig );
-        this.continuationService = new ContinuationService(kikwiEngineRepository);
+        this.continuationService = new ContinuationService(kikwiEngineRepository, kikwiflowConfig);
     }
 
     public void start(){

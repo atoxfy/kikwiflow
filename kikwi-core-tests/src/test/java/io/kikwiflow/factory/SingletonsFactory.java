@@ -48,7 +48,7 @@ public class SingletonsFactory {
         return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(delegateResolver)), navigator, config);
     }
 
-    public static ContinuationService continuationService(KikwiEngineRepository repository) {
-        return new ContinuationService(repository);
+    public static ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config) {
+        return new ContinuationService(repository, config);
     }
 }

@@ -21,6 +21,7 @@ import io.kikwiflow.model.execution.node.Executable;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public record ServiceTaskDefinition(String id,
                                     String name,
@@ -29,7 +30,7 @@ public record ServiceTaskDefinition(String id,
                                     Boolean commitAfter,
                                     Boolean commitBefore,
                                     List<SequenceFlowDefinition> outgoing,
-                                    List<BoundaryEventDefinition> boundaryEvents) implements FlowNodeDefinition, Executable {
+                                    List<BoundaryEventDefinition> boundaryEvents,  Map<String, String> extensionProperties) implements FlowNodeDefinition, Executable {
 
     public static Builder builder() {
         return new Builder();
@@ -45,6 +46,7 @@ public record ServiceTaskDefinition(String id,
 
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private  List<BoundaryEventDefinition> boundaryEvents = Collections.emptyList();
+        private Map<String, String> extensionProperties;
 
         private Builder() {}
 
@@ -92,8 +94,14 @@ public record ServiceTaskDefinition(String id,
             return this;
         }
 
+
+        public Builder extensionProperties(Map<String, String> extensionProperties){
+            this.extensionProperties = extensionProperties;
+            return this;
+        }
+
         public ServiceTaskDefinition build() {
-            return new ServiceTaskDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing, boundaryEvents);
+            return new ServiceTaskDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties);
         }
     }
 

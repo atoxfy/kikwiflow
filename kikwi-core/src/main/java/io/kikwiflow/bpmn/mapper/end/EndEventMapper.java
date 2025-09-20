@@ -39,6 +39,7 @@ public final class EndEventMapper {
                 .description(node.getDescription())
                 .commitAfter(node.getCommitAfter())
                 .commitBefore(node.getCommitBefore())
+                .extensionProperties(node.getExtensionProperties())
                 .build();
     }
 }

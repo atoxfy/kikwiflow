@@ -21,6 +21,7 @@ import io.kikwiflow.model.execution.node.WaitState;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public record ManualTaskDefinition(String id,
                                    String name,
@@ -28,7 +29,7 @@ public record ManualTaskDefinition(String id,
                                    Boolean commitAfter,
                                    Boolean commitBefore,
                                    List<SequenceFlowDefinition> outgoing,
-                                   List<BoundaryEventDefinition> boundaryEvents) implements FlowNodeDefinition, WaitState {
+                                   List<BoundaryEventDefinition> boundaryEvents,  Map<String, String> extensionProperties) implements FlowNodeDefinition, WaitState {
 
     public static Builder builder() {
         return new Builder();
@@ -43,6 +44,7 @@ public record ManualTaskDefinition(String id,
 
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private  List<BoundaryEventDefinition> boundaryEvents = Collections.emptyList();
+        private Map<String, String> extensionProperties;
 
         private Builder() {}
 
@@ -86,8 +88,15 @@ public record ManualTaskDefinition(String id,
         }
 
 
+
+        public Builder extensionProperties(Map<String, String> extensionProperties){
+            this.extensionProperties = extensionProperties;
+            return this;
+        }
+
+
         public ManualTaskDefinition build() {
-            return new ManualTaskDefinition(id, name, description, commitAfter, commitBefore, outgoing, boundaryEvents);
+            return new ManualTaskDefinition(id, name, description, commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties);
         }
     }
 }

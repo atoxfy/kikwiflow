@@ -19,6 +19,7 @@ package io.kikwiflow.model.definition.process.elements;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public record InterruptiveTimerEventDefinition(String id,
                                                String name,
@@ -28,7 +29,7 @@ public record InterruptiveTimerEventDefinition(String id,
                                                Boolean commitBefore,
                                                List<SequenceFlowDefinition> outgoing,
                                                String attachedToRef, 
-                                               String duration) implements BoundaryEventDefinition, FlowNodeDefinition {
+                                               String duration, Map<String, String> extensionProperties) implements BoundaryEventDefinition, FlowNodeDefinition {
 
     public static InterruptiveTimerEventDefinition.Builder builder() {
         return new InterruptiveTimerEventDefinition.Builder();
@@ -44,6 +45,7 @@ public record InterruptiveTimerEventDefinition(String id,
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private String attachedToRef;
         private String duration;
+        private Map<String, String> extensionProperties;
 
         private Builder() {}
 
@@ -94,8 +96,13 @@ public record InterruptiveTimerEventDefinition(String id,
             return this;
         }
 
+        public Builder extensionProperties(Map<String, String> extensionProperties){
+            this.extensionProperties = extensionProperties;
+            return this;
+        }
+
         public InterruptiveTimerEventDefinition build() {
-            return new InterruptiveTimerEventDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing, attachedToRef, duration);
+            return new InterruptiveTimerEventDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing, attachedToRef, duration, extensionProperties);
         }
     }
 
