@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant Core as "kikwi-core<br>(runWhileNotFindAStopPoint)"
+    participant UoW as "UnitOfWork (em memória)"
+    participant Repository as "ProcessExecutionRepository"
+    participant MongoDB as "MongoDB"
+    participant Publisher as "EventPublisher (em memória)"
+
+    Core->>Core: Executa tarefas síncronas...
+    Core->>UoW: new UnitOfWork()
+    Core->>UoW: Acumula alterações (estado, tarefas, eventos)
+
+    Note over Core: Fim do bloco síncrono.
+
+    Core->>+Repository: commit(unitOfWork)
+
+    Repository->>+MongoDB: INICIAR TRANSAÇÃO
+    MongoDB->>MongoDB: 1. Atualiza ProcessInstance
+    MongoDB->>MongoDB: 2. Cria/Apaga ExecutableTasks
+    MongoDB->>MongoDB: 3. Insere 'criticalEvents' na 'event_outbox'
+    MongoDB-->>-Repository: COMMIT TRANSAÇÃO
+    Repository-->>-Core: Commit bem-sucedido
+
+    Core->>+Publisher: publishEvents(unitOfWork.lightweightEvents())
+    Publisher-->>-Core: Retorno Imediato

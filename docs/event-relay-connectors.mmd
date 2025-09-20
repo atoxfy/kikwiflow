@@ -1,0 +1,31 @@
+graph TD
+    subgraph "Fonte de Dados"
+        A[MongoDB Outbox]
+    end
+
+    subgraph "Serviço Event Relay (Standalone)"
+        B[MongoOutboxReader] --> C{EventRelayCore};
+        C --> D[EventPublisher];
+    end
+
+    subgraph "Plugins / Conectores de Destino"
+        E[KafkaEventListener]
+        F[MongoHistoryListener]
+        G[RabbitMqEventListener]
+    end
+
+    D -- publica para --> E;
+    D -- publica para --> F;
+    D -- publica para --> G;
+
+    subgraph "Sistemas Externos"
+        H[Apache Kafka]
+        I[MongoDB History DB]
+        J[RabbitMQ]
+    end
+
+    E -- envia para --> H;
+    F -- escreve em --> I;
+    G -- envia para --> J;
+
+    A -- lido por --> B;

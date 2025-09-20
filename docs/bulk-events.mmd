@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant VThread_A as "Thread Executora da Tarefa<br>(Virtual Thread)"
+    participant TaskExecutorService as "TaskExecutorService"
+    participant EventPublisher as "EventPublisher"
+    participant SharedExecutor as "Executor Partilhado<br>(para Listeners)"
+
+    VThread_A ->>+ TaskExecutorService: executeSynchronousBlock(tarefaInicial)
+
+    loop "Ciclo de Execução Síncrona"
+        Note over TaskExecutorService: Executa a lógica do Nó N...
+        TaskExecutorService ->> TaskExecutorService: Acumula Evento (ex: NodeCoveredEvent)
+    end
+
+    Note right of TaskExecutorService: O ciclo termina ao encontrar um ponto de commit.
+
+    TaskExecutorService ->>+ EventPublisher: publishEvents(List<Event>)
+
+    Note right of EventPublisher: A thread principal NÃO espera.
+
+    par "Notificação Assíncrona dos Listeners com Lote de Eventos"
+        EventPublisher ->> SharedExecutor: submit(historyListener.onEvents(List))
+    and
+        EventPublisher ->> SharedExecutor: submit(kafkaListener.onEvents(List))
+    end
+
+    EventPublisher -->>- TaskExecutorService: Retorna Imediatamente
+    TaskExecutorService -->>- VThread_A: Retorna
+
+    VThread_A ->> VThread_A: Continua para o próximo passo (se houver)
+
+    Note over SharedExecutor: Os listeners agora podem otimizar o seu trabalho<br> (ex: um único bulkWrite no MongoDB).

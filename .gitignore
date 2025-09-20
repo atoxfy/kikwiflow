@@ -1,0 +1,57 @@
+# Ficheiros compilados do Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Diretório de output do Maven
+target/
+
+# Ficheiros de log
+*.log
+
+# Ficheiros do BlueJ
+*.ctxt
+
+# Ficheiros do Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Ficheiros do Package
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Ficheiros de máquina virtual (crash logs)
+hs_err_pid*
+
+# Configurações específicas do IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# Ficheiros do Eclipse
+.classpath
+.project
+.settings/
+
+# Ficheiros do NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+.nb-gradle/
+
+# Ficheiros do VS Code
+.vscode/
+
+# Ficheiros de sistema operacional
+# Mac
+.DS_Store
+# Windows
+Thumbs.db
+/vaapty-crm/

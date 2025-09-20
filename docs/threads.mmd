@@ -1,0 +1,29 @@
+graph TD
+    subgraph CPU Carrier Thread
+    A[Executando código Java] --> B{Chamada de Rede?};
+    end
+
+    subgraph RAM Java Heap
+    C[Continuação Stack da VThread]
+    end
+
+    B -- Sim --> D[JVM Desmonta VThread];
+    D --> C;
+    D -- Liberta --> E[Carrier Thread Livre];
+    E --> F[Executa outra VThread];
+
+    subgraph Sistema Operacional
+    G[Espera por I/O]
+    end
+
+    D -- Delega --> G;
+    G -- Notifica --> H[JVM];
+
+    H -- Torna Executável --> C;
+
+    subgraph CPU Qualquer Carrier Thread Livre
+    I[Monta VThread]
+    end
+
+    C -- Pronta para Executar --> I;
+    I --> J[Continua a execução do código];

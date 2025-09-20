@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant Core as "kikwi-core"
+    participant Repository as "ProcessExecutionRepository"
+    participant Publisher as "EventPublisher (em memória)"
+    participant Listeners as "Listeners Leves<br>(Métricas, Tracing)"
+
+    Core->>+Repository: commit(UnitOfWork com eventos leves)
+    Note over Repository: Persiste apenas dados transacionais<br>(estado da instância, tarefas).<br>Ignora os eventos leves.
+    Repository-->>-Core: Commit bem-sucedido
+
+    Core->>+Publisher: publishEvents(eventosLeves)
+    Note right of Publisher: A chamada retorna imediatamente.
+    Publisher-->>-Core: Retorno Imediato (Fire-and-Forget)
+
+    Core->>Core: Continua a execução do processo...
+
+    par "Notificação Assíncrona"
+        Publisher->>Listeners: onEvents(eventosLeves)
+    end

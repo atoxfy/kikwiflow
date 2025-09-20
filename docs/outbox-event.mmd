@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant Core as "kikwi-core"
+    participant Repository as "ProcessExecutionRepository"
+    participant MongoDB as "MongoDB"
+    participant Relay as "Event Relay (Processo de Background)"
+    participant Publisher as "EventPublisher"
+    participant Listeners as "Listeners Críticos<br>(Auditoria, Kafka)"
+
+    Core->>+Repository: commit(UnitOfWork com eventos críticos)
+    Repository->>+MongoDB: INICIAR TRANSAÇÃO
+    MongoDB->>MongoDB: 1. Atualizar estado da ProcessInstance
+    MongoDB->>MongoDB: 2. Inserir eventos na coleção 'event_outbox'
+    MongoDB-->>-Repository: COMMIT TRANSAÇÃO
+    Repository-->>-Core: Commit bem-sucedido
+    Core->>Core: Continua a execução do processo...
+
+    Note over Relay, Listeners: Processo completamente separado e assíncrono
+
+    Relay->>+MongoDB: Ler e bloquear eventos da 'event_outbox'
+    MongoDB-->>-Relay: Retorna eventos críticos
+
+    Relay->>+Publisher: publishEvents(eventosCríticos)
+    Publisher->>Listeners: onEvents(eventosCríticos)
+    Listeners-->>Publisher: OK
+    Publisher-->>-Relay: Publicação bem-sucedida
+
+    Relay->>+MongoDB: Apagar eventos processados da 'event_outbox'
+    MongoDB-->>-Relay: OK
