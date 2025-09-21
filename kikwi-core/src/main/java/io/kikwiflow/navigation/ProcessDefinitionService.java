@@ -21,6 +21,7 @@ import io.kikwiflow.cache.ProcessDefinitionCache;
 import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.validation.DeployValidator;
 
 import java.io.InputStream;
 import java.util.Optional;
@@ -34,10 +35,10 @@ import java.util.Optional;
  * frequentemente utilizadas.
  */
 public class ProcessDefinitionService {
-
     private final BpmnParser bpmnParser;
     private final KikwiEngineRepository kikwiEngineRepository;
     private final ProcessDefinitionCache processDefinitionCache;
+    private final DeployValidator deployValidator;
 
     /**
      * Constrói uma nova instância do ProcessDefinitionService.
@@ -45,9 +46,10 @@ public class ProcessDefinitionService {
      * @param bpmnParser O parser responsável por ler um arquivo BPMN e transformá-lo num objeto {@link ProcessDefinition}.
      * @param kikwiEngineRepository O repositório para persistir e buscar as definições de processo.
      */
-    public ProcessDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository kikwiEngineRepository){
+    public ProcessDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository kikwiEngineRepository, DeployValidator deployValidator){
         this.bpmnParser =  bpmnParser;
         this.kikwiEngineRepository = kikwiEngineRepository;
+        this.deployValidator = deployValidator;
         this.processDefinitionCache = new ProcessDefinitionCache();
     }
 
@@ -66,6 +68,7 @@ public class ProcessDefinitionService {
      */
     public ProcessDefinition deploy(InputStream inputStream) throws Exception {
         ProcessDefinition processDefinitionDeploy = bpmnParser.parse(inputStream);
+        deployValidator.validate(processDefinitionDeploy);
         return kikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
     }
 

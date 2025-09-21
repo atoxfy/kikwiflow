@@ -80,7 +80,7 @@ public class LinearServiceTaskTasksTests {
         this.removeVariableDelegate =  spy(new RemoveVariableDelegate());
         this.delegateResolver.register("removeVariableDelegate", removeVariableDelegate);
         DecisionRuleResolver decisionRuleResolver = new TestDecisionRuleResolver();
-        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine);
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
         Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
         ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator,kikwiflowConfig);
         List<ExecutionEventListener> executionEventListeners = null;

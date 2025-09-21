@@ -79,7 +79,7 @@ public class ManualWorkflowWithTimedTasksAndDerivationTests {
         isExceptionFlowRule = spy(new TestDecisionRule());
         this.decisionRuleResolver.register(EXCEPTION_FLOW_RULE_NAME, isExceptionFlowRule);
 
-        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine);
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
         Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
         ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator, kikwiflowConfig);
         List<ExecutionEventListener> executionEventListeners = null;

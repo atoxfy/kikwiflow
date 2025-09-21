@@ -14,19 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.kikwiflow.exception;
 
-package io.kikwiflow.bpmn.model.gateway;
-
-import io.kikwiflow.bpmn.model.FlowNode;
-
-public class ExclusiveGateway extends FlowNode {
-    private String defaultFlow;
-
-    public String getDefaultFlow() {
-        return defaultFlow;
-    }
-
-    public void setDefaultFlow(String defaultFlow) {
-        this.defaultFlow = defaultFlow;
+public class InvalidProcessDefinitionException extends RuntimeException {
+    public InvalidProcessDefinitionException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

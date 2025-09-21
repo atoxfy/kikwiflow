@@ -38,6 +38,7 @@ public class ExclusiveGatewayMapper {
                 .description(exclusiveGateway.getDescription())
                 .commitAfter(exclusiveGateway.getCommitAfter())
                 .commitBefore(exclusiveGateway.getCommitBefore())
+                .defaultFlow(exclusiveGateway.getDefaultFlow())
                 .outgoing(SequenceFlowMapper.toSnapshot(exclusiveGateway.getOutgoing()))
                 .extensionProperties(exclusiveGateway.getExtensionProperties())
                 .build();

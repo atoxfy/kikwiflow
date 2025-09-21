@@ -76,7 +76,7 @@ public class InterruptiveTimerTests {
         delegateResolver.register("sendToRecovery", sendToRecovery);
         KikwiflowConfig kikwiflowConfig = new KikwiflowConfig();
         DecisionRuleResolver decisionRuleResolver = new TestDecisionRuleResolver();
-        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine);
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
         Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
         ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator, kikwiflowConfig);
         List<ExecutionEventListener> executionEventListeners = null;

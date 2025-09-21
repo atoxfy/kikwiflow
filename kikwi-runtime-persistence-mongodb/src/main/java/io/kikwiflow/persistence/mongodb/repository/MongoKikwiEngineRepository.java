@@ -89,12 +89,21 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
 
+        Document existingIdentical = collection.find(
+                and(eq("key", processDefinitionDeploy.key()), eq("checksum", processDefinitionDeploy.checksum()))
+        ).first();
+
+        if (existingIdentical != null) {
+            return ProcessDefinitionMapper.fromDocument(existingIdentical);
+        }
+
         Optional<ProcessDefinition> last = findProcessDefinitionByKey(processDefinitionDeploy.key());
         int nextVersion = last.map(def -> def.version() + 1).orElse(1);
 
         ProcessDefinition definitionToSave = new ProcessDefinition(
                 processDefinitionDeploy.id(), nextVersion, processDefinitionDeploy.key(), processDefinitionDeploy.name()
-                , processDefinitionDeploy.description(), processDefinitionDeploy.flowNodes(), processDefinitionDeploy.defaultStartPoint()
+                , processDefinitionDeploy.description(), processDefinitionDeploy.flowNodes(), processDefinitionDeploy.defaultStartPoint(),
+                processDefinitionDeploy.checksum()
         );
 
         Document doc = ProcessDefinitionMapper.toDocument(definitionToSave);

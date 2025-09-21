@@ -39,6 +39,7 @@ import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.validation.DeployValidator;
 
 import java.io.InputStream;
 import java.math.BigDecimal;

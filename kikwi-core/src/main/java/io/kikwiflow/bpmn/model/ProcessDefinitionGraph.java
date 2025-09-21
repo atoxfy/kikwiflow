@@ -28,6 +28,7 @@ public class ProcessDefinitionGraph {
     private String description;
     private Map<String, FlowNode> flowNodes = new HashMap<>();
     private FlowNode defaultStartPoint;
+    private String checksum;
 
     public FlowNode getDefaultStartPoint() {
         return defaultStartPoint;
@@ -39,6 +40,14 @@ public class ProcessDefinitionGraph {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getChecksum() {
+        return checksum;
+    }
+
+    public void setChecksum(String checksum) {
+        this.checksum = checksum;
     }
 
     public void setDescription(String description) {
