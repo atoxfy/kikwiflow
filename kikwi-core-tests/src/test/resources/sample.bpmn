@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0l5veza" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.21.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.20.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0l5veza" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.38.1" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.20.0">
   <bpmn:process id="Process_1nwhurl" name="Processo Teste" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:outgoing>Flow_0rnzuul</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_0rnzuul" sourceRef="StartEvent_1" targetRef="Activity_0wn4t7o" />
-    <bpmn:serviceTask id="Activity_0wn4t7o" name="add variable" camunda:delegateExpression="${addVariableDelegate}">
+    <bpmn:serviceTask id="Activity_0wn4t7o" name="add variable" camunda:delegateExpression="addVariableDelegate">
       <bpmn:incoming>Flow_0rnzuul</bpmn:incoming>
       <bpmn:outgoing>Flow_1xj0ym0</bpmn:outgoing>
     </bpmn:serviceTask>
@@ -14,7 +14,7 @@
       <bpmn:incoming>Flow_1ukerrx</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1ukerrx" sourceRef="Activity_16ovgt4" targetRef="Event_0w1t1d3" />
-    <bpmn:serviceTask id="Activity_16ovgt4" name="remove variable" camunda:delegateExpression="${removeVariableDelegate}">
+    <bpmn:serviceTask id="Activity_16ovgt4" name="remove variable" camunda:delegateExpression="removeVariableDelegate">
       <bpmn:incoming>Flow_1xj0ym0</bpmn:incoming>
       <bpmn:outgoing>Flow_1ukerrx</bpmn:outgoing>
     </bpmn:serviceTask>

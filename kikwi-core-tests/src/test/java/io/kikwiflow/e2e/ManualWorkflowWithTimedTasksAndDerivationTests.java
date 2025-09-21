@@ -110,11 +110,6 @@ public class ManualWorkflowWithTimedTasksAndDerivationTests {
     private static class TestDecisionRule implements DecisionRule {
 
         @Override
-        public String getKey() {
-            return "isExceptionFlow";
-        }
-
-        @Override
         public boolean evaluate(Map<String, ProcessVariable> variables) {
             return true;
         }

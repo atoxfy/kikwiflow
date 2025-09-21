@@ -14,15 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.kikwiflow.exception;
 
-package io.kikwiflow.rule.api;
-
-import io.kikwiflow.model.execution.ProcessVariable;
-
-import java.util.Map;
-
-public interface DecisionRule {
-
-
-    boolean evaluate(Map<String, ProcessVariable> variables);
+public class JavaDelegateNotFoundException extends RuntimeException {
+    public JavaDelegateNotFoundException(String message) {
+        super(message);
+    }
 }

@@ -139,11 +139,6 @@ public class ExclusiveGatewayTests {
     private static class TestDecisionRule implements DecisionRule {
 
         @Override
-        public String getKey() {
-            return "isPersonDataFilled";
-        }
-
-        @Override
         public boolean evaluate(Map<String, ProcessVariable> variables) {
             return true;
         }

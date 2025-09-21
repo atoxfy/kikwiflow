@@ -16,7 +16,9 @@
  */
 package io.kikwiflow.validation;
 
+import io.kikwiflow.exception.DecisionRuleNotFoundException;
 import io.kikwiflow.exception.InvalidProcessDefinitionException;
+import io.kikwiflow.exception.JavaDelegateNotFoundException;
 import io.kikwiflow.execution.DecisionRuleResolver;
 import io.kikwiflow.execution.DelegateResolver;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
@@ -43,7 +45,8 @@ public class DeployValidator {
                 String delegateExpression = serviceTask.delegateExpression();
                 if (delegateExpression != null && !delegateExpression.isBlank()) {
                     try {
-                        delegateResolver.resolve(delegateExpression);
+                        delegateResolver.resolve(delegateExpression)
+                                .orElseThrow(() -> new JavaDelegateNotFoundException(""));
                     } catch (Exception e) {
                         throw new InvalidProcessDefinitionException(
                             String.format("Validation failed for Service Task '%s' (id: %s): Delegate bean '%s' not found in application context.",
@@ -55,7 +58,8 @@ public class DeployValidator {
                     String ruleKey = flow.condition();
                     if (ruleKey != null && !ruleKey.isBlank()) {
                         try {
-                            decisionRuleResolver.resolve(ruleKey);
+                            decisionRuleResolver.resolve(ruleKey)
+                                .orElseThrow(() -> new DecisionRuleNotFoundException(""));
                         } catch (Exception e) {
                             throw new InvalidProcessDefinitionException(
                                 String.format("Validation failed for Gateway '%s' (id: %s): DecisionRule bean '%s' not found for sequence flow '%s'.",

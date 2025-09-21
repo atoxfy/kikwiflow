@@ -55,6 +55,7 @@ public final class ProcessDefinitionMapper {
                 .append("key", definition.key())
                 .append("name", definition.name())
                 .append("version", definition.version())
+                .append("checksum", definition.checksum())
                 .append("description", definition.description());
 
         if (definition.flowNodes() != null) {
@@ -149,6 +150,7 @@ public final class ProcessDefinitionMapper {
         return ProcessDefinition.builder()
                 .id(doc.getString("_id"))
                 .key(doc.getString("key"))
+                .checksum(doc.getString("checksum"))
                 .name(doc.getString("name"))
                 .version(doc.getInteger("version"))
                 .description(doc.getString("description"))
