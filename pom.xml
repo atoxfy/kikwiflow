@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.kikwiflow</groupId>
     <artifactId>kikwiflow-parent</artifactId>
-    <version>0.1.3-SNAPSHOT</version>
+    <version>0.1.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>kikwiflow :: Parent</name>
     <scm>
@@ -55,6 +55,8 @@
         <module>kikwi-delegate-api</module>
         <module>kikwi-rule-api</module>
         <module>kikwi-view-models</module>
+        <module>kikwi-runtime-persistence-mongodb-spring-boot-autoconfigure</module>
+        <module>kikwi-runtime-persistence-mongodb-spring-boot-starter</module>
     </modules>
     <distributionManagement>
         <repository>
