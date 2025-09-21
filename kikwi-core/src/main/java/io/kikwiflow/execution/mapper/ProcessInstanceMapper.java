@@ -29,6 +29,7 @@ public final class ProcessInstanceMapper {
         // Utility class
     }
 
+    //TODO REVISAR
     public static ProcessInstanceFinished maoToFinishedEvent(final ProcessInstance processInstance) {
         ProcessInstanceFinished processInstanceEntity = new ProcessInstanceFinished();
         processInstanceEntity.setId(processInstance.id());
@@ -51,7 +52,8 @@ public final class ProcessInstanceMapper {
             instance.getProcessDefinitionId(),
             Map.copyOf(instance.getVariables()),
             instance.getStartedAt(),
-            instance.getEndedAt(), instance.getOrigin()
+            instance.getEndedAt(),
+            instance.getOrigin()
 
         );
     }
@@ -65,7 +67,7 @@ public final class ProcessInstanceMapper {
         processInstanceEntity.setVariables(new HashMap<>(processInstance.variables()));
         processInstanceEntity.setStartedAt(processInstance.startedAt());
         processInstanceEntity.setOrigin(processInstance.origin());
-
+        processInstanceEntity.setTenantId(processInstance.tenantId());
         return processInstanceEntity;
     }
 }
