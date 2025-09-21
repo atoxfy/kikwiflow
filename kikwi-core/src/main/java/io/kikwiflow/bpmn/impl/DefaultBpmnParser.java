@@ -45,7 +45,7 @@ public class DefaultBpmnParser implements BpmnParser {
 
     private static final String CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn";
     private static final String BPMN_NS = "http://www.omg.org/spec/BPMN/20100524/MODEL";
-    
+
     @Override
     public ProcessDefinition parse(InputStream bpmnXmlFileStream) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -61,6 +61,7 @@ public class DefaultBpmnParser implements BpmnParser {
         ProcessDefinitionGraph processDefinitionGraphDeploy = new ProcessDefinitionGraph();
         processDefinitionGraphDeploy.setKey(processElement.getAttribute("id"));
         processDefinitionGraphDeploy.setName(processElement.getAttribute("name"));
+        processDefinitionGraphDeploy.setDescription(processElement.getAttributeNS(BPMN_NS,"documentation"));
 
         NodeList childNodes = processElement.getChildNodes();
         for (int i = 0; i < childNodes.getLength(); i++) {

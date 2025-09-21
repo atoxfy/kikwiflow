@@ -97,7 +97,7 @@ public class KikwiflowEngine {
      * @throws SecurityException se o tenantId fornecido não corresponder ao tenantId da instância do processo.
      */
     public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables) {
-        ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)
+        ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)//CRIAR UM FIND AND LOCK
             .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
 
         if (!Objects.equals(taskToComplete.tenantId(), tenantId)) {
@@ -153,7 +153,6 @@ public class KikwiflowEngine {
     public ProcessDefinition deployDefinition(InputStream is) throws Exception {
         return processDefinitionService.deploy(is);
     }
-
 
     /**
      * Inicia a construção de uma nova instância de processo de forma fluente.

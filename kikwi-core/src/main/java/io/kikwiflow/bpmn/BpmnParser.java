@@ -27,5 +27,5 @@ import java.io.InputStream;
  * @author Emiliano Fagundes
  */
 public interface BpmnParser {
-    public ProcessDefinition parse(InputStream bpmnFileStream) throws Exception;
+     ProcessDefinition parse(InputStream bpmnFileStream) throws Exception;
 }

@@ -68,28 +68,8 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
-    public void updateVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
-        inMemoryKikwiEngineRepository.updateVariables(processInstanceId, variables);
-    }
-
-    @Override
-    public ExternalTask createExternalTask(ExternalTask task) {
-        return inMemoryKikwiEngineRepository.createExternalTask(task);
-    }
-
-    @Override
-    public Optional<ExternalTask> completeExternalTask(String externalTaskId) {
-        return inMemoryKikwiEngineRepository.completeExternalTask(externalTaskId);
-    }
-
-    @Override
     public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
         return inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
-    }
-
-    @Override
-    public ExecutableTask createExecutableTask(ExecutableTask task) {
-        return inMemoryKikwiEngineRepository.createExecutableTask(task);
     }
 
     @Override
@@ -100,11 +80,6 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey) {
         return inMemoryKikwiEngineRepository.findProcessDefinitionByKey(processDefinitionKey);
-    }
-
-    @Override
-    public void deleteProcessInstanceById(String processInstanceId) {
-        this.inMemoryKikwiEngineRepository.deleteProcessInstanceById(processInstanceId);
     }
 
     @Override

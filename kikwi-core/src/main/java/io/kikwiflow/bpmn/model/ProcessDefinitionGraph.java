@@ -25,7 +25,7 @@ public class ProcessDefinitionGraph {
 
     private String key;
     private String name;
-
+    private String description;
     private Map<String, FlowNode> flowNodes = new HashMap<>();
     private FlowNode defaultStartPoint;
 
@@ -35,6 +35,14 @@ public class ProcessDefinitionGraph {
 
     public void setDefaultStartPoint(FlowNode defaultStartPoint) {
         this.defaultStartPoint = defaultStartPoint;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public void addFlowNode(FlowNode node) { this.flowNodes.put(node.getId(), node); }

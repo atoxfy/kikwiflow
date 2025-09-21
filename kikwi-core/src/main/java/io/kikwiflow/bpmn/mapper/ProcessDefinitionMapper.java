@@ -42,6 +42,6 @@ public final class ProcessDefinitionMapper {
                         entry -> FlowNodeMapper.toRecord(entry.getValue())));
 
 
-        return new ProcessDefinition(null, null, processDefinitionGraphDeploy.getKey(), processDefinitionGraphDeploy.getName(), flowNodeSnapshots, FlowNodeMapper.toRecord(processDefinitionGraphDeploy.getDefaultStartPoint()));
+        return new ProcessDefinition(null, null, processDefinitionGraphDeploy.getKey(), processDefinitionGraphDeploy.getName(), processDefinitionGraphDeploy.getDescription(), flowNodeSnapshots, FlowNodeMapper.toRecord(processDefinitionGraphDeploy.getDefaultStartPoint()));
     }
 }

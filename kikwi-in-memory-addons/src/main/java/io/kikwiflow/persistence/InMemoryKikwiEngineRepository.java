@@ -19,7 +19,6 @@ package io.kikwiflow.persistence;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
@@ -83,25 +82,8 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         return Optional.ofNullable(this.processInstanceCollection.get(processInstanceId));
     }
 
-    @Override
-    public void updateVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
-        findProcessInstanceById(processInstanceId)
-                .ifPresent(processInstance -> {
-                    ProcessInstance instanceToSave = ProcessInstance.builder()
-                            .id(processInstance.id())
-                            .businessKey(processInstance.businessKey())
-                            .processDefinitionId(processInstance.processDefinitionId())
-                            .status(processInstance.status())
-                            .endedAt(processInstance.endedAt())
-                            .variables(variables)
-                            .startedAt(processInstance.startedAt())
-                            .build();
 
-                    saveProcessInstance(instanceToSave);
-                });
-    }
 
-    @Override
     public ExecutableTask createExecutableTask(ExecutableTask executableTask) {
         ExecutableTask executableTaskToSave = ExecutableTask.builder()
                 .id(executableTask.id())
@@ -127,7 +109,6 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         return executableTaskToSave;
     }
 
-    @Override
     public ExternalTask createExternalTask(ExternalTask task) {
         ExternalTask externalTask = ExternalTask.builder()
                 .assignee(task.assignee())
@@ -146,11 +127,6 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
         this.externalTaskCollection.put(externalTask.id(), externalTask);
         return externalTask;
-    }
-
-    @Override
-    public Optional<ExternalTask> completeExternalTask(String externalTaskId) {
-        return Optional.empty();
     }
 
     @Override
@@ -183,6 +159,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .name(processDefinition.name())
                 .defaultStartPoint(processDefinition.defaultStartPoint())
                 .flowNodes(processDefinition.flowNodes())
+                .description(processDefinition.description())
                 .build();
 
         this.processDefinitionCollection.put(key, processDefinitionToSave);
@@ -204,11 +181,6 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
         processDefinitionVersionMap.put(processDefinition.version(), processDefinition);
         processDefinitionHistoryCollection.put(key, processDefinitionVersionMap);
-    }
-
-    @Override
-    public void deleteProcessInstanceById(String processInstanceId) {
-        this.processInstanceCollection.remove(processInstanceId);
     }
 
     @Override
