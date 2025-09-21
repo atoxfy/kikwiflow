@@ -23,7 +23,6 @@ import org.bson.Document;
 import org.bson.types.Decimal128;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -86,8 +85,8 @@ public final class ProcessInstanceMapper {
                 .status(ProcessInstanceStatus.valueOf(doc.getString("status")))
                 .processDefinitionId(doc.getString("processDefinitionId"))
                 .variables(variables)
-                .startedAt(doc.get("startedAt", Instant.class))
-                .endedAt(doc.get("endedAt", Instant.class))
+                .startedAt(InstantMapper.mapToInstant("startedAt", doc))
+                .endedAt(InstantMapper.mapToInstant("endedAt", doc))
                 .origin(doc.getString("origin"))
                 .build();
     }

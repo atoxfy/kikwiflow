@@ -20,7 +20,6 @@ import io.kikwiflow.model.execution.enumerated.ExternalTaskStatus;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import org.bson.Document;
 
-import java.time.Instant;
 import java.util.Collections;
 
 
@@ -59,7 +58,7 @@ public final class ExternalTaskMapper {
                 .processInstanceId(doc.getString("processInstanceId"))
                 .processDefinitionId(doc.getString("processDefinitionId"))
                 .status(status)
-                .createdAt(doc.get("createdAt", Instant.class))
+                .createdAt(InstantMapper.mapToInstant("createdAt", doc))
                 .topicName(doc.getString("topicName"))
                 .assignee(doc.getString("assignee"))
                 .tenantId(doc.getString("tenantId"))
