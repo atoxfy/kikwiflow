@@ -22,6 +22,8 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.DeleteManyModel;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.InsertOneModel;
 import com.mongodb.client.model.ReplaceOptions;
@@ -51,6 +53,7 @@ import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.in;
 import static com.mongodb.client.model.Filters.lte;
+import static com.mongodb.client.model.Filters.or;
 
 public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     
@@ -59,6 +62,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     private final String EXTERNAL_TASK_COLLECTION = "external_tasks";
     private final String EXECUTABLE_TASK_COLLECTION = "executable_tasks";
 
+    private final String PROCESS_INSTANCE_HISTORY_COLLECTION = "process_instances_history";
     
     private final MongoClient mongoClient;
     private final String databaseName;
@@ -82,10 +86,20 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
     @Override
     public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy) {
+
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
-        Document doc = ProcessDefinitionMapper.toDocument(processDefinitionDeploy);
-        collection.replaceOne(eq("_id", processDefinitionDeploy.id()), doc, new ReplaceOptions().upsert(true));
-        return processDefinitionDeploy;
+
+        Optional<ProcessDefinition> last = findProcessDefinitionByKey(processDefinitionDeploy.key());
+        int nextVersion = last.map(def -> def.version() + 1).orElse(1);
+
+        ProcessDefinition definitionToSave = new ProcessDefinition(
+                processDefinitionDeploy.id(), nextVersion, processDefinitionDeploy.key(), processDefinitionDeploy.name()
+                , processDefinitionDeploy.description(), processDefinitionDeploy.flowNodes(), processDefinitionDeploy.defaultStartPoint()
+        );
+
+        Document doc = ProcessDefinitionMapper.toDocument(definitionToSave);
+        collection.replaceOne(eq("_id", definitionToSave.id()), doc, new ReplaceOptions().upsert(true));
+        return definitionToSave;
     }
 
     @Override
@@ -116,6 +130,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         try (ClientSession clientSession = mongoClient.startSession()) {
             clientSession.withTransaction(() -> {
                 MongoCollection<Document> processInstances = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
+                MongoCollection<Document> processHistory = getDatabase().getCollection(PROCESS_INSTANCE_HISTORY_COLLECTION);
                 MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
                 MongoCollection<Document> executableTasks = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
 
@@ -168,7 +183,10 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         for (int i = 0; i < limit; i++) {
             Bson filter = and(
                     eq("status", "PENDING"),
-                    lte("dueDate", now)
+                    or(
+                            eq("dueDate", null),
+                            lte("dueDate", now)
+                    )
             );
 
             Bson update = Updates.combine(
@@ -291,5 +309,36 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 .into(externalTasks);
 
         return externalTasks;
+    }
+
+    public void ensureIndexes() {
+        // indice para ProcessDefinition usando KEY e version
+        getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION).createIndex(
+                Indexes.compoundIndex(Indexes.ascending("key"), Indexes.descending("version")),
+                new IndexOptions().name("key_version_idx")
+        );
+
+        // indice de tarefas executaveis baseada em status e due date
+        getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION).createIndex(
+                Indexes.compoundIndex(Indexes.ascending("status"), Indexes.ascending("dueDate")),
+                new IndexOptions().name("status_duedate_idx")
+        );
+
+        // indice de tarefas externas por process instance id
+        MongoCollection<Document> externalTaskCollection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+        externalTaskCollection.createIndex(Indexes.ascending("processInstanceId"), new IndexOptions().name("proc_inst_idx"));
+
+        // indice de tarefas externas por process definition id e tenant
+        externalTaskCollection.createIndex(
+                Indexes.compoundIndex(Indexes.ascending("processDefinitionId"), Indexes.ascending("tenantId")),
+                new IndexOptions().name("proc_def_tenant_idx")
+        );
+
+
+        // indice de tarefas externas por assignee id e tenant
+        externalTaskCollection.createIndex(
+                Indexes.compoundIndex(Indexes.ascending("assignee"), Indexes.ascending("tenantId")),
+                new IndexOptions().name("assignee_tenant_idx")
+        );
     }
 }

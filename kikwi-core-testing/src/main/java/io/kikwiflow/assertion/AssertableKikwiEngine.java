@@ -176,4 +176,9 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
         assertFalse(findProcessInstanceById(processInstanceId).isPresent(),
                 "A instância de processo " + processInstanceId + " deveria estar completa e não na coleção ativa.");
     }
+
+    @Override
+    public void ensureIndexes() {
+
+    }
 }

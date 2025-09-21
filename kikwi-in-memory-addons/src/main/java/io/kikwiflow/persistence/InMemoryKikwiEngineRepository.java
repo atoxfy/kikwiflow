@@ -280,4 +280,9 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .filter(t -> Objects.equals(assignee, t.assignee()) && Objects.equals(tenantId, t.tenantId()))
                 .toList();
     }
+
+    @Override
+    public void ensureIndexes() {
+
+    }
 }

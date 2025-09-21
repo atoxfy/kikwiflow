@@ -20,6 +20,7 @@ package io.kikwiflow.persistence.mongodb.autoconfigure;
 import com.mongodb.client.MongoClient;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.persistence.mongodb.repository.MongoKikwiEngineRepository;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -35,5 +36,12 @@ public class MongoDbPersistenceAutoConfiguration {
     public KikwiEngineRepository kikwiEngineRepository(MongoClient mongoClient, MongoProperties mongoProperties) {
         String databaseName = mongoProperties.getDatabase();
         return new MongoKikwiEngineRepository(mongoClient, databaseName);
+    }
+
+    @Bean
+    public ApplicationRunner indexCreator(KikwiEngineRepository kikwiEngineRepository){
+        return args -> {
+            kikwiEngineRepository.ensureIndexes();
+        };
     }
 }
