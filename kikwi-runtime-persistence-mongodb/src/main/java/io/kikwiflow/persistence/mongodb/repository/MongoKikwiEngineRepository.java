@@ -44,6 +44,7 @@ import io.kikwiflow.persistence.mongodb.mapper.ProcessInstanceMapper;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
+import java.util.Collections;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,8 +63,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     private final String EXTERNAL_TASK_COLLECTION = "external_tasks";
     private final String EXECUTABLE_TASK_COLLECTION = "executable_tasks";
 
-    private final String PROCESS_INSTANCE_HISTORY_COLLECTION = "process_instances_history";
-    
+
     private final MongoClient mongoClient;
     private final String databaseName;
 
@@ -139,9 +139,12 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         try (ClientSession clientSession = mongoClient.startSession()) {
             clientSession.withTransaction(() -> {
                 MongoCollection<Document> processInstances = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
-                MongoCollection<Document> processHistory = getDatabase().getCollection(PROCESS_INSTANCE_HISTORY_COLLECTION);
                 MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
                 MongoCollection<Document> executableTasks = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
+
+                if (unitOfWork.instanceToDelete() != null) {
+                    processInstances.deleteOne(eq("_id", unitOfWork.instanceToDelete().id()));
+                }
 
                 if (unitOfWork.instanceToUpdate() != null) {
                     Document instanceDoc = ProcessInstanceMapper.toDocument(unitOfWork.instanceToUpdate());
@@ -176,6 +179,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 if (!executableTaskWrites.isEmpty()) {
                     executableTasks.bulkWrite(clientSession, executableTaskWrites);
                 }
+
 
                 // TODO: Lidar com a persistência de Outbox Events
 
@@ -228,6 +232,22 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
         return Optional.ofNullable(doc)
                 .map(ProcessInstanceMapper::fromDocument);
+    }
+
+    @Override
+    public List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
+        List<ProcessInstance> instances = new ArrayList<>();
+
+        collection.find(in("_id", ids))
+                .map(ProcessInstanceMapper::fromDocument)
+                .into(instances);
+
+        return instances;
     }
 
     @Override

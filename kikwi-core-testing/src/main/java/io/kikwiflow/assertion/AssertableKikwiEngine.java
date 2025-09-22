@@ -68,6 +68,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids) {
+        return List.of();
+    }
+
+    @Override
     public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
         return inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
     }

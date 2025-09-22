@@ -29,6 +29,8 @@ public interface QueryRepository {
 
     Optional<ProcessInstance> findProcessInstanceById(String processInstanceId);
 
+    List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids);
+
     List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId);
 
     Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey);

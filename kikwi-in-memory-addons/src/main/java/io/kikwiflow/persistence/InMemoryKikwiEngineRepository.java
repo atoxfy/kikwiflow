@@ -82,6 +82,10 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         return Optional.ofNullable(this.processInstanceCollection.get(processInstanceId));
     }
 
+    @Override
+    public List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids) {
+        return List.of();
+    }
 
 
     public ExecutableTask createExecutableTask(ExecutableTask executableTask) {
