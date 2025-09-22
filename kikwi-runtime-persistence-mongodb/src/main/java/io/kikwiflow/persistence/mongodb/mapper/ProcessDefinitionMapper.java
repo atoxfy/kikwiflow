@@ -101,6 +101,11 @@ public final class ProcessDefinitionMapper {
                             .collect(Collectors.toList()));
                 }
             }
+            case ExclusiveGatewayDefinition gt-> {
+                if(gt.defaultFlow() != null){
+                    doc.append("defaultFlow", gt.defaultFlow());
+                }
+            }
             case ManualTaskDefinition mt -> {
                 if (mt.boundaryEvents() != null) {
                     doc.append("boundaryEvents", mt.boundaryEvents().stream()
@@ -235,6 +240,7 @@ public final class ProcessDefinitionMapper {
                 .description(doc.getString("description"))
                 .commitBefore(doc.getBoolean("commitBefore"))
                 .commitAfter(doc.getBoolean("commitAfter"))
+                .defaultFlow(doc.getString("defaultFlow"))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .build();
