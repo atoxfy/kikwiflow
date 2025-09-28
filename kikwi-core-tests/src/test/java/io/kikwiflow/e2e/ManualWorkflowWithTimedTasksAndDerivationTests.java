@@ -70,7 +70,7 @@ public class ManualWorkflowWithTimedTasksAndDerivationTests {
         this.decisionRuleResolver = new TestDecisionRuleResolver();
 
         fooServiceTaskDelegate = spy(new TestJavaDelegate(context -> {
-            context.setVariable(EXPECTED_VARIABLE_ON_EXCEPTIONAL_FLOW, new ProcessVariable(EXPECTED_VARIABLE_ON_EXCEPTIONAL_FLOW, ProcessVariableVisibility.PUBLIC, null, EXPECTED_VARIABLE_VALUE_ON_EXCEPTIONAL_FLOW));
+            context.setVariable(EXPECTED_VARIABLE_ON_EXCEPTIONAL_FLOW, new ProcessVariable(EXPECTED_VARIABLE_ON_EXCEPTIONAL_FLOW, ProcessVariableVisibility.PUBLIC, null, false, EXPECTED_VARIABLE_VALUE_ON_EXCEPTIONAL_FLOW));
         }));
 
         delegateResolver.register("fooServiceTaskDelegate", fooServiceTaskDelegate);

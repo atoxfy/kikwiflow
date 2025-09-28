@@ -104,7 +104,7 @@ public class LinearServiceTaskTasksTests {
         Map<String, ProcessVariable> startVariables = new HashMap<>();
         String initialVar = UUID.randomUUID().toString();
         String initialVarKey = "myVar";
-        ProcessVariable initialProcessVar = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, initialVar);
+        ProcessVariable initialProcessVar = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, false, initialVar);
         startVariables.put(initialVarKey, initialProcessVar);
 
         // Configure spies to perform assertions at the time of invocation

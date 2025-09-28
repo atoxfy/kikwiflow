@@ -21,6 +21,6 @@ import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 
 import java.util.List;
 
-public record ProcessVariable(String name, ProcessVariableVisibility visibility, List<String> roles, Object value) {
+public record ProcessVariable(String name, ProcessVariableVisibility visibility, List<String> roles, boolean isTransient, Object value) {
 
 }

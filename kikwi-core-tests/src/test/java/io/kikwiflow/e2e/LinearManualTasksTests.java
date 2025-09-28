@@ -99,7 +99,7 @@ public class LinearManualTasksTests {
         Map<String, ProcessVariable> startVariables = new HashMap<>();
         String initialVar = UUID.randomUUID().toString();
         String initialVarKey = "myVar";
-        ProcessVariable processVariable = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, initialVar);
+        ProcessVariable processVariable = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, false, initialVar);
         startVariables.put(initialVarKey, processVariable);
 
         //act
@@ -144,7 +144,7 @@ public class LinearManualTasksTests {
                 .orElseThrow(() -> new AssertionError("Tarefa não encontrada: " + currentTaskDefinitionId));
 
             // Complete the task
-            ProcessVariable processVariable = new ProcessVariable("task" + i + "_completed", ProcessVariableVisibility.PUBLIC, null, true);
+            ProcessVariable processVariable = new ProcessVariable("task" + i + "_completed", ProcessVariableVisibility.PUBLIC, null, false,true);
             Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
             processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables);
 

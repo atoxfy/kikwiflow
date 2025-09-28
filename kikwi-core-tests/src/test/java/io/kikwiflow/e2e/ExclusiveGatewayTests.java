@@ -70,11 +70,11 @@ public class ExclusiveGatewayTests {
         this.decisionRuleResolver = new TestDecisionRuleResolver();
 
         findPersonDataDelegate = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,"done"));
         }));
 
         doPaymentDelegate = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step2", new ProcessVariable("step2", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step2", new ProcessVariable("step2", ProcessVariableVisibility.PUBLIC, null, false,"done"));
         }));
 
         isPersonDataFilled = spy(new TestDecisionRule());

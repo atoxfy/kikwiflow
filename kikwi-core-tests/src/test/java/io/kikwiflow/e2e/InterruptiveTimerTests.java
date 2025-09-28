@@ -70,7 +70,7 @@ public class InterruptiveTimerTests {
         this.decisionRuleResolver = new TestDecisionRuleResolver();
 
         sendToRecovery = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,"done"));
         }));
 
         delegateResolver.register("sendToRecovery", sendToRecovery);
@@ -168,7 +168,7 @@ public class InterruptiveTimerTests {
                 .orElseThrow(() -> new AssertionError("Tarefa não encontrada: doContactTask"));
 
 
-        ProcessVariable processVariable = new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, true);
+        ProcessVariable processVariable = new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,true);
         Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
         processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables);
         // Assert: Fase 3 - Finalização
