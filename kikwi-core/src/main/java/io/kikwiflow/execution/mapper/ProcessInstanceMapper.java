@@ -68,6 +68,7 @@ public final class ProcessInstanceMapper {
         processInstanceEntity.setStartedAt(processInstance.startedAt());
         processInstanceEntity.setOrigin(processInstance.origin());
         processInstanceEntity.setTenantId(processInstance.tenantId());
+        processInstanceEntity.setBusinessValue(processInstance.businessValue());
         return processInstanceEntity;
     }
 }

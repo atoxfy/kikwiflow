@@ -44,6 +44,12 @@ public interface QueryRepository {
     Optional<ExecutableTask> findAndGetFirstPendingExecutableTask(String id);
 
     List<ProcessInstance> findProcessInstanceByProcessDefinitionId(String processDefinitionId, String tenantId);
+
     List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, String tenantId);
+
+    List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId);
+
+    List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, List<String> tenantIds);
+
     List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId);
 }

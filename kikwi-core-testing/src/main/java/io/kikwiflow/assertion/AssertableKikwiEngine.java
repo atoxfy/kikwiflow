@@ -69,7 +69,7 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
 
     @Override
     public List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids) {
-        return List.of();
+        return inMemoryKikwiEngineRepository.findProcessInstancesByIdIn(ids);
     }
 
     @Override
@@ -125,6 +125,16 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, String tenantId) {
         return this.inMemoryKikwiEngineRepository.findExternalTasksByProcessDefinitionId(processDefinitionId, tenantId);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByProcessDefinitionId(processDefinitionId);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, List<String> tenantIds) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByProcessDefinitionId(processDefinitionId, tenantIds);
     }
 
     @Override

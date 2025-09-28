@@ -278,6 +278,16 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId) {
+        return List.of();
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, List<String> tenantIds) {
+        return List.of();
+    }
+
+    @Override
     public List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId) {
         return this.externalTaskCollection.values()
                 .stream()

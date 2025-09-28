@@ -150,7 +150,11 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     Document instanceDoc = ProcessInstanceMapper.toDocument(unitOfWork.instanceToUpdate());
                     processInstances.replaceOne(clientSession, eq("_id", unitOfWork.instanceToUpdate().id()), instanceDoc);
                 }
-               
+
+                if(unitOfWork.events() != null){
+
+                }
+
                 List<WriteModel<Document>> externalTaskWrites = new ArrayList<>();
                 if (unitOfWork.externalTasksToCreate() != null && !unitOfWork.externalTasksToCreate().isEmpty()) {
                     unitOfWork.externalTasksToCreate().forEach(task ->
@@ -321,7 +325,43 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
         return externalTasks;
     }
- 
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId) {
+        MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+
+        List<Bson> filters = new ArrayList<>();
+
+        filters.add(eq("processDefinitionId", processDefinitionId));
+        Bson finalFilter = and(filters);
+
+        List<ExternalTask> externalTasks = new ArrayList<>();
+        collection.find(finalFilter)
+                .map(ExternalTaskMapper::fromDocument)
+                .into(externalTasks);
+
+        return externalTasks;
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, List<String> tenantIds) {
+        MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+
+        List<Bson> filters = new ArrayList<>();
+
+        filters.add(eq("processDefinitionId", processDefinitionId));
+        filters.add(in("tenantId", tenantIds));
+
+        Bson finalFilter = and(filters);
+
+        List<ExternalTask> externalTasks = new ArrayList<>();
+        collection.find(finalFilter)
+                .map(ExternalTaskMapper::fromDocument)
+                .into(externalTasks);
+
+        return externalTasks;
+    }
+
     @Override
     public List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId) {
         MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
