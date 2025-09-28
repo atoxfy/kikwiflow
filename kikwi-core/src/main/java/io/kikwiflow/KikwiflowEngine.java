@@ -155,6 +155,10 @@ public class KikwiflowEngine {
         return processDefinitionService.deploy(is);
     }
 
+    public void clearDefinitionCache(){
+        processDefinitionService.clearCache();
+    }
+
     /**
      * Inicia a construção de uma nova instância de processo de forma fluente.
      *

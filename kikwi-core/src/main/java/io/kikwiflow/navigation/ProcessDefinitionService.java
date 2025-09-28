@@ -69,7 +69,9 @@ public class ProcessDefinitionService {
     public ProcessDefinition deploy(InputStream inputStream) throws Exception {
         ProcessDefinition processDefinitionDeploy = bpmnParser.parse(inputStream);
         deployValidator.validate(processDefinitionDeploy);
-        return kikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
+        ProcessDefinition processDefinition =  kikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
+        processDefinitionCache.clear();;
+        return processDefinition;
     }
 
     /**
@@ -120,5 +122,9 @@ public class ProcessDefinitionService {
     private Optional<ProcessDefinition> getAndLoadOnCacheById(String processDefinitionId){
         return kikwiEngineRepository.findProcessDefinitionById(processDefinitionId)
                 .map(processDefinitionCache::add);
+    }
+
+    public void clearCache(){
+        processDefinitionCache.clear();
     }
 }
