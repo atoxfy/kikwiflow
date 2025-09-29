@@ -62,7 +62,7 @@ public class Navigator {
             Optional<SequenceFlowDefinition> chosenFlow = Optional.empty();
 
             if (targetFlowId != null && !targetFlowId.isBlank()) {
-                chosenFlow = outgoingFlows.stream().filter(sf -> sf.id().equals(targetFlowId)).findFirst();
+                chosenFlow = outgoingFlows.stream().filter(sf -> sf.targetNodeId().equals(targetFlowId)).findFirst();
             }
 
             if (chosenFlow.isEmpty()) {
