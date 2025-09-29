@@ -41,26 +41,16 @@ import java.util.Optional;
  */
 public class Navigator {
 
+
     private final DecisionRuleResolver decisionRuleResolver;
 
     public Navigator(DecisionRuleResolver decisionRuleResolver) {
         this.decisionRuleResolver = decisionRuleResolver;
     }
 
-    /**
-     * Determina a próxima continuação (próximos passos) após a conclusão de um nó.
-     * <p>
-     * Atualmente, suporta apenas um fluxo de saída linear. Lógicas para gateways
-     * (paralelo, exclusivo) serão adicionadas no futuro.
-     *
-     * @param completedNode O nó que acabou de ser executado.
-     * @param processDefinition A definição do processo à qual o nó pertence.
-     * @param forceAsync Se a continuação deve ser forçada a ser assíncrona (por exemplo, após um commit).
-     * @return Um objeto {@link Continuation} descrevendo os próximos nós e se a execução
-     *         deve ser síncrona ou assíncrona. Retorna {@code null} se for um nó final.
-     */
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync) {
 
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync, String targetFlowId) {
+        //todo mudar para usar logica de optional.or
         List<SequenceFlowDefinition> outgoingFlows = completedNode.outgoing();
 
         if (outgoingFlows.isEmpty()) {
@@ -70,14 +60,24 @@ public class Navigator {
         List<FlowNodeDefinition> nextNodes = new ArrayList<>();
         if (completedNode instanceof ExclusiveGatewayDefinition gateway) {
             Optional<SequenceFlowDefinition> chosenFlow = Optional.empty();
-            for (SequenceFlowDefinition flow : outgoingFlows) {
-                if (flow.condition() != null && !flow.condition().isBlank()) {
-                    DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition()).orElseThrow(
-                            () -> new DecisionRuleNotFoundException("DecisionRule not found with key: " + flow.condition()));
 
-                    if (decisionRule.evaluate(variables)) {
-                        chosenFlow = Optional.of(flow);
-                        break;
+            if (targetFlowId != null && !targetFlowId.isBlank()) {
+                chosenFlow = outgoingFlows.stream().filter(sf -> sf.id().equals(targetFlowId)).findFirst();
+                if (chosenFlow.isEmpty()) {
+                    throw new IllegalArgumentException("Invalid targetFlowId: '" + targetFlowId + "' is not a valid outgoing flow for gateway '" + gateway.id() + "'.");
+                }
+            }
+
+            if (chosenFlow.isEmpty()) {
+                for (SequenceFlowDefinition flow : outgoingFlows) {
+                    if (flow.condition() != null && !flow.condition().isBlank()) {
+                        DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition()).orElseThrow(
+                                () -> new DecisionRuleNotFoundException("DecisionRule not found with key: " + flow.condition()));
+
+                        if (decisionRule.evaluate(variables)) {
+                            chosenFlow = Optional.of(flow);
+                            break;
+                        }
                     }
                 }
             }

@@ -130,7 +130,7 @@ public class ProcessExecutionManager {
             }
 
             boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());
-            Continuation continuation = navigator.determineNextContinuation(currentNode, processDefinition, processInstance.getVariables(), isCommitAfter);
+            Continuation continuation = navigator.determineNextContinuation(currentNode, processDefinition, processInstance.getVariables(), isCommitAfter, null);
             isFirstNodeInLoop = false;
 
             if (continuation == null || continuation.isAsynchronous()) {

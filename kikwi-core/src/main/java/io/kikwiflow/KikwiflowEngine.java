@@ -97,7 +97,7 @@ public class KikwiflowEngine {
      * @throws ProcessInstanceNotFoundException se a instância de processo associada não for encontrada.
      * @throws SecurityException se o tenantId fornecido não corresponder ao tenantId da instância do processo.
      */
-    public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables) {
+    public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables, String targetFlowNodeId) {
         ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)//CRIAR UM FIND AND LOCK
             .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
 
@@ -119,7 +119,7 @@ public class KikwiflowEngine {
         }
 
         FlowNodeDefinition completedNode = processDefinition.flowNodes().get(taskToComplete.taskDefinitionId());
-        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false);
+        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false, targetFlowNodeId);
 
         ExecutionResult executionResult;
         if (continuation != null && !continuation.nextNodes().isEmpty()) {

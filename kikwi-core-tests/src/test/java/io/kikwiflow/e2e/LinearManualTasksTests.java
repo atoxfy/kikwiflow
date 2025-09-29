@@ -146,7 +146,7 @@ public class LinearManualTasksTests {
             // Complete the task
             ProcessVariable processVariable = new ProcessVariable("task" + i + "_completed", ProcessVariableVisibility.PUBLIC, null, false,true);
             Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
-            processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables);
+            processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables, null);
 
             // Assert the state after each completion
             if (i < 5) {

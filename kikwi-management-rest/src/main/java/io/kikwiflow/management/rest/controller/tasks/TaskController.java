@@ -58,7 +58,7 @@ public class TaskController {
 
     @PostMapping("/{taskId}/complete")
     public ResponseEntity<ProcessInstance> completeTask(@PathVariable String taskId, @RequestBody(required = false) Map<String, ProcessVariable> variables) {
-        ProcessInstance instance = commandEngine.completeExternalTask(taskId, null, variables);
+        ProcessInstance instance = commandEngine.completeExternalTask(taskId, null, variables, null);
         return ResponseEntity.ok(instance);
     }
 }

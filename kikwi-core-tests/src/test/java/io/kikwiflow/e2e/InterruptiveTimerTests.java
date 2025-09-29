@@ -170,7 +170,7 @@ public class InterruptiveTimerTests {
 
         ProcessVariable processVariable = new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,true);
         Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
-        processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables);
+        processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables, null);
         // Assert: Fase 3 - Finalização
         assertEquals(ProcessInstanceStatus.COMPLETED, processInstance.status(), "O processo deveria estar completo.");
         assertNotNull(processInstance.endedAt(), "O processo deveria ter uma data de término.");

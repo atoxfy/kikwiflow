@@ -51,7 +51,7 @@ public class NavigationController {
                 .map(processDefinition -> {
                     FlowNodeDefinition flowNodeDefinition = processDefinition.flowNodes().get(flowNodeDefinitionId);
                     if(Objects.isNull(flowNodeDefinition)) throw new RuntimeException("FlowNodeDefinition not found");
-                    Continuation continuation = navigator.determineNextContinuation(flowNodeDefinition, processDefinition, VariablesMapper.map(simulateContinuationRequest.variables()), false);
+                    Continuation continuation = navigator.determineNextContinuation(flowNodeDefinition, processDefinition, VariablesMapper.map(simulateContinuationRequest.variables()), false, null);
                     return ResponseEntity.ok(continuation);
                 })
                 .orElseThrow();
