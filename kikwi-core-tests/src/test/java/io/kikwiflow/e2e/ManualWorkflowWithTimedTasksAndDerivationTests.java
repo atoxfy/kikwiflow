@@ -48,6 +48,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 
 public class ManualWorkflowWithTimedTasksAndDerivationTests {
@@ -143,6 +144,6 @@ public class ManualWorkflowWithTimedTasksAndDerivationTests {
         WorkflowStage stage3 = workflow.stages().get(2);
         assertEquals("EXTERNAL_TASK_3", stage3.id());
         assertEquals("EXTERNAL_TASK_3", stage3.name());
-        assertNull(stage3.outgoing(), "O último estágio não deveria ter saídas.");
+        assertTrue(null == stage3.outgoing() || stage3.outgoing().isEmpty(), "O último estágio não deveria ter saídas.");
     }
 }
