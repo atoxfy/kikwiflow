@@ -26,7 +26,9 @@ public record ExclusiveGatewayDefinition(String id,
                                          String description,
                                          Boolean commitAfter,
                                          Boolean commitBefore,
-                                         List<SequenceFlowDefinition> outgoing, Map<String, String> extensionProperties) implements FlowNodeDefinition {
+                                         String defaultFlow,
+                                         List<SequenceFlowDefinition> outgoing,
+                                         Map<String, String> extensionProperties) implements FlowNodeDefinition {
 
     public static Builder builder() {
         return new Builder();
@@ -38,7 +40,7 @@ public record ExclusiveGatewayDefinition(String id,
         private String description;
         private Boolean commitAfter;
         private Boolean commitBefore;
-
+        private String defaultFlow;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private Map<String, String> extensionProperties;
 
@@ -51,6 +53,11 @@ public record ExclusiveGatewayDefinition(String id,
 
         public Builder name(String name) {
             this.name = name;
+            return this;
+        }
+
+        public Builder defaultFlow(String defaultFlow) {
+            this.defaultFlow = defaultFlow;
             return this;
         }
 
@@ -82,7 +89,7 @@ public record ExclusiveGatewayDefinition(String id,
         }
 
         public ExclusiveGatewayDefinition build() {
-            return new ExclusiveGatewayDefinition(id, name, description, commitAfter, commitBefore, outgoing, extensionProperties);
+            return new ExclusiveGatewayDefinition(id, name, description, commitAfter, commitBefore, defaultFlow, outgoing, extensionProperties);
         }
     }
 }

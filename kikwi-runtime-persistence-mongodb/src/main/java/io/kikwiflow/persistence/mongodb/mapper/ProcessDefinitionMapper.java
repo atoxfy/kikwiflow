@@ -55,6 +55,7 @@ public final class ProcessDefinitionMapper {
                 .append("key", definition.key())
                 .append("name", definition.name())
                 .append("version", definition.version())
+                .append("checksum", definition.checksum())
                 .append("description", definition.description());
 
         if (definition.flowNodes() != null) {
@@ -98,6 +99,11 @@ public final class ProcessDefinitionMapper {
                     doc.append("boundaryEvents", st.boundaryEvents().stream()
                             .map(ProcessDefinitionMapper::toDocument)
                             .collect(Collectors.toList()));
+                }
+            }
+            case ExclusiveGatewayDefinition gt-> {
+                if(gt.defaultFlow() != null){
+                    doc.append("defaultFlow", gt.defaultFlow());
                 }
             }
             case ManualTaskDefinition mt -> {
@@ -149,6 +155,7 @@ public final class ProcessDefinitionMapper {
         return ProcessDefinition.builder()
                 .id(doc.getString("_id"))
                 .key(doc.getString("key"))
+                .checksum(doc.getString("checksum"))
                 .name(doc.getString("name"))
                 .version(doc.getInteger("version"))
                 .description(doc.getString("description"))
@@ -233,6 +240,7 @@ public final class ProcessDefinitionMapper {
                 .description(doc.getString("description"))
                 .commitBefore(doc.getBoolean("commitBefore"))
                 .commitAfter(doc.getBoolean("commitAfter"))
+                .defaultFlow(doc.getString("defaultFlow"))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .build();

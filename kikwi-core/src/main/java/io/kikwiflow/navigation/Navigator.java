@@ -16,6 +16,7 @@
  */
 package io.kikwiflow.navigation;
 
+import io.kikwiflow.exception.DecisionRuleNotFoundException;
 import io.kikwiflow.execution.DecisionRuleResolver;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
@@ -28,6 +29,7 @@ import io.kikwiflow.rule.api.DecisionRule;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Responsável pela lógica de navegação dentro do grafo de um processo BPMN.
@@ -39,78 +41,66 @@ import java.util.Map;
  */
 public class Navigator {
 
+
     private final DecisionRuleResolver decisionRuleResolver;
 
     public Navigator(DecisionRuleResolver decisionRuleResolver) {
         this.decisionRuleResolver = decisionRuleResolver;
     }
 
-    /**
-     * Determina a próxima continuação (próximos passos) após a conclusão de um nó.
-     * <p>
-     * Atualmente, suporta apenas um fluxo de saída linear. Lógicas para gateways
-     * (paralelo, exclusivo) serão adicionadas no futuro.
-     *
-     * @param completedNode O nó que acabou de ser executado.
-     * @param processDefinition A definição do processo à qual o nó pertence.
-     * @param forceAsync Se a continuação deve ser forçada a ser assíncrona (por exemplo, após um commit).
-     * @return Um objeto {@link Continuation} descrevendo os próximos nós e se a execução
-     *         deve ser síncrona ou assíncrona. Retorna {@code null} se for um nó final.
-     */
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync) {
 
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync, String targetFlowId) {
+        //todo mudar para usar logica de optional.or
         List<SequenceFlowDefinition> outgoingFlows = completedNode.outgoing();
 
         if (outgoingFlows.isEmpty()) {
-            // É um EndEvent ou um nó sem saída, o processo termina aqui.
             return null;
         }
 
         List<FlowNodeDefinition> nextNodes = new ArrayList<>();
+        if (completedNode instanceof ExclusiveGatewayDefinition gateway) {
+            Optional<SequenceFlowDefinition> chosenFlow = Optional.empty();
 
-        // Aqui futuramente adicionar logica por tipo de node
-        if (completedNode instanceof ExclusiveGatewayDefinition) {
+            if (targetFlowId != null && !targetFlowId.isBlank()) {
+                chosenFlow = outgoingFlows.stream().filter(sf -> sf.id().equals(targetFlowId)).findFirst();
+            }
 
-            FlowNodeDefinition defaultNextNode = null;
-            // encontrar o primeiro caminho cuja condição é verdadeira.
-            for (SequenceFlowDefinition flow : outgoingFlows) {
-                if (flow.condition() == null || flow.condition().isEmpty() ) {
-                   //É saida de um gateway e não possui condição
-                    if(defaultNextNode == null){
-                        defaultNextNode = processDefinition.flowNodes().get(flow.targetNodeId());
+            if (chosenFlow.isEmpty()) {
+                for (SequenceFlowDefinition flow : outgoingFlows) {
+                    if (flow.condition() != null && !flow.condition().isBlank()) {
+                        DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition()).orElseThrow(
+                                () -> new DecisionRuleNotFoundException("DecisionRule not found with key: " + flow.condition()));
+
+                        if (decisionRule.evaluate(variables)) {
+                            chosenFlow = Optional.of(flow);
+                            break;
+                        }
                     }
-                    continue;
-                }
-
-                DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition()).orElseThrow();
-                if (decisionRule.evaluate(variables)) {
-                    nextNodes.add(processDefinition.flowNodes().get(flow.targetNodeId()));
-                    break;
                 }
             }
 
-            if(nextNodes.isEmpty() && defaultNextNode != null){
-                nextNodes.add(defaultNextNode);
+            if (chosenFlow.isEmpty()) {
+                String defaultFlowId = gateway.defaultFlow();
+                if (defaultFlowId != null) {
+                    chosenFlow = outgoingFlows.stream().filter(sf -> sf.id().equals(defaultFlowId)).findFirst();
+                }
             }
 
-            if(nextNodes.isEmpty()){
-                throw new RuntimeException("Execution Error: cannot determine sequence flow");
+            if (chosenFlow.isPresent()) {
+                nextNodes.add(processDefinition.flowNodes().get(chosenFlow.get().targetNodeId()));
+            } else {
+                throw new IllegalStateException("Execution Error: Exclusive gateway '" + gateway.id() + "' has no valid outgoing sequence flow for the given variables.");
             }
 
         } else {
-            //para nodos de uma saida só
             String targetNodeId = outgoingFlows.get(0).targetNodeId();
             nextNodes.add(processDefinition.flowNodes().get(targetNodeId));
         }
 
-        // Agora, determinar se a continuação é síncrona ou assíncrona.
         boolean isAsync = false;
         if (forceAsync) {
-            // O nó anterior tinha um "commit-after", forçando a próxima etapa a ser assíncrona.
             isAsync = true;
         } else {
-            // Verificamos se o *próximo* nó pede para ser assíncrono.
-            // (Simplificado para um fluxo linear, o primeiro nó da lista decide)
             isAsync = Boolean.TRUE.equals(nextNodes.get(0).commitBefore());
         }
 

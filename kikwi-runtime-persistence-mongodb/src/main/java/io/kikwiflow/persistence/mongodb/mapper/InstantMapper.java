@@ -15,14 +15,18 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.rule.api;
+package io.kikwiflow.persistence.mongodb.mapper;
 
-import io.kikwiflow.model.execution.ProcessVariable;
+import org.bson.Document;
 
-import java.util.Map;
+import java.time.Instant;
+import java.util.Optional;
 
-public interface DecisionRule {
+public class InstantMapper {
 
-
-    boolean evaluate(Map<String, ProcessVariable> variables);
+    public static Instant mapToInstant(String attributeName, Document document){
+        return Optional.ofNullable(document.get(attributeName, java.util.Date.class))
+                .map(java.util.Date::toInstant)
+                .orElse(null);
+    }
 }

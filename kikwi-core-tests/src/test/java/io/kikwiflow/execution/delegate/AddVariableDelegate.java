@@ -28,7 +28,7 @@ public class AddVariableDelegate implements JavaDelegate {
         System.out.println("AddVariableDelegate =>  Before "  + execution.getVariable("food"));
 
         ProcessVariable processVariable = new ProcessVariable("food", ProcessVariableVisibility.PUBLIC,
-                null, "cheeseburger");
+                null, false,"cheeseburger");
         execution.setVariable("food", processVariable);
         System.out.println("AddVariableDelegate => After "  + execution.getVariable("food"));
 

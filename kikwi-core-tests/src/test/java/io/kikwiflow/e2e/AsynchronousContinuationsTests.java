@@ -73,16 +73,16 @@ public class AsynchronousContinuationsTests {
         // Criando spies para os delegates para que possamos verificar suas chamadas
         // Usamos uma classe concreta para evitar problemas do Mockito com lambdas.
         delegate1 = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,"done"));
         }));
         delegate2 = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step2", new ProcessVariable("step2", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step2", new ProcessVariable("step2", ProcessVariableVisibility.PUBLIC, null, false,"done"));
         }));
         delegate3 = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step3", new ProcessVariable("step3", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step3", new ProcessVariable("step3", ProcessVariableVisibility.PUBLIC, null, false, "done"));
         }));
         delegate4 = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step4", new ProcessVariable("step4", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step4", new ProcessVariable("step4", ProcessVariableVisibility.PUBLIC, null, false, "done"));
         }));
 
         delegateResolver.register("delegate1", delegate1);
@@ -92,7 +92,7 @@ public class AsynchronousContinuationsTests {
 
         KikwiflowConfig kikwiflowConfig = new KikwiflowConfig();
         DecisionRuleResolver decisionRuleResolver = new TestDecisionRuleResolver();
-        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine);
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine, SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
         Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
         ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator, kikwiflowConfig);
         List<ExecutionEventListener> executionEventListeners = null;

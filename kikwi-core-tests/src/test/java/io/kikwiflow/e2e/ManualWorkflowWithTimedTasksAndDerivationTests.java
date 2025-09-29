@@ -48,6 +48,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 
 public class ManualWorkflowWithTimedTasksAndDerivationTests {
@@ -70,7 +71,7 @@ public class ManualWorkflowWithTimedTasksAndDerivationTests {
         this.decisionRuleResolver = new TestDecisionRuleResolver();
 
         fooServiceTaskDelegate = spy(new TestJavaDelegate(context -> {
-            context.setVariable(EXPECTED_VARIABLE_ON_EXCEPTIONAL_FLOW, new ProcessVariable(EXPECTED_VARIABLE_ON_EXCEPTIONAL_FLOW, ProcessVariableVisibility.PUBLIC, null, EXPECTED_VARIABLE_VALUE_ON_EXCEPTIONAL_FLOW));
+            context.setVariable(EXPECTED_VARIABLE_ON_EXCEPTIONAL_FLOW, new ProcessVariable(EXPECTED_VARIABLE_ON_EXCEPTIONAL_FLOW, ProcessVariableVisibility.PUBLIC, null, false, EXPECTED_VARIABLE_VALUE_ON_EXCEPTIONAL_FLOW));
         }));
 
         delegateResolver.register("fooServiceTaskDelegate", fooServiceTaskDelegate);
@@ -79,7 +80,7 @@ public class ManualWorkflowWithTimedTasksAndDerivationTests {
         isExceptionFlowRule = spy(new TestDecisionRule());
         this.decisionRuleResolver.register(EXCEPTION_FLOW_RULE_NAME, isExceptionFlowRule);
 
-        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine);
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
         Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
         ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator, kikwiflowConfig);
         List<ExecutionEventListener> executionEventListeners = null;
@@ -108,11 +109,6 @@ public class ManualWorkflowWithTimedTasksAndDerivationTests {
 
 
     private static class TestDecisionRule implements DecisionRule {
-
-        @Override
-        public String getKey() {
-            return "isExceptionFlow";
-        }
 
         @Override
         public boolean evaluate(Map<String, ProcessVariable> variables) {
@@ -148,6 +144,6 @@ public class ManualWorkflowWithTimedTasksAndDerivationTests {
         WorkflowStage stage3 = workflow.stages().get(2);
         assertEquals("EXTERNAL_TASK_3", stage3.id());
         assertEquals("EXTERNAL_TASK_3", stage3.name());
-        assertNull(stage3.outgoing(), "O último estágio não deveria ter saídas.");
+        assertTrue(null == stage3.outgoing() || stage3.outgoing().isEmpty(), "O último estágio não deveria ter saídas.");
     }
 }

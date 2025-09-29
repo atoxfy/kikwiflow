@@ -70,11 +70,11 @@ public class ExclusiveGatewayTests {
         this.decisionRuleResolver = new TestDecisionRuleResolver();
 
         findPersonDataDelegate = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,"done"));
         }));
 
         doPaymentDelegate = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step2", new ProcessVariable("step2", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step2", new ProcessVariable("step2", ProcessVariableVisibility.PUBLIC, null, false,"done"));
         }));
 
         isPersonDataFilled = spy(new TestDecisionRule());
@@ -83,7 +83,7 @@ public class ExclusiveGatewayTests {
         delegateResolver.register("doPaymentDelegate", doPaymentDelegate);
 
         KikwiflowConfig kikwiflowConfig = new KikwiflowConfig();
-        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine);
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
         Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
         ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator, kikwiflowConfig);
         List<ExecutionEventListener> executionEventListeners = null;
@@ -137,11 +137,6 @@ public class ExclusiveGatewayTests {
     }
 
     private static class TestDecisionRule implements DecisionRule {
-
-        @Override
-        public String getKey() {
-            return "isPersonDataFilled";
-        }
 
         @Override
         public boolean evaluate(Map<String, ProcessVariable> variables) {

@@ -29,6 +29,7 @@ import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.validation.DeployValidator;
 
 public class SingletonsFactory {
 
@@ -36,8 +37,12 @@ public class SingletonsFactory {
         return new DefaultBpmnParser();
     }
 
-    public static ProcessDefinitionService processDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository repository) {
-        return new ProcessDefinitionService(bpmnParser, repository);
+    public static ProcessDefinitionService processDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository repository, DeployValidator deployValidator) {
+        return new ProcessDefinitionService(bpmnParser, repository, deployValidator);
+    }
+
+    public static DeployValidator deployValidator(DelegateResolver delegateResolver, DecisionRuleResolver decisionRuleResolver){
+        return new DeployValidator(delegateResolver, decisionRuleResolver);
     }
 
     public static Navigator navigator(DecisionRuleResolver decisionRuleResolver) {

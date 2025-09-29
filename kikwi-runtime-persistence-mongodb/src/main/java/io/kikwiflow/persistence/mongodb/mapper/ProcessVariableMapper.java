@@ -42,6 +42,7 @@ public final class ProcessVariableMapper {
                 doc.getString("name"),
                 ProcessVariableVisibility.valueOf(doc.getString("visibility")),
                 doc.getList("roles", String.class, Collections.emptyList()),
+                false,
                 doc.get("value")
         );
     }

@@ -82,6 +82,10 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         return Optional.ofNullable(this.processInstanceCollection.get(processInstanceId));
     }
 
+    @Override
+    public List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids) {
+        return List.of();
+    }
 
 
     public ExecutableTask createExecutableTask(ExecutableTask executableTask) {
@@ -274,10 +278,25 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId) {
+        return List.of();
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, List<String> tenantIds) {
+        return List.of();
+    }
+
+    @Override
     public List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId) {
         return this.externalTaskCollection.values()
                 .stream()
                 .filter(t -> Objects.equals(assignee, t.assignee()) && Objects.equals(tenantId, t.tenantId()))
                 .toList();
+    }
+
+    @Override
+    public void ensureIndexes() {
+
     }
 }

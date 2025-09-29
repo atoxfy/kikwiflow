@@ -30,6 +30,7 @@ import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.validation.DeployValidator;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -54,8 +55,14 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ProcessDefinitionService processDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository repository) {
-        return new ProcessDefinitionService(bpmnParser, repository);
+    public DeployValidator deployValidator(DelegateResolver delegateResolver, DecisionRuleResolver decisionRuleResolver){
+        return new DeployValidator(delegateResolver, decisionRuleResolver);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ProcessDefinitionService processDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository repository, DeployValidator deployValidator) {
+        return new ProcessDefinitionService(bpmnParser, repository, deployValidator);
     }
 
     @Bean
@@ -114,8 +121,6 @@ public class KikwiflowAutoConfiguration {
             Navigator navigator,
             ProcessExecutionManager processExecutionManager) {
 
-        // O Spring injetará automaticamente uma lista de todos os beans
-        // do tipo ExecutionEventListener que o usuário tenha definido.
         List<ExecutionEventListener> listeners = listenersProvider.getIfAvailable(Collections::emptyList);
 
         return new KikwiflowEngine(processDefinitionService, navigator,

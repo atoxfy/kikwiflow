@@ -70,13 +70,13 @@ public class InterruptiveTimerTests {
         this.decisionRuleResolver = new TestDecisionRuleResolver();
 
         sendToRecovery = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,"done"));
         }));
 
         delegateResolver.register("sendToRecovery", sendToRecovery);
         KikwiflowConfig kikwiflowConfig = new KikwiflowConfig();
         DecisionRuleResolver decisionRuleResolver = new TestDecisionRuleResolver();
-        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine);
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
         Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
         ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator, kikwiflowConfig);
         List<ExecutionEventListener> executionEventListeners = null;
@@ -168,9 +168,9 @@ public class InterruptiveTimerTests {
                 .orElseThrow(() -> new AssertionError("Tarefa não encontrada: doContactTask"));
 
 
-        ProcessVariable processVariable = new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, true);
+        ProcessVariable processVariable = new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,true);
         Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
-        processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables);
+        processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables, null);
         // Assert: Fase 3 - Finalização
         assertEquals(ProcessInstanceStatus.COMPLETED, processInstance.status(), "O processo deveria estar completo.");
         assertNotNull(processInstance.endedAt(), "O processo deveria ter uma data de término.");

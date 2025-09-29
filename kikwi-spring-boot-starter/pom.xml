@@ -6,7 +6,7 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.4-SNAPSHOT</version>
+        <version>0.1.19-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 

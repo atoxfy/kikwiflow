@@ -39,6 +39,7 @@ import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.validation.DeployValidator;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -96,7 +97,7 @@ public class KikwiflowEngine {
      * @throws ProcessInstanceNotFoundException se a instância de processo associada não for encontrada.
      * @throws SecurityException se o tenantId fornecido não corresponder ao tenantId da instância do processo.
      */
-    public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables) {
+    public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables, String targetFlowNodeId) {
         ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)//CRIAR UM FIND AND LOCK
             .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
 
@@ -118,12 +119,12 @@ public class KikwiflowEngine {
         }
 
         FlowNodeDefinition completedNode = processDefinition.flowNodes().get(taskToComplete.taskDefinitionId());
-        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false);
+        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false, targetFlowNodeId);
 
         ExecutionResult executionResult;
         if (continuation != null && !continuation.nextNodes().isEmpty()) {
             FlowNodeDefinition startPoint = continuation.nextNodes().get(0); 
-            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
+            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false, targetFlowNodeId);
         } else {
             executionResult = new ExecutionResult(new ExecutionOutcome(processInstanceExecution, Collections.emptyList()), null);
         }
@@ -140,7 +141,7 @@ public class KikwiflowEngine {
 
         ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
         FlowNodeDefinition flowNodeDefinition = processDefinition.flowNodes().get(executableTask.taskDefinitionId());
-        ExecutionResult executionResult = processExecutionManager.executeFlow(flowNodeDefinition, processInstanceExecution, processDefinition, true);
+        ExecutionResult executionResult = processExecutionManager.executeFlow(flowNodeDefinition, processInstanceExecution, processDefinition, true, null);
         return this.continuationService.handleContinuation(executionResult, executableTask);
     }
 
@@ -152,6 +153,10 @@ public class KikwiflowEngine {
 
     public ProcessDefinition deployDefinition(InputStream is) throws Exception {
         return processDefinitionService.deploy(is);
+    }
+
+    public void clearDefinitionCache(){
+        processDefinitionService.clearCache();
     }
 
     /**
@@ -225,7 +230,7 @@ public class KikwiflowEngine {
             ProcessInstance processInstance = engine.kikwiEngineRepository.saveProcessInstance(ProcessInstanceFactory.create(businessKey, processDefinition.id(), variables, businessValue, tenantId, origin));
             ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstance);
             FlowNodeDefinition startPoint = processDefinition.defaultStartPoint();
-            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
+            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false, null);
 
             return engine.continuationService.handleContinuation(executionResult);
         }

@@ -80,7 +80,7 @@ public class LinearServiceTaskTasksTests {
         this.removeVariableDelegate =  spy(new RemoveVariableDelegate());
         this.delegateResolver.register("removeVariableDelegate", removeVariableDelegate);
         DecisionRuleResolver decisionRuleResolver = new TestDecisionRuleResolver();
-        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine);
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
         Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
         ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator,kikwiflowConfig);
         List<ExecutionEventListener> executionEventListeners = null;
@@ -104,7 +104,7 @@ public class LinearServiceTaskTasksTests {
         Map<String, ProcessVariable> startVariables = new HashMap<>();
         String initialVar = UUID.randomUUID().toString();
         String initialVarKey = "myVar";
-        ProcessVariable initialProcessVar = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, initialVar);
+        ProcessVariable initialProcessVar = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, false, initialVar);
         startVariables.put(initialVarKey, initialProcessVar);
 
         // Configure spies to perform assertions at the time of invocation

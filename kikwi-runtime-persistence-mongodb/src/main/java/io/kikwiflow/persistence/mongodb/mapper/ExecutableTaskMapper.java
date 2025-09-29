@@ -21,7 +21,6 @@ import io.kikwiflow.model.execution.node.AttachedTaskType;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import org.bson.Document;
 
-import java.time.Instant;
 import java.util.Collections;
 
 public final class ExecutableTaskMapper {
@@ -70,15 +69,15 @@ public final class ExecutableTaskMapper {
                 .name(doc.getString("name"))
                 .description(doc.getString("description"))
                 .processDefinitionId(doc.getString("processDefinitionId"))
-                .createdAt(doc.get("createdAt", Instant.class))
+                .createdAt(InstantMapper.mapToInstant("createdAt", doc))
                 .executions(doc.getLong("executions"))
                 .retries(doc.getLong("retries"))
                 .processInstanceId(doc.getString("processInstanceId"))
                 .error(doc.getString("error"))
                 .status(status)
                 .executorId(doc.getString("executorId"))
-                .acquiredAt(doc.get("acquiredAt", Instant.class))
-                .dueDate(doc.get("dueDate", Instant.class))
+                .acquiredAt(InstantMapper.mapToInstant("acquiredAt", doc))
+                .dueDate(InstantMapper.mapToInstant("dueDate", doc))
                 .attachedToRefId(doc.getString("attachedToRefId"))
                 .attachedToRefType(attachedType)
                 .boundaryEvents(doc.getList("boundaryEvents", String.class, Collections.emptyList()))

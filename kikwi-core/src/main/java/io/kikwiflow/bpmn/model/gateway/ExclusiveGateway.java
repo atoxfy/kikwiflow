@@ -20,5 +20,13 @@ package io.kikwiflow.bpmn.model.gateway;
 import io.kikwiflow.bpmn.model.FlowNode;
 
 public class ExclusiveGateway extends FlowNode {
+    private String defaultFlow;
 
+    public String getDefaultFlow() {
+        return defaultFlow;
+    }
+
+    public void setDefaultFlow(String defaultFlow) {
+        this.defaultFlow = defaultFlow;
+    }
 }

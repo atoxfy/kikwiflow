@@ -18,91 +18,92 @@
 package io.kikwiflow.view.adapter;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
-import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.view.model.manual.Workflow;
 import io.kikwiflow.view.model.manual.WorkflowStage;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class WorkflowAdapter {
 
     public static Workflow toManualWorkflow(ProcessDefinition definition) {
-        List<WorkflowStage> stages = new ArrayList<>();
-        Map<String, FlowNodeDefinition> nodes = definition.flowNodes();
-
-        findNextHumanTask(definition.defaultStartPoint(), nodes)
-                .ifPresent(firstTask -> {
-                    ManualTaskDefinition currentTask = firstTask;
-                    while (currentTask != null) {
-                        Optional<ManualTaskDefinition> nextTask = findNextHumanTask(currentTask, nodes);
-                        stages.add(new WorkflowStage(
-                                currentTask.id(),
-                                currentTask.name(),
-                                nextTask.map(FlowNodeDefinition::id).map(Collections::singletonList).orElse(null),
-                                currentTask.extensionProperties()
-                        ));
-                        currentTask = nextTask.orElse(null);
-                    }
-                });
+        Map<String, WorkflowStage> stagesMap = new LinkedHashMap<>();
+        buildStagesRecursively(definition.defaultStartPoint(), definition.flowNodes(), stagesMap, new HashSet<>());
 
         return new Workflow(
                 definition.id(),
                 definition.key(),
                 definition.name(),
-                null, //TODO
-                stages
+                definition.description(),
+                new ArrayList<>(stagesMap.values())
         );
     }
 
     /**
-     * Navega pelo grafo do processo a partir de um nó inicial para encontrar a próxima tarefa humana.
-     * Ele ignora outros tipos de nós (ServiceTasks, Gateways, etc.) no caminho.
+     * Constrói recursivamente a lista de estágios (tarefas humanas) navegando pelo grafo do processo.
+     * Ele popula um mapa de estágios para evitar o processamento da mesma tarefa várias vezes.
      */
-    private static Optional<ManualTaskDefinition> findNextHumanTask(FlowNodeDefinition startNode, Map<String, FlowNodeDefinition> allNodes) {
-        FlowNodeDefinition currentNode = startNode;
-        Set<String> visited = new HashSet<>();
+    private static void buildStagesRecursively(
+            FlowNodeDefinition currentNode,
+            Map<String, FlowNodeDefinition> allNodes,
+            Map<String, WorkflowStage> stages,
+            Set<String> visitedNodes) {
 
-        while (currentNode != null) {
-            if (!visited.add(currentNode.id())) {
-                return Optional.empty();
-            }
-
-            String nextNodeId = getNextNodeId(currentNode);
-            if (nextNodeId == null) {
-                return Optional.empty();
-            }
-
-            currentNode = allNodes.get(nextNodeId);
-
-            if (currentNode instanceof ManualTaskDefinition) {
-                return Optional.of((ManualTaskDefinition) currentNode);
-            }
+        if (currentNode == null || !visitedNodes.add(currentNode.id())) {
+            return;
         }
-        return Optional.empty();
+
+        if (currentNode instanceof ManualTaskDefinition manualTask) {
+            List<ManualTaskDefinition> nextHumanTasks = findNextHumanTasks(manualTask, allNodes, new HashSet<>());
+
+            stages.put(manualTask.id(), new WorkflowStage(
+                    manualTask.id(),
+                    manualTask.name(),
+                    nextHumanTasks.stream().map(FlowNodeDefinition::id).collect(Collectors.toList()),
+                    manualTask.extensionProperties()
+            ));
+
+            for (ManualTaskDefinition nextTask : nextHumanTasks) {
+                buildStagesRecursively(nextTask, allNodes, stages, visitedNodes);
+            }
+        } else {
+            currentNode.outgoing().forEach(flow -> {
+                FlowNodeDefinition nextNode = allNodes.get(flow.targetNodeId());
+                buildStagesRecursively(nextNode, allNodes, stages, visitedNodes);
+            });
+        }
     }
 
-    // Lógica simplificada de navegação: segue o fluxo padrão de gateways ou o primeiro fluxo.
-    // TODO: Tornar esta lógica mais robusta para lidar com gateways complexos.
-    private static String getNextNodeId(FlowNodeDefinition node) {
-        if (node.outgoing().isEmpty()) return null;
-        if (node instanceof ExclusiveGatewayDefinition gw && gw.outgoing() != null) {
-            return gw.outgoing().stream()
-                    .filter(flow -> Objects.isNull(flow.condition()))
-                    .findFirst()
-                    .map(SequenceFlowDefinition::targetNodeId)
-                    .orElse(node.outgoing().get(0).targetNodeId());
+    /**
+     * A partir de um nó inicial, encontra a(s) próxima(s) tarefa(s) humana(s) no fluxo,
+     * atravessando nós não-humanos (como gateways e tarefas de sistema).
+     */
+    private static List<ManualTaskDefinition> findNextHumanTasks(
+            FlowNodeDefinition startNode,
+            Map<String, FlowNodeDefinition> allNodes,
+            Set<String> visitedNodesInPath) {
+
+        List<ManualTaskDefinition> foundTasks = new ArrayList<>();
+        if (startNode == null || !visitedNodesInPath.add(startNode.id())) {
+            return foundTasks;
         }
 
-        return node.outgoing().get(0).targetNodeId();
+        for (var flow : startNode.outgoing()) {
+            FlowNodeDefinition nextNode = allNodes.get(flow.targetNodeId());
+
+            if (nextNode instanceof ManualTaskDefinition manualTask) {
+                foundTasks.add(manualTask);
+            } else {
+                foundTasks.addAll(findNextHumanTasks(nextNode, allNodes, visitedNodesInPath));
+            }
+        }
+        return foundTasks;
     }
 }

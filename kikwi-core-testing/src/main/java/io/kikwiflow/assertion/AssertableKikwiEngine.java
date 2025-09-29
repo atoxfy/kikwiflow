@@ -68,6 +68,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids) {
+        return inMemoryKikwiEngineRepository.findProcessInstancesByIdIn(ids);
+    }
+
+    @Override
     public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
         return inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
     }
@@ -123,6 +128,16 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByProcessDefinitionId(processDefinitionId);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, List<String> tenantIds) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByProcessDefinitionId(processDefinitionId, tenantIds);
+    }
+
+    @Override
     public List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId) {
         return this.inMemoryKikwiEngineRepository.findExternalTasksByAssignee(assignee, tenantId);
     }
@@ -175,5 +190,10 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
         // Esta asserção verifica se a instância não foi encontrada, o que indica que foi concluída.
         assertFalse(findProcessInstanceById(processInstanceId).isPresent(),
                 "A instância de processo " + processInstanceId + " deveria estar completa e não na coleção ativa.");
+    }
+
+    @Override
+    public void ensureIndexes() {
+
     }
 }

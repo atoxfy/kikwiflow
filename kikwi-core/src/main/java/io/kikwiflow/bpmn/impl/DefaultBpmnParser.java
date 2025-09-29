@@ -37,8 +37,11 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.security.MessageDigest;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
 
 public class DefaultBpmnParser implements BpmnParser {
@@ -48,10 +51,17 @@ public class DefaultBpmnParser implements BpmnParser {
 
     @Override
     public ProcessDefinition parse(InputStream bpmnXmlFileStream) throws Exception {
+
+        byte[] bpmnBytes = bpmnXmlFileStream.readAllBytes();
+        String checksum = calculateChecksum(bpmnBytes);
+
+        InputStream streamForParsing = new ByteArrayInputStream(bpmnBytes);
+
+
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
-        Document doc = builder.parse(bpmnXmlFileStream);
+        Document doc = builder.parse(streamForParsing);
 
         Element processElement = (Element) doc.getElementsByTagName("bpmn:process").item(0);
         if (processElement == null) {
@@ -62,7 +72,7 @@ public class DefaultBpmnParser implements BpmnParser {
         processDefinitionGraphDeploy.setKey(processElement.getAttribute("id"));
         processDefinitionGraphDeploy.setName(processElement.getAttribute("name"));
         processDefinitionGraphDeploy.setDescription(processElement.getAttributeNS(BPMN_NS,"documentation"));
-
+        processDefinitionGraphDeploy.setChecksum(checksum);
         NodeList childNodes = processElement.getChildNodes();
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node node = childNodes.item(i);
@@ -229,6 +239,17 @@ public class DefaultBpmnParser implements BpmnParser {
     private ExclusiveGateway parseExclusiveGateway(Element element){
         ExclusiveGateway node = new ExclusiveGateway();
         parseCommonFlowNodeAttributes(element, node);
+        node.setDefaultFlow(element.getAttribute("default"));
         return node;
+    }
+
+    private String calculateChecksum(byte[] data) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(data);
+            return HexFormat.of().formatHex(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not calculate checksum", e);
+        }
     }
 }

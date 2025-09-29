@@ -19,9 +19,11 @@ package io.kikwiflow.execution.mapper;
 import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class ProcessInstanceMapper {
 
@@ -29,6 +31,7 @@ public final class ProcessInstanceMapper {
         // Utility class
     }
 
+    //TODO REVISAR
     public static ProcessInstanceFinished maoToFinishedEvent(final ProcessInstance processInstance) {
         ProcessInstanceFinished processInstanceEntity = new ProcessInstanceFinished();
         processInstanceEntity.setId(processInstance.id());
@@ -42,6 +45,11 @@ public final class ProcessInstanceMapper {
     }
 
     public static ProcessInstance mapToRecord(final ProcessInstanceExecution instance) {
+
+        Map<String, ProcessVariable> persistentVariables = instance.getVariables().entrySet().stream()
+                .filter(entry -> !entry.getValue().isTransient())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
         return new ProcessInstance(
             instance.getId(),
             instance.getBusinessKey(),
@@ -49,9 +57,10 @@ public final class ProcessInstanceMapper {
             instance.getTenantId(),
             instance.getStatus(),
             instance.getProcessDefinitionId(),
-            Map.copyOf(instance.getVariables()),
+            persistentVariables,
             instance.getStartedAt(),
-            instance.getEndedAt(), instance.getOrigin()
+            instance.getEndedAt(),
+            instance.getOrigin()
 
         );
     }
@@ -65,7 +74,8 @@ public final class ProcessInstanceMapper {
         processInstanceEntity.setVariables(new HashMap<>(processInstance.variables()));
         processInstanceEntity.setStartedAt(processInstance.startedAt());
         processInstanceEntity.setOrigin(processInstance.origin());
-
+        processInstanceEntity.setTenantId(processInstance.tenantId());
+        processInstanceEntity.setBusinessValue(processInstance.businessValue());
         return processInstanceEntity;
     }
 }
