@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.kikwiflow</groupId>
     <artifactId>kikwiflow-parent</artifactId>
-    <version>0.1.18-SNAPSHOT</version>
+    <version>0.1.19-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>kikwiflow :: Parent</name>
     <scm>
