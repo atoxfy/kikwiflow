@@ -23,7 +23,7 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.17-SNAPSHOT</version>
+        <version>0.1.18-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>kikwi-runtime-query-spring-boot-starter</artifactId>
