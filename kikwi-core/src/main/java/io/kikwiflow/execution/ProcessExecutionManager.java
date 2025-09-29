@@ -79,7 +79,7 @@ public class ProcessExecutionManager {
      * @param processDefinition A definição do processo correspondente.
      * @return O {@link ExecutionResult} que contém o resultado da execução síncrona.
      */
-    public ExecutionResult executeFlow(FlowNodeDefinition startPoint, ProcessInstanceExecution processInstance, ProcessDefinition processDefinition, boolean isResumingFromAsyncBefore) {
+    public ExecutionResult executeFlow(FlowNodeDefinition startPoint, ProcessInstanceExecution processInstance, ProcessDefinition processDefinition, boolean isResumingFromAsyncBefore, String targetFlowNodeId) {
         FlowNodeDefinition currentNode = startPoint;
         List<OutboxEventEntity> criticalEvents = new ArrayList<>();
         boolean isFirstNodeInLoop = true;
@@ -130,7 +130,7 @@ public class ProcessExecutionManager {
             }
 
             boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());
-            Continuation continuation = navigator.determineNextContinuation(currentNode, processDefinition, processInstance.getVariables(), isCommitAfter, null);
+            Continuation continuation = navigator.determineNextContinuation(currentNode, processDefinition, processInstance.getVariables(), isCommitAfter, targetFlowNodeId);
             isFirstNodeInLoop = false;
 
             if (continuation == null || continuation.isAsynchronous()) {

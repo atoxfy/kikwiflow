@@ -124,7 +124,7 @@ public class KikwiflowEngine {
         ExecutionResult executionResult;
         if (continuation != null && !continuation.nextNodes().isEmpty()) {
             FlowNodeDefinition startPoint = continuation.nextNodes().get(0); 
-            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
+            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false, targetFlowNodeId);
         } else {
             executionResult = new ExecutionResult(new ExecutionOutcome(processInstanceExecution, Collections.emptyList()), null);
         }
@@ -141,7 +141,7 @@ public class KikwiflowEngine {
 
         ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
         FlowNodeDefinition flowNodeDefinition = processDefinition.flowNodes().get(executableTask.taskDefinitionId());
-        ExecutionResult executionResult = processExecutionManager.executeFlow(flowNodeDefinition, processInstanceExecution, processDefinition, true);
+        ExecutionResult executionResult = processExecutionManager.executeFlow(flowNodeDefinition, processInstanceExecution, processDefinition, true, null);
         return this.continuationService.handleContinuation(executionResult, executableTask);
     }
 
@@ -230,7 +230,7 @@ public class KikwiflowEngine {
             ProcessInstance processInstance = engine.kikwiEngineRepository.saveProcessInstance(ProcessInstanceFactory.create(businessKey, processDefinition.id(), variables, businessValue, tenantId, origin));
             ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstance);
             FlowNodeDefinition startPoint = processDefinition.defaultStartPoint();
-            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
+            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false, null);
 
             return engine.continuationService.handleContinuation(executionResult);
         }

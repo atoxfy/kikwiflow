@@ -63,9 +63,6 @@ public class Navigator {
 
             if (targetFlowId != null && !targetFlowId.isBlank()) {
                 chosenFlow = outgoingFlows.stream().filter(sf -> sf.id().equals(targetFlowId)).findFirst();
-                if (chosenFlow.isEmpty()) {
-                    throw new IllegalArgumentException("Invalid targetFlowId: '" + targetFlowId + "' is not a valid outgoing flow for gateway '" + gateway.id() + "'.");
-                }
             }
 
             if (chosenFlow.isEmpty()) {
