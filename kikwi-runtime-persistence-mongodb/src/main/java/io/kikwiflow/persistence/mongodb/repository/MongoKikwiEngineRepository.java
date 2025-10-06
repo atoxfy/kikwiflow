@@ -33,6 +33,7 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.WriteModel;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
@@ -41,6 +42,8 @@ import io.kikwiflow.persistence.mongodb.mapper.ExecutableTaskMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ExternalTaskMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessInstanceMapper;
+import io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper;
+import io.kikwiflow.persistence.mongodb.util.MongoKeyEncoder;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
@@ -48,6 +51,7 @@ import java.util.Collections;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.mongodb.client.model.Filters.and;
@@ -226,6 +230,38 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         }
 
         return lockedTasks;
+    }
+
+    @Override
+    public ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
+        if (variables == null || variables.isEmpty()) {
+            return findProcessInstanceById(processInstanceId).orElse(null);
+        }
+
+        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
+
+        List<Bson> updates = new ArrayList<>();
+        for (Map.Entry<String, ProcessVariable> entry : variables.entrySet()) {
+            String fieldPath = "variables." + MongoKeyEncoder.encode(entry.getKey());
+            updates.add(Updates.set(fieldPath, ProcessVariableMapper.toDocument(entry.getValue())));
+        }
+
+        FindOneAndUpdateOptions options = new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER);
+        Document updatedDoc = collection.findOneAndUpdate(eq("_id", processInstanceId), Updates.combine(updates), options);
+
+        return ProcessInstanceMapper.fromDocument(updatedDoc);
+    }
+
+    @Override
+    public void claim(String externalTaskId, String assignee) {
+        MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+        externalTasks.updateOne(eq("_id", externalTaskId), Updates.set("assignee", assignee));
+    }
+
+    @Override
+    public void unclaim(String externalTaskId) {
+        MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+        externalTasks.updateOne(eq("_id", externalTaskId), Updates.unset("assignee"));
     }
 
     @Override

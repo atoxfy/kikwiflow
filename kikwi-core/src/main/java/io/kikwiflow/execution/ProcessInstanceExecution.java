@@ -125,4 +125,8 @@ public class ProcessInstanceExecution {
         this.tenantId = tenantId;
     }
 
+    public void addVariables(Map<String, ProcessVariable> variables) {
+        if(variables == null) return;
+        this.variables.putAll(variables);
+    }
 }

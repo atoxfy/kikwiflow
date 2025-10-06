@@ -155,6 +155,11 @@ public class KikwiflowEngine {
         return processDefinitionService.deploy(is);
     }
 
+    public ProcessInstance setVariables(String processInstanceId, Map<String, ProcessVariable> variables){
+        return kikwiEngineRepository.addVariables(processInstanceId, variables);
+    }
+
+
     public void clearDefinitionCache(){
         processDefinitionService.clearCache();
     }
