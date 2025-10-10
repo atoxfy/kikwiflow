@@ -98,6 +98,21 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
+        return null;
+    }
+
+    @Override
+    public void claim(String externalTaskId, String assignee) {
+        this.inMemoryKikwiEngineRepository.claim(externalTaskId, assignee);
+    }
+
+    @Override
+    public void unclaim(String externalTaskId) {
+        this.inMemoryKikwiEngineRepository.unclaim(externalTaskId);
+    }
+
+    @Override
     public Optional<ExternalTask> findExternalTaskById(String externalTaskId) {
         return inMemoryKikwiEngineRepository.findExternalTaskById(externalTaskId);
     }

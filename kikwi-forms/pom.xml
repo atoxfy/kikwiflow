@@ -21,41 +21,26 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
+        <artifactId>kikwiflow-parent</artifactId>
         <version>0.1.23-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <packaging>jar</packaging>
-    <name>kikwiflow :: Persistence In-Memory Addons</name>
-    <artifactId>kikwi-in-memory-addons</artifactId>
-    <description>Provides a complete in-memory implementation of the persistence APIs. It stores all process data (instances, tasks, jobs) in memory, making it ideal for rapid development, testing, and scenarios where data persistence across application restarts is not required.</description>
 
+    <artifactId>kikwi-forms</artifactId>
+    <name>Kikwiflow :: Forms</name>
+    <description>Provides services to define, persist, and render form schemas based on flow definitions and process data.</description>
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-model</artifactId>
-              <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-runtime-persistence-api</artifactId>
-              <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-lightweight-events-api</artifactId>
-              <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-history-api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-critical-event-relay-api</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
+
 </project>

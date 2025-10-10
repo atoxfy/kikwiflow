@@ -19,6 +19,7 @@ package io.kikwiflow.persistence.mongodb.mapper;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.persistence.mongodb.util.MongoKeyEncoder;
 import org.bson.Document;
 import org.bson.types.Decimal128;
 
@@ -51,8 +52,9 @@ public final class ProcessInstanceMapper {
         if (instance.variables() != null) {
             Document variablesDoc = new Document();
             instance.variables().forEach((key, variable) ->
-                    variablesDoc.append(key, ProcessVariableMapper.toDocument(variable))
+                variablesDoc.put(MongoKeyEncoder.encode(key), ProcessVariableMapper.toDocument(variable))
             );
+
             doc.append("variables", variablesDoc);
         }
 
@@ -72,7 +74,7 @@ public final class ProcessInstanceMapper {
         if (variablesDoc != null) {
             variables = variablesDoc.entrySet().stream()
                     .collect(Collectors.toMap(
-                            Map.Entry::getKey,
+                            entry ->MongoKeyEncoder.decode(entry.getKey()),
                             entry -> ProcessVariableMapper.fromDocumentToVariable((Document) entry.getValue())
                     ));
         }

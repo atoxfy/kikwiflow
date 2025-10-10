@@ -21,25 +21,17 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
+        <artifactId>kikwiflow-parent</artifactId>
         <version>0.1.23-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>kikwi-in-memory-spring-boot-starter</artifactId>
-    <name>kikwiflow :: In-Memory Spring Boot Starter</name>
-    <description>Provides a convenient starter to enable the in-memory persistence layer for Kikwiflow in a Spring Boot application. This is the recommended dependency for testing and rapid development.</description>
+    <artifactId>kikwi-forms-persistence-api</artifactId>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    <dependencies>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-in-memory-spring-boot-autoconfigure</artifactId>
-              <version>${project.version}</version>
-        </dependency>
-    </dependencies>
+
 </project>

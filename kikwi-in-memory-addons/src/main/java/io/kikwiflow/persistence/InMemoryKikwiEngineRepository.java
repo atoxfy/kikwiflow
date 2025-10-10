@@ -19,6 +19,7 @@ package io.kikwiflow.persistence;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
@@ -244,7 +245,24 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
+        //TODO
+        return null;
+    }
+
+    @Override
+    public void claim(String externalTaskId, String assignee) {
+        //TODO
+    }
+
+    @Override
+    public void unclaim(String externalTaskId) {
+        //TODO
+    }
+
+    @Override
     public Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId) {
+        //TODO
         return Optional.empty();
     }
 

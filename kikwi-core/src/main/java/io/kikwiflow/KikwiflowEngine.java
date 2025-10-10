@@ -86,6 +86,14 @@ public class KikwiflowEngine {
         taskAcquirer.stop();
     }
 
+    public void claim(String externalTaskId, String assignee){
+        this.kikwiEngineRepository.claim(externalTaskId, assignee);
+    }
+
+    public void unclaim(String externalTaskId){
+        this.kikwiEngineRepository.unclaim(externalTaskId);
+    }
+
     /**
      * Completa uma tarefa externa e continua a execução do processo.
      *
@@ -154,6 +162,11 @@ public class KikwiflowEngine {
     public ProcessDefinition deployDefinition(InputStream is) throws Exception {
         return processDefinitionService.deploy(is);
     }
+
+    public ProcessInstance setVariables(String processInstanceId, Map<String, ProcessVariable> variables){
+        return kikwiEngineRepository.addVariables(processInstanceId, variables);
+    }
+
 
     public void clearDefinitionCache(){
         processDefinitionService.clearCache();
