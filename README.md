@@ -81,6 +81,37 @@ cd kikwiflow
 ```
 
 
+
+<h2>Kikwiflow Titans ❤️ Bootstrap Team </h2> 
+
+Um projeto desta magnitude não sairia do papel sem o apoio de algumas pessoas, então fica aqui um agradecimento especial as que
+marcaram o kikwiflow quando ainda era somente um sonho distante. Seja por um incentivo, uma ideia, uma reclamação de outra ferramenta ou simplesmente por escutar: Obrigado!
+
+[Audrey Behenck](https://github.com/audreybehenck)
+
+Victória Behenck
+
+[Leonardo Borges](https://github.com/LeonardoBorges)
+
+[Marcus Vinicius](https://github.com/markinog)
+
+[Pietro Bucker](https://github.com/PietroBucker)
+
+[Rebeca](https://github.com/rebecamontag)
+
+[Irineu Artur](https://github.com/IAPdeS)
+
+Max 
+
+Murilo Rech
+
+[Jean Robert](https://github.com/jradesenv)
+
+[Lucas Silveira](https://github.com/lucascsilveira88)
+
+
+
+
 ## 📜 Licença
 
 Apache License 2.0 - Veja [LICENSE](LICENSE) para detalhes.
@@ -99,8 +130,6 @@ Apache License 2.0 - Veja [LICENSE](LICENSE) para detalhes.
 
 *Construído por desenvolvedores, para desenvolvedores Java.* ☕
 
-
-
-
 <h2>Apoio</h2>
-[Kikwiflow](https://kikwiflow.com/) is an open-source project proudly maintained by [{Atoxfy}](https://atoxfy.com/).
+
+[Kikwiflow](https://kikwiflow.com) é um projeto open-source mantido pela [{Atoxfy}](https://atoxfy.com).
