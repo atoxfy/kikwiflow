@@ -20,15 +20,15 @@ package io.kikwiflow.assertion;
 import io.kikwiflow.history.repository.FlowNodeExecutionSnapshotInMemoryRepository;
 import io.kikwiflow.history.repository.ProcessInstanceInMemorySnapshotRepository;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.execution.ProcessVariable;
-import io.kikwiflow.model.execution.node.ExternalTask;
-import io.kikwiflow.model.execution.node.ExecutableTask;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
-import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.node.ExecutableTask;
+import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.InMemoryKikwiEngineRepository;
+import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -68,28 +68,13 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
-    public void updateVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
-        inMemoryKikwiEngineRepository.updateVariables(processInstanceId, variables);
-    }
-
-    @Override
-    public ExternalTask createExternalTask(ExternalTask task) {
-        return inMemoryKikwiEngineRepository.createExternalTask(task);
-    }
-
-    @Override
-    public Optional<ExternalTask> completeExternalTask(String externalTaskId) {
-        return inMemoryKikwiEngineRepository.completeExternalTask(externalTaskId);
+    public List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids) {
+        return inMemoryKikwiEngineRepository.findProcessInstancesByIdIn(ids);
     }
 
     @Override
     public List<ExternalTask> findExternalTasksByProcessInstanceId(String processInstanceId) {
         return inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
-    }
-
-    @Override
-    public ExecutableTask createExecutableTask(ExecutableTask task) {
-        return inMemoryKikwiEngineRepository.createExecutableTask(task);
     }
 
     @Override
@@ -103,11 +88,6 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
-    public void deleteProcessInstanceById(String processInstanceId) {
-        this.inMemoryKikwiEngineRepository.deleteProcessInstanceById(processInstanceId);
-    }
-
-    @Override
     public void commitWork(UnitOfWork unitOfWork) {
         this.inMemoryKikwiEngineRepository.commitWork(unitOfWork);
     }
@@ -115,6 +95,21 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId) {
         return this.inMemoryKikwiEngineRepository.findAndLockDueTasks(now, limit, workerId);
+    }
+
+    @Override
+    public ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
+        return null;
+    }
+
+    @Override
+    public void claim(String externalTaskId, String assignee) {
+        this.inMemoryKikwiEngineRepository.claim(externalTaskId, assignee);
+    }
+
+    @Override
+    public void unclaim(String externalTaskId) {
+        this.inMemoryKikwiEngineRepository.unclaim(externalTaskId);
     }
 
     @Override
@@ -135,6 +130,31 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public Optional<ExecutableTask> findAndGetFirstPendingExecutableTask(String id) {
         return this.inMemoryKikwiEngineRepository.findAndGetFirstPendingExecutableTask(id);
+    }
+
+    @Override
+    public List<ProcessInstance> findProcessInstanceByProcessDefinitionId(String processDefinitionId, String tenantId) {
+        return this.inMemoryKikwiEngineRepository.findProcessInstanceByProcessDefinitionId(processDefinitionId, tenantId);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, String tenantId) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByProcessDefinitionId(processDefinitionId, tenantId);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByProcessDefinitionId(processDefinitionId);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, List<String> tenantIds) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByProcessDefinitionId(processDefinitionId, tenantIds);
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId) {
+        return this.inMemoryKikwiEngineRepository.findExternalTasksByAssignee(assignee, tenantId);
     }
 
     public void evaluateEvents(){
@@ -185,5 +205,10 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
         // Esta asserção verifica se a instância não foi encontrada, o que indica que foi concluída.
         assertFalse(findProcessInstanceById(processInstanceId).isPresent(),
                 "A instância de processo " + processInstanceId + " deveria estar completa e não na coleção ativa.");
+    }
+
+    @Override
+    public void ensureIndexes() {
+
     }
 }

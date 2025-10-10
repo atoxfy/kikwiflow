@@ -21,9 +21,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <groupId>io.kikwiflow</groupId>
+        <version>0.1.23-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -33,18 +34,13 @@
     <packaging>jar</packaging>
     <name>kikwiflow :: Critical Event Relay API</name>
     <artifactId>kikwi-critical-event-relay-api</artifactId>
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Atoxfy Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/atoxfy/kikwiflow</url>
-        </repository>
-    </distributionManagement>
+    <description>Defines the API contract for the critical event relay system. This module provides the interfaces for a reliable event publisher that uses the Outbox Pattern to ensure at-least-once delivery of critical domain events.</description>
+
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-runtime-persistence-api</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

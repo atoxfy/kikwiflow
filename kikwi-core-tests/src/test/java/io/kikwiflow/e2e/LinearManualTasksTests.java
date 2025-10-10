@@ -20,30 +20,33 @@ package io.kikwiflow.e2e;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.assertion.AssertableKikwiEngine;
 import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.event.ExecutionEventListener;
+import io.kikwiflow.execution.DecisionRuleResolver;
+import io.kikwiflow.execution.ProcessExecutionManager;
+import io.kikwiflow.execution.TestDecisionRuleResolver;
 import io.kikwiflow.execution.TestDelegateResolver;
+import io.kikwiflow.factory.SingletonsFactory;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 import io.kikwiflow.model.execution.node.ExternalTask;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.navigation.Navigator;
+import io.kikwiflow.navigation.ProcessDefinitionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 /**
  * Testes de ponta a ponta para fluxos de processo que envolvem tarefas humanas sequenciais.
@@ -68,7 +71,13 @@ public class LinearManualTasksTests {
         this.assertableKikwiEngine = new AssertableKikwiEngine();
         this.kikwiflowConfig = getAndInitConfig();
         this.delegateResolver = new TestDelegateResolver();
-        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, kikwiflowConfig, delegateResolver, null, Collections.emptyList());
+        DecisionRuleResolver decisionRuleResolver = new TestDecisionRuleResolver();
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
+        Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
+        ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator,kikwiflowConfig);
+        List<ExecutionEventListener> executionEventListeners = null;
+        this.kikwiflowEngine = new KikwiflowEngine(processDefinitionService, navigator, processExecutionManager, assertableKikwiEngine, kikwiflowConfig, executionEventListeners);
+
     }
 
 
@@ -90,7 +99,7 @@ public class LinearManualTasksTests {
         Map<String, ProcessVariable> startVariables = new HashMap<>();
         String initialVar = UUID.randomUUID().toString();
         String initialVarKey = "myVar";
-        ProcessVariable processVariable = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, initialVar);
+        ProcessVariable processVariable = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, false, initialVar);
         startVariables.put(initialVarKey, processVariable);
 
         //act
@@ -135,9 +144,9 @@ public class LinearManualTasksTests {
                 .orElseThrow(() -> new AssertionError("Tarefa não encontrada: " + currentTaskDefinitionId));
 
             // Complete the task
-            ProcessVariable processVariable = new ProcessVariable("task" + i + "_completed", ProcessVariableVisibility.PUBLIC, null, true);
+            ProcessVariable processVariable = new ProcessVariable("task" + i + "_completed", ProcessVariableVisibility.PUBLIC, null, false,true);
             Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
-            processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), completionVariables);
+            processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables, null);
 
             // Assert the state after each completion
             if (i < 5) {

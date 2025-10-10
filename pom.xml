@@ -2,14 +2,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
 
+    <modelVersion>4.0.0</modelVersion>
     <groupId>io.kikwiflow</groupId>
     <artifactId>kikwiflow-parent</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.23-SNAPSHOT</version>
     <packaging>pom</packaging>
-
     <name>kikwiflow :: Parent</name>
+    <scm>
+        <connection>scm:git:https://github.com/atoxfy/kikwiflow.git</connection>
+        <developerConnection>scm:git:https://github.com/atoxfy/kikwiflow.git</developerConnection>
+        <url>https://github.com/atoxfy/kikwiflow</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -41,16 +46,25 @@
         <!-- Addons & Implementations -->
         <module>kikwi-in-memory-addons</module>
         <module>kikwi-runtime-persistence-mongodb</module>
-        <module>kikwi-pulse</module>
 
         <!-- Example Application (usually last) -->
-        <module>sample-linear-human-tasks-spring-boot</module>
         <module>kikwi-runtime-query-spring-boot-starter</module>
         <module>kikwi-in-memory-spring-boot-autoconfigure</module>
         <module>kikwi-in-memory-spring-boot-starter</module>
         <module>kikwi-management-rest</module>
         <module>kikwi-delegate-api</module>
         <module>kikwi-rule-api</module>
+        <module>kikwi-view-models</module>
+        <module>kikwi-runtime-persistence-mongodb-spring-boot-autoconfigure</module>
+        <module>kikwi-runtime-persistence-mongodb-spring-boot-starter</module>
+        <module>kikwi-forms</module>
+        <module>kikwi-forms-persistence-api</module>
     </modules>
-
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Atoxfy Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/atoxfy/kikwiflow</url>
+        </repository>
+    </distributionManagement>
 </project>

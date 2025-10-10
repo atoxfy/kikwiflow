@@ -41,4 +41,8 @@ public class ProcessDefinitionCache {
                 .findFirst();
 
     }
+
+    public void clear(){
+        this.processDefinitionMap.clear();
+    }
 }

@@ -35,21 +35,33 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.util.HashMap;
-import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.HexFormat;
+import java.util.Map;
 
 public class DefaultBpmnParser implements BpmnParser {
+
     private static final String CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn";
     private static final String BPMN_NS = "http://www.omg.org/spec/BPMN/20100524/MODEL";
+
     @Override
     public ProcessDefinition parse(InputStream bpmnXmlFileStream) throws Exception {
+
+        byte[] bpmnBytes = bpmnXmlFileStream.readAllBytes();
+        String checksum = calculateChecksum(bpmnBytes);
+
+        InputStream streamForParsing = new ByteArrayInputStream(bpmnBytes);
+
+
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
-        Document doc = builder.parse(bpmnXmlFileStream);
+        Document doc = builder.parse(streamForParsing);
 
         Element processElement = (Element) doc.getElementsByTagName("bpmn:process").item(0);
         if (processElement == null) {
@@ -59,7 +71,8 @@ public class DefaultBpmnParser implements BpmnParser {
         ProcessDefinitionGraph processDefinitionGraphDeploy = new ProcessDefinitionGraph();
         processDefinitionGraphDeploy.setKey(processElement.getAttribute("id"));
         processDefinitionGraphDeploy.setName(processElement.getAttribute("name"));
-
+        processDefinitionGraphDeploy.setDescription(processElement.getAttributeNS(BPMN_NS,"documentation"));
+        processDefinitionGraphDeploy.setChecksum(checksum);
         NodeList childNodes = processElement.getChildNodes();
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node node = childNodes.item(i);
@@ -112,7 +125,6 @@ public class DefaultBpmnParser implements BpmnParser {
             }
         }
 
-
         NodeList sequenceFlows = processElement.getElementsByTagName("bpmn:sequenceFlow");
         for (int i = 0; i < sequenceFlows.getLength(); i++) {
             Element flowElement = (Element) sequenceFlows.item(i);
@@ -145,40 +157,50 @@ public class DefaultBpmnParser implements BpmnParser {
         node.setId(element.getAttribute("id"));
         node.setName(element.getAttribute("name"));
 
-        // Use the standard Camunda attributes for asynchronous continuations.
-        // These are semantically equivalent to our "commit-before" and "commit-after".
         String asyncBefore = element.getAttributeNS(CAMUNDA_NS, "asyncBefore");
         String asyncAfter = element.getAttributeNS(CAMUNDA_NS, "asyncAfter");
 
         node.setCommitBefore(Boolean.parseBoolean(asyncBefore));
         node.setCommitAfter(Boolean.parseBoolean(asyncAfter));
+        node.setExtensionProperties(parseCamundaExtensionProperties(element));
     }
 
-
-    //USAR FUTURAMENTE PARA DEFINIR ATRIBUTOS ADICIONAIS COMO SLA
     private Map<String, String> parseCamundaExtensionProperties(Element parentElement) {
         Map<String, String> properties = new HashMap<>();
-        NodeList extensionElementsList = parentElement.getElementsByTagName("bpmn:extensionElements");
-        if (extensionElementsList.getLength() > 0) {
-            Element extensionElements = (Element) extensionElementsList.item(0);
-            // Busca por <camunda:properties> dentro de <extensionElements>
-            NodeList propertiesList = extensionElements.getElementsByTagNameNS(CAMUNDA_NS, "properties");
-            if (propertiesList.getLength() > 0) {
-                Element propertiesElement = (Element) propertiesList.item(0);
-                // Itera sobre cada <camunda:property>
-                NodeList propertyList = propertiesElement.getElementsByTagNameNS(CAMUNDA_NS, "property");
-                for (int i = 0; i < propertyList.getLength(); i++) {
-                    Element propertyElement = (Element) propertyList.item(i);
-                    String name = propertyElement.getAttribute("name");
-                    String value = propertyElement.getAttribute("value");
-                    if (name != null && !name.isEmpty()) {
-                        properties.put(name, value);
+        NodeList extensionElementsList = parentElement.getElementsByTagNameNS(BPMN_NS, "extensionElements");
+        if (extensionElementsList.getLength() == 0) {
+            return properties;
+        }
+
+        Element extensionElements = (Element) extensionElementsList.item(0);
+        NodeList extensionChildren = extensionElements.getChildNodes();
+
+        for (int i = 0; i < extensionChildren.getLength(); i++) {
+            Node child = extensionChildren.item(i);
+            if (child instanceof Element && "properties".equals(child.getLocalName()) && CAMUNDA_NS.equals(child.getNamespaceURI())) {
+                Element propertiesElement = (Element) child;
+                NodeList propertyList = propertiesElement.getChildNodes();
+
+                for (int j = 0; j < propertyList.getLength(); j++) {
+                    Node propertyNode = propertyList.item(j);
+                    if (propertyNode instanceof Element && "property".equals(propertyNode.getLocalName()) && CAMUNDA_NS.equals(propertyNode.getNamespaceURI())) {
+                        Element propertyElement = (Element) propertyNode;
+                        String name = propertyElement.getAttribute("name");
+                        String value = propertyElement.getAttribute("value");
+                        if (value == null || value.isEmpty()) {
+                            value = propertyElement.getTextContent();
+                        }
+
+                        if (name != null && !name.isEmpty() && value != null) {
+                            properties.put(name, value.trim());
+                        }
                     }
                 }
             }
         }
         return properties;
     }
+
 
     private FlowNode parseEvent(Element element, FlowNode node) {
         parseCommonFlowNodeAttributes(element, node);
@@ -203,8 +225,6 @@ public class DefaultBpmnParser implements BpmnParser {
         flow.setId(element.getAttribute("id"));
         flow.setTargetNodeId(element.getAttribute("targetRef"));
 
-        // A condição não é um atributo, mas sim o conteúdo de um elemento filho.
-        // Precisamos buscar o elemento <bpmn:conditionExpression> e ler seu conteúdo.
         NodeList conditionNodes = element.getElementsByTagName("bpmn:conditionExpression");
         if (conditionNodes.getLength() > 0) {
             Node conditionNode = conditionNodes.item(0);
@@ -219,6 +239,17 @@ public class DefaultBpmnParser implements BpmnParser {
     private ExclusiveGateway parseExclusiveGateway(Element element){
         ExclusiveGateway node = new ExclusiveGateway();
         parseCommonFlowNodeAttributes(element, node);
+        node.setDefaultFlow(element.getAttribute("default"));
         return node;
+    }
+
+    private String calculateChecksum(byte[] data) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(data);
+            return HexFormat.of().formatHex(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not calculate checksum", e);
+        }
     }
 }

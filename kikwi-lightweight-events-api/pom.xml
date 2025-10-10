@@ -21,9 +21,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <groupId>io.kikwiflow</groupId>
+        <version>0.1.23-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -33,18 +34,13 @@
     <packaging>jar</packaging>
     <name>kikwiflow :: Lightweight Events API</name>
     <artifactId>kikwi-lightweight-events-api</artifactId>
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Atoxfy Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/atoxfy/kikwiflow</url>
-        </repository>
-    </distributionManagement>
+    <description>Defines the API contract for the lightweight, in-memory event bus. This module provides interfaces like `ExecutionEventListener` for subscribing to non-critical, 'fire-and-forget' domain events, ideal for logging, metrics, or real-time UI updates.</description>
+
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-model</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

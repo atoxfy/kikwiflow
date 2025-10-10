@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public record ProcessDefinition(
-        String id, Integer version, String key, String name,
-        Map<String, FlowNodeDefinition> flowNodes, FlowNodeDefinition defaultStartPoint
+        String id, Integer version, String key, String name, String description,
+        Map<String, FlowNodeDefinition> flowNodes, FlowNodeDefinition defaultStartPoint, String checksum
 ) {
     public ProcessDefinition {
         Objects.requireNonNull(key, "key cannot be null");
@@ -41,6 +41,8 @@ public record ProcessDefinition(
         private Integer version;
         private String key;
         private String name;
+        private String checksum;
+        private String description;
         private Map<String, FlowNodeDefinition> flowNodes = Collections.emptyMap();
         private FlowNodeDefinition defaultStartPoint;
 
@@ -48,6 +50,11 @@ public record ProcessDefinition(
 
         public Builder id(String id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder checksum(String checksum) {
+            this.checksum = checksum;
             return this;
         }
 
@@ -66,6 +73,11 @@ public record ProcessDefinition(
             return this;
         }
 
+        public Builder description(String description) {
+            this.description = description;
+            return this;
+        }
+
         public Builder flowNodes(Map<String, FlowNodeDefinition> flowNodes) {
             this.flowNodes = flowNodes;
             return this;
@@ -77,7 +89,7 @@ public record ProcessDefinition(
         }
 
         public ProcessDefinition build() {
-            return new ProcessDefinition(id, version, key, name, flowNodes, defaultStartPoint);
+            return new ProcessDefinition(id, version, key, name, description, flowNodes, defaultStartPoint, checksum);
         }
     }
 }

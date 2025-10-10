@@ -19,9 +19,13 @@ package io.kikwiflow.e2e;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.assertion.AssertableKikwiEngine;
 import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.event.ExecutionEventListener;
+import io.kikwiflow.execution.DecisionRuleResolver;
+import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.TestDecisionRuleResolver;
 import io.kikwiflow.execution.TestDelegateResolver;
 import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.factory.SingletonsFactory;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
@@ -29,28 +33,33 @@ import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
-import io.kikwiflow.rule.api.DecisionRule;
+import io.kikwiflow.navigation.Navigator;
+import io.kikwiflow.navigation.ProcessDefinitionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class InterruptiveTimerTests {
 
     private KikwiflowEngine kikwiflowEngine;
     private AssertableKikwiEngine assertableKikwiEngine;
     private TestDelegateResolver delegateResolver;
-
     private JavaDelegate sendToRecovery;
     private TestDecisionRuleResolver decisionRuleResolver;
 
@@ -61,11 +70,18 @@ public class InterruptiveTimerTests {
         this.decisionRuleResolver = new TestDecisionRuleResolver();
 
         sendToRecovery = spy(new TestJavaDelegate(context -> {
-            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, "done"));
+            context.setVariable("step1", new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,"done"));
         }));
 
         delegateResolver.register("sendToRecovery", sendToRecovery);
-        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, new KikwiflowConfig(), delegateResolver, decisionRuleResolver,  Collections.emptyList());
+        KikwiflowConfig kikwiflowConfig = new KikwiflowConfig();
+        DecisionRuleResolver decisionRuleResolver = new TestDecisionRuleResolver();
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
+        Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
+        ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator, kikwiflowConfig);
+        List<ExecutionEventListener> executionEventListeners = null;
+        this.kikwiflowEngine = new KikwiflowEngine(processDefinitionService, navigator, processExecutionManager, assertableKikwiEngine, kikwiflowConfig, executionEventListeners);
+
     }
 
     @AfterEach
@@ -152,9 +168,9 @@ public class InterruptiveTimerTests {
                 .orElseThrow(() -> new AssertionError("Tarefa não encontrada: doContactTask"));
 
 
-        ProcessVariable processVariable = new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, true);
+        ProcessVariable processVariable = new ProcessVariable("step1", ProcessVariableVisibility.PUBLIC, null, false,true);
         Map<String, ProcessVariable> completionVariables = Map.of(processVariable.name(), processVariable);
-        processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), completionVariables);
+        processInstance = kikwiflowEngine.completeExternalTask(taskToComplete.id(), null, completionVariables, null);
         // Assert: Fase 3 - Finalização
         assertEquals(ProcessInstanceStatus.COMPLETED, processInstance.status(), "O processo deveria estar completo.");
         assertNotNull(processInstance.endedAt(), "O processo deveria ter uma data de término.");
@@ -166,6 +182,7 @@ public class InterruptiveTimerTests {
         assertFalse(assertableKikwiEngine.findAndGetFirstPendingExecutableTask(processInstance.id()).isPresent(), "Não deveria haver mais jobs pendentes.");
         assertableKikwiEngine.assertHasntActiveExternalTaskOn(processInstance.id(), "doContactTask");
     }
+
 
     /**
      * A concrete, test-friendly implementation of JavaDelegate.

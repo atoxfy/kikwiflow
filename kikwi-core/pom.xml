@@ -21,9 +21,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <groupId>io.kikwiflow</groupId>
+        <version>0.1.23-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -33,38 +34,32 @@
     <packaging>jar</packaging>
     <artifactId>kikwi-core</artifactId>
     <name>kikwiflow :: Core Engine</name>
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Atoxfy Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/atoxfy/kikwiflow</url>
-        </repository>
-    </distributionManagement>
+    <description>The core module of the Kikwiflow engine. It contains the main process execution logic, BPMN parser, and services for managing the process lifecycle.</description>
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-model</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-runtime-persistence-api</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-lightweight-events-api</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-delegate-api</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-in-memory-addons</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+              <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -81,7 +76,7 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-core-testing</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+              <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -93,7 +88,7 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-rule-api</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+              <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

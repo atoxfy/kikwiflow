@@ -16,10 +16,11 @@
  */
 package io.kikwiflow.bpmn.model;
 
-import io.kikwiflow.bpmn.model.boundary.BoundaryEvent;
+import io.kikwiflow.model.execution.ProcessInstance;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class FlowNode {
     private String id;
@@ -28,6 +29,7 @@ public class FlowNode {
     private Boolean commitAfter;
     private Boolean commitBefore;
     private List<SequenceFlow> outgoing = new ArrayList<>();
+    private Map<String, String> extensionProperties;
 
     public String getId() {
         return id;
@@ -37,7 +39,13 @@ public class FlowNode {
         this.outgoing.add(sequenceFlow);
     }
 
+    public Map<String, String> getExtensionProperties() {
+        return extensionProperties;
+    }
 
+    public void setExtensionProperties(Map<String, String> extensionProperties) {
+        this.extensionProperties = extensionProperties;
+    }
 
     public void setId(String id) {
         this.id = id;

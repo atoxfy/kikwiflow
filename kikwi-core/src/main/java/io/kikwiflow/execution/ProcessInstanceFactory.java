@@ -16,8 +16,10 @@
  */
 package io.kikwiflow.execution;
 
+import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -27,17 +29,20 @@ import java.util.Map;
  * que representa o estado "quente" e mutável de um processo antes de ser persistido
  * e executado pela engine.
  */
-public final class ProcessInstanceExecutionFactory {
+public final class ProcessInstanceFactory {
 
-    private ProcessInstanceExecutionFactory() {
+    private ProcessInstanceFactory() {
         // Classe utilitária, não deve ser instanciada.
     }
 
-    public static ProcessInstanceExecution create(String businessKey, String processDefinitionId, Map<String, ProcessVariable> variables){
-        return ProcessInstanceExecution.builder()
+    public static ProcessInstance create(String businessKey, String processDefinitionId, Map<String, ProcessVariable> variables, BigDecimal businessValue, String tenantId, String origin){
+        return ProcessInstance.builder()
                 .businessKey(businessKey)
                 .processDefinitionId(processDefinitionId)
                 .variables(variables)
+                .businessValue(businessValue)
+                .tenantId(tenantId)
+                .origin(origin)
                 .build();
     }
 }

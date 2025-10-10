@@ -17,5 +17,5 @@
 package io.kikwiflow.persistence.api.repository;
 
 public interface KikwiEngineRepository extends QueryRepository, CommandRepository{
-
+    void ensureIndexes();
 }

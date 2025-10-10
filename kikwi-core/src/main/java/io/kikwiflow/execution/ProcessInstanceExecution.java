@@ -19,6 +19,7 @@ package io.kikwiflow.execution;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 
@@ -40,9 +41,18 @@ public class ProcessInstanceExecution {
     private Map<String, ProcessVariable> variables;
     private Instant startedAt;
     private Instant endedAt;
+    private BigDecimal businessValue;
+    private String tenantId;
+    private String origin;
 
-    
-    
+    public String getOrigin() {
+        return origin;
+    }
+
+    public void setOrigin(String origin) {
+        this.origin = origin;
+    }
+
     public String getId() {
         return id;
     }
@@ -99,67 +109,24 @@ public class ProcessInstanceExecution {
         this.endedAt = endedAt;
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public BigDecimal getBusinessValue() {
+        return businessValue;
     }
 
-    /**
-     * Um builder para criar instâncias de {@link ProcessInstanceExecution} de forma fluente.
-     * <p>
-     * Simplifica a criação do objeto, especialmente ao definir os parâmetros iniciais de um processo.
-     */
-    public static class Builder {
-        private String businessKey;
-        private String processDefinitionId;
-        private Map<String, ProcessVariable> variables;
+    public void setBusinessValue(BigDecimal businessValue) {
+        this.businessValue = businessValue;
+    }
 
-        private Builder() {
-        }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-        /**
-         * Define a chave de negócio para a instância do processo.
-         * @param businessKey A chave de negócio.
-         * @return O próprio builder, para encadeamento de chamadas.
-         */
-        public Builder businessKey(String businessKey) {
-            this.businessKey = businessKey;
-            return this;
-        }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
-        /**
-         * Define o ID da definição de processo à qual esta instância pertence.
-         * @param processDefinitionId O ID da definição.
-         * @return O próprio builder, para encadeamento de chamadas.
-         */
-        public Builder processDefinitionId(String processDefinitionId) {
-            this.processDefinitionId = processDefinitionId;
-            return this;
-        }
-
-        /**
-         * Define o mapa de variáveis iniciais para a instância do processo.
-         * @param variables O mapa de variáveis.
-         * @return O próprio builder, para encadeamento de chamadas.
-         */
-        public Builder variables(Map<String, ProcessVariable> variables) {
-            this.variables = variables;
-            return this;
-        }
-
-        /**
-         * Constrói e retorna a nova instância de {@link ProcessInstanceExecution} com o estado inicial configurado.
-         * <p>
-         * O status é inicializado como {@link ProcessInstanceStatus#ACTIVE} e o tempo de início é definido para o momento atual.
-         * @return A nova instância de processo em execução.
-         */
-        public ProcessInstanceExecution build() {
-            ProcessInstanceExecution instance = new ProcessInstanceExecution();
-            instance.setBusinessKey(this.businessKey);
-            instance.setProcessDefinitionId(this.processDefinitionId);
-            instance.setVariables(this.variables);
-            instance.setStatus(ProcessInstanceStatus.ACTIVE);
-            instance.setStartedAt(Instant.now());
-            return instance;
-        }
+    public void addVariables(Map<String, ProcessVariable> variables) {
+        if(variables == null) return;
+        this.variables.putAll(variables);
     }
 }

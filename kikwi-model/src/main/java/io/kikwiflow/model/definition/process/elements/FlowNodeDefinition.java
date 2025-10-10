@@ -18,6 +18,7 @@
 package io.kikwiflow.model.definition.process.elements;
 
 import java.util.List;
+import java.util.Map;
 
 public sealed interface FlowNodeDefinition permits StartEventDefinition, ManualTaskDefinition, ServiceTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition {
     String id();
@@ -26,5 +27,6 @@ public sealed interface FlowNodeDefinition permits StartEventDefinition, ManualT
     Boolean commitAfter();
     Boolean commitBefore();
     List<SequenceFlowDefinition> outgoing();
+    Map<String, String> extensionProperties();
 
 }

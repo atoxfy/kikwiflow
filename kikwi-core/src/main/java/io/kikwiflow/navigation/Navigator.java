@@ -16,18 +16,16 @@
  */
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.bpmn.model.SequenceFlow;
+import io.kikwiflow.exception.DecisionRuleNotFoundException;
 import io.kikwiflow.execution.DecisionRuleResolver;
+import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
-import io.kikwiflow.execution.dto.Continuation;
-import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.rule.api.DecisionRule;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,118 +41,69 @@ import java.util.Optional;
  */
 public class Navigator {
 
-    private final ProcessDefinitionService processDefinitionService;
+
     private final DecisionRuleResolver decisionRuleResolver;
-    /**
-     * Constrói uma nova instância do Navigator.
-     *
-     * @param processDefinitionService O gestor de definições de processo, usado para obter
-     *                                 informações sobre o grafo do processo quando necessário.
-     */
-    public Navigator(ProcessDefinitionService processDefinitionService, DecisionRuleResolver decisionRuleResolver) {
-        this.processDefinitionService = processDefinitionService;
+
+    public Navigator(DecisionRuleResolver decisionRuleResolver) {
         this.decisionRuleResolver = decisionRuleResolver;
     }
 
-    /**
-     * Encontra o ponto de início padrão para uma dada definição de processo.
-     *
-     * @param processDefinition A definição do processo.
-     * @return O {@link FlowNodeDefinition} que representa o evento de início padrão.
-     */
-    public FlowNodeDefinition findStartPoint(ProcessDefinition processDefinition){
-        return processDefinition.defaultStartPoint();
-    }
 
-    /**
-     * Determina a próxima continuação (próximos passos) após a conclusão de um nó.
-     * <p>
-     * Atualmente, suporta apenas um fluxo de saída linear. Lógicas para gateways
-     * (paralelo, exclusivo) serão adicionadas no futuro.
-     *
-     * @param completedNode O nó que acabou de ser executado.
-     * @param processDefinition A definição do processo à qual o nó pertence.
-     * @param forceAsync Se a continuação deve ser forçada a ser assíncrona (por exemplo, após um commit).
-     * @return Um objeto {@link Continuation} descrevendo os próximos nós e se a execução
-     *         deve ser síncrona ou assíncrona. Retorna {@code null} se for um nó final.
-     */
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync) {
-
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync, String targetFlowId) {
+        //todo mudar para usar logica de optional.or
         List<SequenceFlowDefinition> outgoingFlows = completedNode.outgoing();
 
         if (outgoingFlows.isEmpty()) {
-            // É um EndEvent ou um nó sem saída, o processo termina aqui.
             return null;
         }
 
         List<FlowNodeDefinition> nextNodes = new ArrayList<>();
+        if (completedNode instanceof ExclusiveGatewayDefinition gateway) {
+            Optional<SequenceFlowDefinition> chosenFlow = Optional.empty();
 
+            if (targetFlowId != null && !targetFlowId.isBlank()) {
+                chosenFlow = outgoingFlows.stream().filter(sf -> sf.targetNodeId().equals(targetFlowId)).findFirst();
+            }
 
+            if (chosenFlow.isEmpty()) {
+                for (SequenceFlowDefinition flow : outgoingFlows) {
+                    if (flow.condition() != null && !flow.condition().isBlank()) {
+                        DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition()).orElseThrow(
+                                () -> new DecisionRuleNotFoundException("DecisionRule not found with key: " + flow.condition()));
 
-
-        // Aqui futuramente adicionar logica por tipo de node
-        if (completedNode instanceof ExclusiveGatewayDefinition) {
-
-            FlowNodeDefinition defaultNextNode = null;
-            // encontrar o primeiro caminho cuja condição é verdadeira.
-            for (SequenceFlowDefinition flow : outgoingFlows) {
-                if (flow.condition() == null || flow.condition().isEmpty() ) {
-                   //É saida de um gateway e não possui condição
-                    if(defaultNextNode == null){
-                        defaultNextNode = processDefinition.flowNodes().get(flow.targetNodeId());
+                        if (decisionRule.evaluate(variables)) {
+                            chosenFlow = Optional.of(flow);
+                            break;
+                        }
                     }
-                    continue;
-                }
-
-                DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition()).orElseThrow();
-                if (decisionRule.evaluate(variables)) {
-                    nextNodes.add(processDefinition.flowNodes().get(flow.targetNodeId()));
-                    break;
                 }
             }
 
-            if(nextNodes.isEmpty() && defaultNextNode != null){
-                nextNodes.add(defaultNextNode);
+            if (chosenFlow.isEmpty()) {
+                String defaultFlowId = gateway.defaultFlow();
+                if (defaultFlowId != null) {
+                    chosenFlow = outgoingFlows.stream().filter(sf -> sf.id().equals(defaultFlowId)).findFirst();
+                }
             }
 
-            if(nextNodes.isEmpty()){
-                throw new RuntimeException("Execution Error: cannot determine sequence flow");
+            if (chosenFlow.isPresent()) {
+                nextNodes.add(processDefinition.flowNodes().get(chosenFlow.get().targetNodeId()));
+            } else {
+                throw new IllegalStateException("Execution Error: Exclusive gateway '" + gateway.id() + "' has no valid outgoing sequence flow for the given variables.");
             }
 
         } else {
-            //para nodos de uma saida só
             String targetNodeId = outgoingFlows.get(0).targetNodeId();
             nextNodes.add(processDefinition.flowNodes().get(targetNodeId));
         }
 
-        // Agora, determinar se a continuação é síncrona ou assíncrona.
         boolean isAsync = false;
         if (forceAsync) {
-            // O nó anterior tinha um "commit-after", forçando a próxima etapa a ser assíncrona.
             isAsync = true;
         } else {
-            // Verificamos se o *próximo* nó pede para ser assíncrono.
-            // (Simplificado para um fluxo linear, o primeiro nó da lista decide)
             isAsync = Boolean.TRUE.equals(nextNodes.get(0).commitBefore());
         }
 
         return new Continuation(nextNodes, isAsync);
-    }
-
-    /**
-     * Método de conveniência para determinar a próxima continuação a partir de uma instância de processo.
-     * <p>
-     * <strong>Nota:</strong> Este método busca a definição do processo a cada chamada, o que pode
-     * introduzir sobrecarga. Prefira a versão que recebe a {@link ProcessDefinition} diretamente.
-     *
-     * @param completedNode O nó que acabou de ser executado.
-     * @param instance A instância de processo em execução.
-     * @param forceAsync Se a continuação deve ser forçada a ser assíncrona.
-     * @return Um objeto {@link Continuation} ou {@code null}.
-     */
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessInstanceExecution instance, Map<String, ProcessVariable> variables, boolean forceAsync) {
-
-        ProcessDefinition definition = processDefinitionService.getByKey(instance.getProcessDefinitionId()).orElseThrow();
-        return determineNextContinuation(completedNode, definition, variables, forceAsync);
     }
 }

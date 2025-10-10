@@ -23,7 +23,6 @@ import java.util.Map;
 
 public interface DecisionRule {
 
-    String getKey();
 
     boolean evaluate(Map<String, ProcessVariable> variables);
 }

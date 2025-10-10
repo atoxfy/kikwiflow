@@ -17,6 +17,7 @@
 
 package io.kikwiflow.execution;
 
+import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
@@ -45,9 +46,11 @@ import java.util.UUID;
 public class ContinuationService {
 
     private final KikwiEngineRepository kikwiEngineRepository;
+    private final KikwiflowConfig kikwiflowConfig;
 
-    public ContinuationService(KikwiEngineRepository kikwiEngineRepository) {
+    public ContinuationService(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig) {
         this.kikwiEngineRepository = kikwiEngineRepository;
+        this.kikwiflowConfig = kikwiflowConfig;
     }
 
     public ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask){
@@ -85,7 +88,7 @@ public class ContinuationService {
         }
 
         List<OutboxEventEntity> events = new ArrayList<>(executionOutcome.events());
-        if(ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus())){
+        if(kikwiflowConfig.isOutboxEventsEnabled() && ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus())){
             ProcessInstanceFinished processInstanceFinished = ProcessInstanceFinished.builder()
                     .processDefinitionId(processInstance.getProcessDefinitionId())
                     .businessKey(processInstance.getBusinessKey())
@@ -96,7 +99,7 @@ public class ContinuationService {
                     .endedAt(processInstance.getEndedAt())
                     .build();
 
-            events.add(new OutboxEventEntity(processInstanceFinished));
+            events.add(new OutboxEventEntity("PROCESS_INSTANCE_FINISHED", processInstanceFinished));
         }
 
         ProcessInstance processInstanceToSave = ProcessInstanceMapper.mapToRecord(processInstance);
@@ -143,7 +146,6 @@ public class ContinuationService {
     private boolean isAsyncContinuation(Continuation continuation){
         return continuation != null && continuation.isAsynchronous();
     }
-
 
     private ExecutableTask getExecutableTaskFrom(String mainTaskId, String processInstanceId, String taskDefinitionId, String processDefinitionId, AttachedTaskType mainTaskType, String duration){
         return  ExecutableTask.builder()
@@ -194,6 +196,7 @@ public class ContinuationService {
                     .name(flowNodeDefinition.name())
                     .description(flowNodeDefinition.description())
                     .boundaryEvents(boundaryEvents)
+                    .tenantId(processInstanceExecution.getTenantId())
                     .build();
 
             nextExternalTasks.add(externalTask);
@@ -201,7 +204,6 @@ public class ContinuationService {
         }else if (flowNodeDefinition instanceof ServiceTaskDefinition st){
             String executableTaskNodeId = UUID.randomUUID().toString();
             List<String> boundaryEvents = new ArrayList<>();
-
 
             if( Objects.nonNull(st.boundaryEvents())
                     && !st.boundaryEvents().isEmpty()){

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.management.rest.tasks;
+package io.kikwiflow.management.rest.controller.tasks;
 
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -23,7 +23,13 @@ import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.query.api.ExternalTaskQueryService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
@@ -31,7 +37,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/task")
 public class TaskController {
-
 
     private final ExternalTaskQueryService queryService;
     private final KikwiflowEngine commandEngine;
@@ -42,7 +47,7 @@ public class TaskController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ExternalTask>> findTasksByInstance(@RequestParam String processInstanceId) {
+    public ResponseEntity<List<ExternalTask>> findTasks(@RequestParam String processInstanceId) {
         List<ExternalTask> tasks = queryService.findByProcessInstanceId(processInstanceId);
         if (tasks.isEmpty()) {
             return ResponseEntity.noContent().build();
@@ -51,9 +56,9 @@ public class TaskController {
     }
 
 
-    @PostMapping("/tasks/{taskId}/complete")
+    @PostMapping("/{taskId}/complete")
     public ResponseEntity<ProcessInstance> completeTask(@PathVariable String taskId, @RequestBody(required = false) Map<String, ProcessVariable> variables) {
-        ProcessInstance instance = commandEngine.completeExternalTask(taskId, variables);
+        ProcessInstance instance = commandEngine.completeExternalTask(taskId, null, variables, null);
         return ResponseEntity.ok(instance);
     }
 }

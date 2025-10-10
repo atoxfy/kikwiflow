@@ -20,21 +20,28 @@ package io.kikwiflow.e2e;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.assertion.AssertableKikwiEngine;
 import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.event.ExecutionEventListener;
+import io.kikwiflow.execution.DecisionRuleResolver;
+import io.kikwiflow.execution.ProcessExecutionManager;
+import io.kikwiflow.execution.TestDecisionRuleResolver;
 import io.kikwiflow.execution.TestDelegateResolver;
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.delegate.AddVariableDelegate;
 import io.kikwiflow.execution.delegate.RemoveVariableDelegate;
+import io.kikwiflow.factory.SingletonsFactory;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
+import io.kikwiflow.navigation.Navigator;
+import io.kikwiflow.navigation.ProcessDefinitionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -72,7 +79,12 @@ public class LinearServiceTaskTasksTests {
         this.delegateResolver.register("addVariableDelegate", addVariableDelegate);
         this.removeVariableDelegate =  spy(new RemoveVariableDelegate());
         this.delegateResolver.register("removeVariableDelegate", removeVariableDelegate);
-        this.kikwiflowEngine = new KikwiflowEngine(assertableKikwiEngine, kikwiflowConfig, delegateResolver, null, Collections.emptyList());
+        DecisionRuleResolver decisionRuleResolver = new TestDecisionRuleResolver();
+        ProcessDefinitionService processDefinitionService = SingletonsFactory.processDefinitionService(SingletonsFactory.bpmnParser(), assertableKikwiEngine,  SingletonsFactory.deployValidator(delegateResolver, decisionRuleResolver));
+        Navigator navigator = SingletonsFactory.navigator(decisionRuleResolver);
+        ProcessExecutionManager processExecutionManager = SingletonsFactory.processExecutionManager(delegateResolver, navigator,kikwiflowConfig);
+        List<ExecutionEventListener> executionEventListeners = null;
+        this.kikwiflowEngine = new KikwiflowEngine(processDefinitionService, navigator, processExecutionManager, assertableKikwiEngine, kikwiflowConfig, executionEventListeners);
     }
 
 
@@ -92,7 +104,7 @@ public class LinearServiceTaskTasksTests {
         Map<String, ProcessVariable> startVariables = new HashMap<>();
         String initialVar = UUID.randomUUID().toString();
         String initialVarKey = "myVar";
-        ProcessVariable initialProcessVar = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, initialVar);
+        ProcessVariable initialProcessVar = new ProcessVariable(initialVarKey, ProcessVariableVisibility.PUBLIC, null, false, initialVar);
         startVariables.put(initialVarKey, initialProcessVar);
 
         // Configure spies to perform assertions at the time of invocation

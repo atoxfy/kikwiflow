@@ -22,7 +22,6 @@ import io.kikwiflow.bpmn.model.gateway.ExclusiveGateway;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ExclusiveGatewayMapper {
     private ExclusiveGatewayMapper() {
@@ -39,7 +38,9 @@ public class ExclusiveGatewayMapper {
                 .description(exclusiveGateway.getDescription())
                 .commitAfter(exclusiveGateway.getCommitAfter())
                 .commitBefore(exclusiveGateway.getCommitBefore())
+                .defaultFlow(exclusiveGateway.getDefaultFlow())
                 .outgoing(SequenceFlowMapper.toSnapshot(exclusiveGateway.getOutgoing()))
+                .extensionProperties(exclusiveGateway.getExtensionProperties())
                 .build();
     }
 }

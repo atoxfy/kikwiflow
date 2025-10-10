@@ -37,6 +37,7 @@ public record ExternalTask (
          Instant createdAt,
          String topicName,
          String assignee,
+         String tenantId,
          List<String> boundaryEvents){
 
     public static Builder builder() {
@@ -54,11 +55,13 @@ public record ExternalTask (
         private Instant createdAt = Instant.now();
         private String topicName;
         private String assignee;
+        private String tenantId;
         private List<String> boundaryEvents;
 
         private Builder() {}
 
         public Builder id(String id) { this.id = id; return this; }
+        public Builder tenantId(String tenantId) { this.tenantId = tenantId; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder taskDefinitionId(String taskDefinitionId) { this.taskDefinitionId = taskDefinitionId; return this; }
@@ -82,6 +85,7 @@ public record ExternalTask (
                 this.createdAt,
                 this.topicName,
                 this.assignee,
+                this.tenantId,
                 this.boundaryEvents
             );
         }

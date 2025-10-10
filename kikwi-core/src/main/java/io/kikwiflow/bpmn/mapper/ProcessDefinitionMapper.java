@@ -22,6 +22,7 @@ import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public final class ProcessDefinitionMapper {
@@ -29,7 +30,6 @@ public final class ProcessDefinitionMapper {
     private ProcessDefinitionMapper() {
         // Utility class
     }
-
 
     public static ProcessDefinition toSnapshot(final ProcessDefinitionGraph processDefinitionGraphDeploy) {
         if (Objects.isNull(processDefinitionGraphDeploy)) {
@@ -43,6 +43,6 @@ public final class ProcessDefinitionMapper {
                         entry -> FlowNodeMapper.toRecord(entry.getValue())));
 
 
-        return new ProcessDefinition(null, null, processDefinitionGraphDeploy.getKey(), processDefinitionGraphDeploy.getName(), flowNodeSnapshots, FlowNodeMapper.toRecord(processDefinitionGraphDeploy.getDefaultStartPoint()));
+        return new ProcessDefinition(UUID.randomUUID().toString(), null, processDefinitionGraphDeploy.getKey(), processDefinitionGraphDeploy.getName(), processDefinitionGraphDeploy.getDescription(), flowNodeSnapshots, FlowNodeMapper.toRecord(processDefinitionGraphDeploy.getDefaultStartPoint()), processDefinitionGraphDeploy.getChecksum());
     }
 }

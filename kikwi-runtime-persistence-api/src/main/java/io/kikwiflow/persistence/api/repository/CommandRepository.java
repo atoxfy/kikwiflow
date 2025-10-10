@@ -21,30 +21,16 @@ public interface CommandRepository {
      */
     ProcessInstance saveProcessInstance(ProcessInstance instance);
 
-    /**
-     * Atualiza as variáveis de uma instância de processo existente.
-     *
-     * @param processInstanceId O ID da instância a ser atualizada.
-     * @param variables O mapa de variáveis a serem adicionadas ou sobrescritas.
-     */
-    void updateVariables(String processInstanceId, Map<String, ProcessVariable> variables);
-
-    /**
-     * Adiciona uma nova tarefa à fila de execução.
-     *
-     * @param task A tarefa executável a ser criada.
-     */
-    ExecutableTask createExecutableTask(ExecutableTask task);
-
-    ExternalTask createExternalTask(ExternalTask task);
-
-    Optional<ExternalTask> completeExternalTask(String externalTaskId);
-
     ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy);
-
-    void deleteProcessInstanceById(String processInstanceId);
 
     void commitWork(UnitOfWork unitOfWork);
 
     List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId);
+
+    ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables);
+
+    void claim(String externalTaskId, String assignee);
+
+    void unclaim(String externalTaskId);
+
 }

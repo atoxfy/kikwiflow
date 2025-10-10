@@ -30,18 +30,19 @@ public class ManualTaskMapper {
         // Utility class
     }
 
-    public static ManualTaskDefinition  toSnapshot(final ManualTask serviceTask) {
-        if (Objects.isNull(serviceTask)) {
+    public static ManualTaskDefinition  toSnapshot(final ManualTask manualTask) {
+        if (Objects.isNull(manualTask)) {
             return null;
         }
         return ManualTaskDefinition.builder()
-                .id(serviceTask.getId())
-                .name(serviceTask.getName())
-                .description(serviceTask.getDescription())
-                .commitAfter(serviceTask.getCommitAfter())
-                .commitBefore(serviceTask.getCommitBefore())
-                .outgoing(SequenceFlowMapper.toSnapshot(serviceTask.getOutgoing()))
-                .boundaryEvents(BoundaryEventMapper.toSnapshot(serviceTask.getBoundaryEvents()))
+                .id(manualTask.getId())
+                .name(manualTask.getName())
+                .description(manualTask.getDescription())
+                .commitAfter(manualTask.getCommitAfter())
+                .commitBefore(manualTask.getCommitBefore())
+                .outgoing(SequenceFlowMapper.toSnapshot(manualTask.getOutgoing()))
+                .boundaryEvents(BoundaryEventMapper.toSnapshot(manualTask.getBoundaryEvents()))
+                .extensionProperties(manualTask.getExtensionProperties())
                 .build();
     }
 }

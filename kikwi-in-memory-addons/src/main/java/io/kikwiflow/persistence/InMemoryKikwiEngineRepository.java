@@ -17,19 +17,25 @@
 package io.kikwiflow.persistence;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.definition.variable.ProcessVariableDefinition;
+import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
-import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.UUID;
 
 public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
@@ -64,6 +70,8 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .endedAt(instance.endedAt())
                 .variables(instance.variables())
                 .startedAt(instance.startedAt())
+                .tenantId(instance.tenantId())
+                .businessValue(instance.businessValue())
                 .build();
 
         this.processInstanceCollection.put(instanceToSave.id(), instanceToSave);
@@ -76,24 +84,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public void updateVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
-        findProcessInstanceById(processInstanceId)
-                .ifPresent(processInstance -> {
-                    ProcessInstance instanceToSave = ProcessInstance.builder()
-                            .id(processInstance.id())
-                            .businessKey(processInstance.businessKey())
-                            .processDefinitionId(processInstance.processDefinitionId())
-                            .status(processInstance.status())
-                            .endedAt(processInstance.endedAt())
-                            .variables(variables)
-                            .startedAt(processInstance.startedAt())
-                            .build();
-
-                    saveProcessInstance(instanceToSave);
-                });
+    public List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids) {
+        return List.of();
     }
 
-    @Override
+
     public ExecutableTask createExecutableTask(ExecutableTask executableTask) {
         ExecutableTask executableTaskToSave = ExecutableTask.builder()
                 .id(executableTask.id())
@@ -119,7 +114,6 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         return executableTaskToSave;
     }
 
-    @Override
     public ExternalTask createExternalTask(ExternalTask task) {
         ExternalTask externalTask = ExternalTask.builder()
                 .assignee(task.assignee())
@@ -133,15 +127,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .topicName(task.topicName())
                 .processInstanceId(task.processInstanceId())
                 .boundaryEvents(task.boundaryEvents())
+                .tenantId(task.tenantId())
                 .build();
 
         this.externalTaskCollection.put(externalTask.id(), externalTask);
         return externalTask;
-    }
-
-    @Override
-    public Optional<ExternalTask> completeExternalTask(String externalTaskId) {
-        return Optional.empty();
     }
 
     @Override
@@ -155,7 +145,6 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
             .filter(task -> processInstanceId.equals(task.processInstanceId()))
             .toList();
     }
-
 
     @Override
     public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinition){
@@ -172,8 +161,10 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .id(UUID.randomUUID().toString())
                 .version(version)
                 .key(key)
+                .name(processDefinition.name())
                 .defaultStartPoint(processDefinition.defaultStartPoint())
                 .flowNodes(processDefinition.flowNodes())
+                .description(processDefinition.description())
                 .build();
 
         this.processDefinitionCollection.put(key, processDefinitionToSave);
@@ -195,11 +186,6 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
         processDefinitionVersionMap.put(processDefinition.version(), processDefinition);
         processDefinitionHistoryCollection.put(key, processDefinitionVersionMap);
-    }
-
-    @Override
-    public void deleteProcessInstanceById(String processInstanceId) {
-        this.processInstanceCollection.remove(processInstanceId);
     }
 
     @Override
@@ -259,7 +245,24 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
+        //TODO
+        return null;
+    }
+
+    @Override
+    public void claim(String externalTaskId, String assignee) {
+        //TODO
+    }
+
+    @Override
+    public void unclaim(String externalTaskId) {
+        //TODO
+    }
+
+    @Override
     public Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId) {
+        //TODO
         return Optional.empty();
     }
 
@@ -274,5 +277,44 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .stream()
                 .filter(task -> task.status() == ExecutableTaskStatus.PENDING)
                 .findFirst();
+    }
+
+    @Override
+    public List<ProcessInstance> findProcessInstanceByProcessDefinitionId(String processDefinitionId, String tenantId) {
+        return processInstanceCollection.values()
+                .stream()
+                .filter(p -> p.processDefinitionId().equals(processDefinitionId) && Objects.equals(tenantId, p.tenantId()))
+                .toList();
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, String tenantId) {
+        return this.externalTaskCollection.values()
+                .stream()
+                .filter(t -> t.processDefinitionId().equals(processDefinitionId) && Objects.equals(tenantId, t.tenantId()))
+                .toList();
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId) {
+        return List.of();
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, List<String> tenantIds) {
+        return List.of();
+    }
+
+    @Override
+    public List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId) {
+        return this.externalTaskCollection.values()
+                .stream()
+                .filter(t -> Objects.equals(assignee, t.assignee()) && Objects.equals(tenantId, t.tenantId()))
+                .toList();
+    }
+
+    @Override
+    public void ensureIndexes() {
+
     }
 }

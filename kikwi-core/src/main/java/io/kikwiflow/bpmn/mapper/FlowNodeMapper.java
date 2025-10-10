@@ -47,25 +47,15 @@ public final class FlowNodeMapper {
             return null;
         }
 
-        if(node instanceof ServiceTask st) {
-            return ServiceTaskMapper.toSnapshot(st);
-
-        } else if (node instanceof StartEvent se) {
-            return StartEventMapper.toSnapshot(se);
-
-        } else if (node instanceof EndEvent endEvent ) {
-            return EndEventMapper.toSnapshot(endEvent);
-
-        } else if(node instanceof ManualTask ht){
-            return ManualTaskMapper.toSnapshot(ht);
-
-        } else if(node instanceof ExclusiveGateway eg){
-            return ExclusiveGatewayMapper.toSnapshot(eg);
-        } else if (node instanceof InterruptiveTimerBoundaryEvent interruptiveTimer) {
-            return BoundaryEventMapper.toSnapshot(interruptiveTimer);
-        } else{
-            throw new NotImplementedException("Node type " + node.getClass().getSimpleName() + " is not implemented yet");
-
-        }
+        return switch (node) {
+            case ServiceTask st -> ServiceTaskMapper.toSnapshot(st);
+            case StartEvent se -> StartEventMapper.toSnapshot(se);
+            case EndEvent endEvent -> EndEventMapper.toSnapshot(endEvent);
+            case ManualTask ht -> ManualTaskMapper.toSnapshot(ht);
+            case ExclusiveGateway eg -> ExclusiveGatewayMapper.toSnapshot(eg);
+            case InterruptiveTimerBoundaryEvent interruptiveTimer -> BoundaryEventMapper.toSnapshot(interruptiveTimer);
+            default ->
+                    throw new NotImplementedException("Node type " + node.getClass().getSimpleName() + " is not implemented yet");
+        };
     }
 }
