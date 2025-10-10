@@ -118,8 +118,8 @@ Apache License 2.0 - Veja [LICENSE](LICENSE) para detalhes.
 
 ## 🌟 Comunidade
 
-- 💬 [Discord](https://discord.gg/3GP5eQNw)
-- 📧 [Email](mailto:contato@atoxfy.com)
+- 💬 [Discord](https://discord.gg/5YrE84TsYM)
+- 📧 [Email](mailto:kikwiflow@atoxfy.com)
 - 🐛 [Issues](https://github.com/atoxfy/kikwiflow/issues)
 - 📦 [Pacotes](https://github.com/orgs/atoxfy/packages?repo_name=kikwiflow)
 - 👩‍💻 [Forúm](https://github.com/atoxfy/kikwiflow/discussions)
@@ -132,4 +132,4 @@ Apache License 2.0 - Veja [LICENSE](LICENSE) para detalhes.
 
 <h2>Apoio</h2>
 
-[Kikwiflow](https://kikwiflow.com) é um projeto open-source mantido pela [{Atoxfy}](https://atoxfy.com).
+[Kikwiflow](https://kikwiflow.io) é um projeto open-source mantido pela [{Atoxfy}](https://atoxfy.com).
