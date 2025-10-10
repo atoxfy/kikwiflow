@@ -86,6 +86,14 @@ public class KikwiflowEngine {
         taskAcquirer.stop();
     }
 
+    public void claim(String externalTaskId, String assignee){
+        this.kikwiEngineRepository.claim(externalTaskId, assignee);
+    }
+
+    public void unclaim(String externalTaskId){
+        this.kikwiEngineRepository.unclaim(externalTaskId);
+    }
+
     /**
      * Completa uma tarefa externa e continua a execução do processo.
      *
