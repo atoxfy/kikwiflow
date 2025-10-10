@@ -99,7 +99,7 @@ Victória Behenck
 
 [Rebeca](https://github.com/rebecamontag)
 
-Irineu Arthur
+[Irineu Artur](https://github.com/IAPdeS)
 
 Max 
 
