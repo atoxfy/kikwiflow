@@ -23,6 +23,7 @@ import java.util.Map;
 
 public record InterruptiveTimerEventDefinition(String id,
                                                String name,
+                                               String type,
                                                String description,
                                                String delegateExpression,
                                                Boolean commitAfter,
@@ -102,8 +103,7 @@ public record InterruptiveTimerEventDefinition(String id,
         }
 
         public InterruptiveTimerEventDefinition build() {
-            return new InterruptiveTimerEventDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing, attachedToRef, duration, extensionProperties);
+            return new InterruptiveTimerEventDefinition(id, name, "BOUNDARY_INTERRUPTIVE_TIMER", description, delegateExpression, commitAfter, commitBefore, outgoing, attachedToRef, duration, extensionProperties);
         }
     }
-
 }

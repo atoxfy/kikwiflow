@@ -17,6 +17,6 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
-public sealed interface BoundaryEventDefinition extends FlowNodeDefinition  permits InterruptiveTimerEventDefinition {
+public sealed interface BoundaryEventDefinition extends FlowNodeDefinition permits InterruptiveTimerEventDefinition {
      String attachedToRef();
 }

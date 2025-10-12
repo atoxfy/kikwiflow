@@ -23,6 +23,7 @@ import java.util.Map;
 
 public record ExclusiveGatewayDefinition(String id,
                                          String name,
+                                         String type,
                                          String description,
                                          Boolean commitAfter,
                                          Boolean commitBefore,
@@ -89,7 +90,7 @@ public record ExclusiveGatewayDefinition(String id,
         }
 
         public ExclusiveGatewayDefinition build() {
-            return new ExclusiveGatewayDefinition(id, name, description, commitAfter, commitBefore, defaultFlow, outgoing, extensionProperties);
+            return new ExclusiveGatewayDefinition(id, name, "EXCLUSIVE_GATEWAY", description, commitAfter, commitBefore, defaultFlow, outgoing, extensionProperties);
         }
     }
 }

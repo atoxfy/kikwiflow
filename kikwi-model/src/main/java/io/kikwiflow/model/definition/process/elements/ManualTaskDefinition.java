@@ -25,6 +25,7 @@ import java.util.Map;
 
 public record ManualTaskDefinition(String id,
                                    String name,
+                                   String type,
                                    String description,
                                    Boolean commitAfter,
                                    Boolean commitBefore,
@@ -96,7 +97,7 @@ public record ManualTaskDefinition(String id,
 
 
         public ManualTaskDefinition build() {
-            return new ManualTaskDefinition(id, name, description, commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties);
+            return new ManualTaskDefinition(id, name, description, "EXTERNAL_TASK", commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties);
         }
     }
 }

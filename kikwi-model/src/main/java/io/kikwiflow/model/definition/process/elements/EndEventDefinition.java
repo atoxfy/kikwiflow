@@ -23,6 +23,7 @@ import java.util.Map;
 
 public record EndEventDefinition(String id,
                                  String name,
+                                 String type,
                                  String description,
                                  Boolean commitAfter,
                                  Boolean commitBefore,
@@ -82,7 +83,7 @@ public record EndEventDefinition(String id,
         }
 
         public EndEventDefinition build() {
-            return new EndEventDefinition(id, name, description, commitAfter, commitBefore, outgoing,extensionProperties);
+            return new EndEventDefinition(id, name, description, "DEFAULT_END_EVENT", commitAfter, commitBefore, outgoing,extensionProperties);
         }
     }
 }

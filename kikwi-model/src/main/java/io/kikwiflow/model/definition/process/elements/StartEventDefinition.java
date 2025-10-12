@@ -25,6 +25,7 @@ import java.util.Map;
 public record StartEventDefinition(String id,
                                    String name,
                                    String description,
+                                   String type,
                                    Boolean commitAfter,
                                    Boolean commitBefore,
                                    List<SequenceFlowDefinition> outgoing,
@@ -83,7 +84,7 @@ public record StartEventDefinition(String id,
         }
 
         public StartEventDefinition build() {
-            return new StartEventDefinition(id, name, description, commitAfter, commitBefore, outgoing, extensionProperties);
+            return new StartEventDefinition(id, name, description, "DEFAULT_START_EVENT",commitAfter, commitBefore, outgoing, extensionProperties);
         }
     }
 }

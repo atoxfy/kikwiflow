@@ -23,6 +23,7 @@ import java.util.Map;
 public sealed interface FlowNodeDefinition permits StartEventDefinition, ManualTaskDefinition, ServiceTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition {
     String id();
     String name();
+    String type();
     String description();
     Boolean commitAfter();
     Boolean commitBefore();

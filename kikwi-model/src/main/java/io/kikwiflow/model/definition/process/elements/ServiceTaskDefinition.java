@@ -25,6 +25,7 @@ import java.util.Map;
 
 public record ServiceTaskDefinition(String id,
                                     String name,
+                                    String type,
                                     String description,
                                     String delegateExpression,
                                     Boolean commitAfter,
@@ -101,7 +102,7 @@ public record ServiceTaskDefinition(String id,
         }
 
         public ServiceTaskDefinition build() {
-            return new ServiceTaskDefinition(id, name, description, delegateExpression, commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties);
+            return new ServiceTaskDefinition(id, name, description, "SERVICE_TASK", delegateExpression,  commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties);
         }
     }
 
