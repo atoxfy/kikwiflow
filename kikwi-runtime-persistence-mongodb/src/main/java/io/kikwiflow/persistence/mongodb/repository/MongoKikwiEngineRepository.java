@@ -265,6 +265,42 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public void deleteProcessInstanceById(String processInstanceId) {
+        try (ClientSession clientSession = mongoClient.startSession()) {
+            clientSession.withTransaction(() -> {
+                getDatabase().getCollection(EXTERNAL_TASK_COLLECTION)
+                        .deleteMany(clientSession, eq("processInstanceId", processInstanceId));
+
+                getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION)
+                        .deleteMany(clientSession, eq("processInstanceId", processInstanceId));
+
+                getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION)
+                        .deleteOne(clientSession, eq("_id", processInstanceId));
+
+                // TODO: Considerar se os eventos do outbox e o histórico também devem ser deletados.
+                return "Deletion transaction committed for instance " + processInstanceId;
+            });
+        }
+    }
+
+    @Override
+    public List<ProcessDefinition> findAProcessDefinitionsByParams(String key) {
+        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
+        List<ProcessDefinition> definitions = new ArrayList<>();
+
+        if (key == null || key.isBlank()) {
+            return definitions;
+        }
+
+        collection.find(eq("key", key))
+                .sort(Sorts.descending("version"))
+                .map(ProcessDefinitionMapper::fromDocument)
+                .into(definitions);
+
+        return definitions;
+    }
+
+    @Override
     public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
         
@@ -313,8 +349,6 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 .map(ExternalTaskMapper::fromDocument);
     }
 
-  
-
     @Override
     public Optional<ExecutableTask> findExecutableTaskById(String executableTaskId) {
         MongoCollection<Document> collection = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
@@ -344,7 +378,6 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-
     public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, String tenantId) {
         MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
 

@@ -63,6 +63,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ProcessDefinition> findAProcessDefinitionsByParams(String key) {
+        return List.of();
+    }
+
+    @Override
     public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         return inMemoryKikwiEngineRepository.findProcessInstanceById(processInstanceId);
     }
@@ -110,6 +115,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public void unclaim(String externalTaskId) {
         this.inMemoryKikwiEngineRepository.unclaim(externalTaskId);
+    }
+
+    @Override
+    public void deleteProcessInstanceById(String processInstanceId) {
+
     }
 
     @Override

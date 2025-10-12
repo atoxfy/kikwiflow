@@ -27,6 +27,8 @@ import java.util.Optional;
 
 public interface QueryRepository {
 
+    List<ProcessDefinition> findAProcessDefinitionsByParams(String key);
+
     Optional<ProcessInstance> findProcessInstanceById(String processInstanceId);
 
     List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids);

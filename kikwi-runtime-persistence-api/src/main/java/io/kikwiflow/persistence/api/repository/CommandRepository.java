@@ -33,4 +33,5 @@ public interface CommandRepository {
 
     void unclaim(String externalTaskId);
 
+    void deleteProcessInstanceById(String processInstanceId);
 }

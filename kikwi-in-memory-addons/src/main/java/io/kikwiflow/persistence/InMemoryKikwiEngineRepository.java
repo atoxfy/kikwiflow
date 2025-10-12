@@ -79,6 +79,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ProcessDefinition> findAProcessDefinitionsByParams(String key) {
+        return List.of();
+    }
+
+    @Override
     public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         return Optional.ofNullable(this.processInstanceCollection.get(processInstanceId));
     }
@@ -258,6 +263,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     @Override
     public void unclaim(String externalTaskId) {
         //TODO
+    }
+
+    @Override
+    public void deleteProcessInstanceById(String processInstanceId) {
+
     }
 
     @Override
