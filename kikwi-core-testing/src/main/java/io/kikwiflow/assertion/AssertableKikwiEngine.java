@@ -28,6 +28,7 @@ import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.InMemoryKikwiEngineRepository;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
@@ -165,6 +166,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId) {
         return this.inMemoryKikwiEngineRepository.findExternalTasksByAssignee(assignee, tenantId);
+    }
+
+    @Override
+    public ExternalTaskQuery createExternalTaskQuery() {
+        return null;
     }
 
     public void evaluateEvents(){

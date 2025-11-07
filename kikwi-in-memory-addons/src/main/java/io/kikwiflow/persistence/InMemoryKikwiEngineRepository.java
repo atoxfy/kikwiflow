@@ -24,6 +24,7 @@ import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
@@ -321,6 +322,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .stream()
                 .filter(t -> Objects.equals(assignee, t.assignee()) && Objects.equals(tenantId, t.tenantId()))
                 .toList();
+    }
+
+    @Override
+    public ExternalTaskQuery createExternalTaskQuery() {
+        return null;
     }
 
     @Override

@@ -37,6 +37,7 @@ import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.persistence.mongodb.mapper.ExecutableTaskMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ExternalTaskMapper;
@@ -478,5 +479,78 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 Indexes.compoundIndex(Indexes.ascending("assignee"), Indexes.ascending("tenantId")),
                 new IndexOptions().name("assignee_tenant_idx")
         );
+    }
+
+
+
+
+    @Override
+    public ExternalTaskQuery createExternalTaskQuery() {
+        return new MongoExternalTaskQuery();
+    }
+
+    /**
+     * Implementação interna da API de query fluente para ExternalTasks.
+     */
+    private class MongoExternalTaskQuery implements ExternalTaskQuery {
+        private final List<Bson> filters = new ArrayList<>();
+
+        @Override
+        public ExternalTaskQuery tenantId(String tenantId) {
+            if (tenantId != null) {
+                filters.add(eq("tenantId", tenantId));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery taskDefinitionId(String taskDefinitionId) {
+            if (taskDefinitionId != null) {
+                filters.add(eq("taskDefinitionId", taskDefinitionId));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery processInstanceId(String processInstanceId) {
+            if (processInstanceId != null) {
+                filters.add(eq("processInstanceId", processInstanceId));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery processDefinitionId(String processDefinitionId) {
+            if (processDefinitionId != null) {
+                filters.add(eq("processDefinitionId", processDefinitionId));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery assignee(String assignee) {
+            if (assignee != null) {
+                filters.add(eq("assignee", assignee));
+            }
+            return this;
+        }
+
+        @Override
+        public List<ExternalTask> list() {
+            MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+            List<ExternalTask> tasks = new ArrayList<>();
+            collection.find(buildFilter()).map(ExternalTaskMapper::fromDocument).into(tasks);
+            return tasks;
+        }
+
+
+        @Override
+        public long count() {
+            return getDatabase().getCollection(EXTERNAL_TASK_COLLECTION).countDocuments(buildFilter());
+        }
+
+        private Bson buildFilter() {
+            return filters.isEmpty() ? new Document() : and(filters);
+        }
     }
 }

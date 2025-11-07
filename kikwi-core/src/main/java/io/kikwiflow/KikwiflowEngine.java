@@ -39,7 +39,6 @@ import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
-import io.kikwiflow.validation.DeployValidator;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -84,6 +83,10 @@ public class KikwiflowEngine {
 
     public void stop(){
         taskAcquirer.stop();
+    }
+
+    public void deleteInstance(String processInstanceId){
+        this.kikwiEngineRepository.deleteProcessInstanceById(processInstanceId);
     }
 
     public void claim(String externalTaskId, String assignee){
@@ -193,6 +196,7 @@ public class KikwiflowEngine {
         private BigDecimal businessValue;
         private String tenantId;
         private String origin;
+        private String targetFlowNodeId;
 
         private ProcessStarter(KikwiflowEngine engine) {
             this.engine = engine;
@@ -200,6 +204,11 @@ public class KikwiflowEngine {
 
         public ProcessStarter byKey(String key) {
             this.processDefinitionKey = key;
+            return this;
+        }
+
+        public ProcessStarter targetFlowNodeId(String targetFlowNodeId) {
+            this.targetFlowNodeId = targetFlowNodeId;
             return this;
         }
 
@@ -243,7 +252,7 @@ public class KikwiflowEngine {
             ProcessInstance processInstance = engine.kikwiEngineRepository.saveProcessInstance(ProcessInstanceFactory.create(businessKey, processDefinition.id(), variables, businessValue, tenantId, origin));
             ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstance);
             FlowNodeDefinition startPoint = processDefinition.defaultStartPoint();
-            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false, null);
+            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false, targetFlowNodeId);
 
             return engine.continuationService.handleContinuation(executionResult);
         }
