@@ -30,6 +30,8 @@ public interface QueryRepository {
 
     List<ProcessDefinition> findAProcessDefinitionsByParams(String key);
 
+    List<ProcessDefinition> findAllProcessDefinitions();
+
     Optional<ProcessInstance> findProcessInstanceById(String processInstanceId);
 
     List<ProcessInstance> findProcessInstancesByIdIn(List<String> ids);

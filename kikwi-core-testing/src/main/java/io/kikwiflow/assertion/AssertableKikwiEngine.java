@@ -69,6 +69,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ProcessDefinition> findAllProcessDefinitions() {
+        return inMemoryKikwiEngineRepository.findAllProcessDefinitions();
+    }
+
+    @Override
     public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         return inMemoryKikwiEngineRepository.findProcessInstanceById(processInstanceId);
     }

@@ -85,6 +85,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ProcessDefinition> findAllProcessDefinitions() {
+        return List.of();
+    }
+
+    @Override
     public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         return Optional.ofNullable(this.processInstanceCollection.get(processInstanceId));
     }

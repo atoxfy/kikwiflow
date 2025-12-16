@@ -302,6 +302,18 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public List<ProcessDefinition> findAllProcessDefinitions() {
+        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
+        List<ProcessDefinition> definitions = new ArrayList<>();
+        collection.find()
+                .sort(Sorts.descending("version"))
+                .map(ProcessDefinitionMapper::fromDocument)
+                .into(definitions);
+
+        return definitions;
+    }
+
+    @Override
     public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
         

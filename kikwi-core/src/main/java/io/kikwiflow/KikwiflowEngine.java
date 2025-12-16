@@ -166,6 +166,10 @@ public class KikwiflowEngine {
         return processDefinitionService.deploy(is);
     }
 
+    public ProcessDefinition deploy(ProcessDefinition processDefinition){
+        return processDefinitionService.deploy(processDefinition);
+    }
+
     public ProcessInstance setVariables(String processInstanceId, Map<String, ProcessVariable> variables){
         return kikwiEngineRepository.addVariables(processInstanceId, variables);
     }
