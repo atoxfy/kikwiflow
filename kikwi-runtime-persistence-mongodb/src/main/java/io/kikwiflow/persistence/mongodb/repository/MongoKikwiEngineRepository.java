@@ -106,7 +106,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         int nextVersion = last.map(def -> def.version() + 1).orElse(1);
 
         ProcessDefinition definitionToSave = new ProcessDefinition(
-                processDefinitionDeploy.id(), nextVersion, processDefinitionDeploy.key(), processDefinitionDeploy.name()
+                processDefinitionDeploy.id(), processDefinitionDeploy.sla(), nextVersion, processDefinitionDeploy.key(), processDefinitionDeploy.name()
                 , processDefinitionDeploy.description(), processDefinitionDeploy.flowNodes(), processDefinitionDeploy.defaultStartPoint(),
                 processDefinitionDeploy.checksum()
         );
@@ -157,7 +157,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 }
 
                 if(unitOfWork.events() != null){
-
+                    //TODO
                 }
 
                 List<WriteModel<Document>> externalTaskWrites = new ArrayList<>();

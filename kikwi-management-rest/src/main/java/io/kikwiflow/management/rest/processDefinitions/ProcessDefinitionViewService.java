@@ -21,7 +21,7 @@ import io.kikwiflow.management.rest.processDefinitions.dto.Stage;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import org.springframework.stereotype.Service;
 
@@ -48,10 +48,10 @@ public class ProcessDefinitionViewService {
         // 1. Encontra a primeira tarefa humana, começando do início do processo.
         findNextHumanTask(definition.defaultStartPoint(), nodes)
             .ifPresent(firstTask -> {
-                ManualTaskDefinition currentTask = firstTask;
+                ExternalTaskDefinition currentTask = firstTask;
                 while (currentTask != null) {
                     // 2. Para a tarefa atual, encontra a próxima tarefa humana no fluxo.
-                    Optional<ManualTaskDefinition> nextTask = findNextHumanTask(currentTask, nodes);
+                    Optional<ExternalTaskDefinition> nextTask = findNextHumanTask(currentTask, nodes);
 
                     stages.add(new Stage(
                         currentTask.id(),
@@ -78,7 +78,7 @@ public class ProcessDefinitionViewService {
      * Navega pelo grafo do processo a partir de um nó inicial para encontrar a próxima tarefa humana.
      * Ele ignora outros tipos de nós (ServiceTasks, Gateways, etc.) no caminho.
      */
-    private Optional<ManualTaskDefinition> findNextHumanTask(FlowNodeDefinition startNode, Map<String, FlowNodeDefinition> allNodes) {
+    private Optional<ExternalTaskDefinition> findNextHumanTask(FlowNodeDefinition startNode, Map<String, FlowNodeDefinition> allNodes) {
         FlowNodeDefinition currentNode = startNode;
         Set<String> visited = new HashSet<>();
 
@@ -96,8 +96,8 @@ public class ProcessDefinitionViewService {
             currentNode = allNodes.get(nextNodeId);
 
             // Se encontramos uma tarefa humana, retornamos.
-            if (currentNode instanceof ManualTaskDefinition) {
-                return Optional.of((ManualTaskDefinition) currentNode);
+            if (currentNode instanceof ExternalTaskDefinition) {
+                return Optional.of((ExternalTaskDefinition) currentNode);
             }
         }
         return Optional.empty();

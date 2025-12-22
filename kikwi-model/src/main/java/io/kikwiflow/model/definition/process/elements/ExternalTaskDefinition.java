@@ -17,21 +17,23 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
-import io.kikwiflow.model.execution.node.Executable;
+import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.execution.node.WaitState;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public record ServiceTaskDefinition(String id,
-                                    String name,
-                                    String type,
-                                    String description,
-                                    String delegateExpression,
-                                    Boolean commitAfter,
-                                    Boolean commitBefore,
-                                    List<SequenceFlowDefinition> outgoing,
-                                    List<BoundaryEventDefinition> boundaryEvents,  Map<String, String> extensionProperties) implements FlowNodeDefinition, Executable {
+public  record ExternalTaskDefinition(String id,
+                                     String name,
+                                     String type,
+                                     String description,
+                                     Boolean commitAfter,
+                                     Boolean commitBefore,
+                                     List<SequenceFlowDefinition> outgoing,
+                                     List<BoundaryEventDefinition> boundaryEvents,
+                                     Map<String, String> extensionProperties,
+                                     LayoutCoordinates layout) implements FlowNodeDefinition, WaitState {
 
     public static Builder builder() {
         return new Builder();
@@ -41,10 +43,9 @@ public record ServiceTaskDefinition(String id,
         private String id;
         private String name;
         private String description;
-        private String delegateExpression;
         private Boolean commitAfter;
         private Boolean commitBefore;
-
+        private LayoutCoordinates layout;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private  List<BoundaryEventDefinition> boundaryEvents = Collections.emptyList();
         private Map<String, String> extensionProperties;
@@ -56,13 +57,13 @@ public record ServiceTaskDefinition(String id,
             return this;
         }
 
-        public Builder name(String name) {
-            this.name = name;
+        public Builder layout(LayoutCoordinates layout){
+            this.layout = layout;
             return this;
         }
 
-        public Builder delegateExpression(String delegateExpression) {
-            this.delegateExpression = delegateExpression;
+        public Builder name(String name) {
+            this.name = name;
             return this;
         }
 
@@ -96,14 +97,15 @@ public record ServiceTaskDefinition(String id,
         }
 
 
+
         public Builder extensionProperties(Map<String, String> extensionProperties){
             this.extensionProperties = extensionProperties;
             return this;
         }
 
-        public ServiceTaskDefinition build() {
-            return new ServiceTaskDefinition(id, name, description, "SERVICE_TASK", delegateExpression,  commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties);
+
+        public ExternalTaskDefinition build() {
+            return new ExternalTaskDefinition(id, name, description, "EXTERNAL_TASK", commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
         }
     }
-
 }

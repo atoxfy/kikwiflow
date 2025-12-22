@@ -20,7 +20,7 @@ import io.kikwiflow.exception.BadDefinitionExecutionException;
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.api.JavaDelegate;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 
 import java.util.Objects;
 
@@ -28,7 +28,7 @@ import java.util.Objects;
  * Responsável por executar a lógica de negócio associada a uma tarefa (task) do processo.
  * <p>
  * Esta classe atua como um despachante (dispatcher). Quando o motor encontra uma tarefa
- * que requer a execução de código Java (como uma {@link ServiceTaskDefinition}),
+ * que requer a execução de código Java (como uma {@link ExecutableTaskDefinition}),
  * o {@code TaskExecutor} utiliza um {@link DelegateResolver} para encontrar e invocar
  * a implementação correta da {@link JavaDelegate}.
  */
@@ -52,14 +52,14 @@ public class TaskExecutor {
      * @param serviceTask A definição da tarefa de serviço.
      * @return {@code true} se a tarefa possuir um `delegateExpression`, {@code false} caso contrário.
      */
-    private boolean isExecutableByDelegate(ServiceTaskDefinition serviceTask){
+    private boolean isExecutableByDelegate(ExecutableTaskDefinition serviceTask){
         return Objects.nonNull(serviceTask.delegateExpression());
     }
 
     /**
      * Executa a lógica de negócio para o nó de fluxo fornecido no contexto de execução.
      * <p>
-     * Atualmente, suporta a execução de {@link ServiceTaskDefinition} que possuem um `delegateExpression`.
+     * Atualmente, suporta a execução de {@link ExecutableTaskDefinition} que possuem um `delegateExpression`.
      *
      * @param executionContext O contexto da execução atual, que contém a instância do processo,
      *                         variáveis e informações sobre o nó atual.
@@ -69,7 +69,7 @@ public class TaskExecutor {
     public void execute(ExecutionContext executionContext){
         FlowNodeDefinition executableTask = executionContext.getFlowNode();
 
-        if (executableTask instanceof ServiceTaskDefinition serviceTask) {
+        if (executableTask instanceof ExecutableTaskDefinition serviceTask) {
             if(isExecutableByDelegate(serviceTask)){
                 String delegateExpression = serviceTask.delegateExpression();
                 String beanName = delegateExpression.replace("${", "").replace("}", "");

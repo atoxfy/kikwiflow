@@ -17,10 +17,12 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
+import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+
 import java.util.List;
 import java.util.Map;
 
-public sealed interface FlowNodeDefinition permits StartEventDefinition, ManualTaskDefinition, ServiceTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition {
+public sealed interface FlowNodeDefinition permits StartEventDefinition, ExternalTaskDefinition, ExecutableTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition {
     String id();
     String name();
     String type();
@@ -29,5 +31,5 @@ public sealed interface FlowNodeDefinition permits StartEventDefinition, ManualT
     Boolean commitBefore();
     List<SequenceFlowDefinition> outgoing();
     Map<String, String> extensionProperties();
-
+    LayoutCoordinates layout();
 }

@@ -24,8 +24,8 @@ import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
-import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
-import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -168,7 +168,7 @@ public class ContinuationService {
         String processInstanceId = processInstanceExecution.getId();
         String processDefinitionId = processInstanceExecution.getProcessDefinitionId();
 
-        if(flowNodeDefinition instanceof ManualTaskDefinition mt){
+        if(flowNodeDefinition instanceof ExternalTaskDefinition mt){
 
             String externalTaskNodeId = UUID.randomUUID().toString();
             List<String> boundaryEvents = new ArrayList<>();
@@ -201,7 +201,7 @@ public class ContinuationService {
 
             nextExternalTasks.add(externalTask);
 
-        }else if (flowNodeDefinition instanceof ServiceTaskDefinition st){
+        }else if (flowNodeDefinition instanceof ExecutableTaskDefinition st){
             String executableTaskNodeId = UUID.randomUUID().toString();
             List<String> boundaryEvents = new ArrayList<>();
 

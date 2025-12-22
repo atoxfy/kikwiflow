@@ -17,6 +17,8 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
+import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +32,9 @@ public record InterruptiveTimerEventDefinition(String id,
                                                Boolean commitBefore,
                                                List<SequenceFlowDefinition> outgoing,
                                                String attachedToRef, 
-                                               String duration, Map<String, String> extensionProperties) implements BoundaryEventDefinition, FlowNodeDefinition {
+                                               String duration,
+                                               Map<String, String> extensionProperties,
+                                               LayoutCoordinates layout) implements BoundaryEventDefinition, FlowNodeDefinition {
 
     public static InterruptiveTimerEventDefinition.Builder builder() {
         return new InterruptiveTimerEventDefinition.Builder();
@@ -47,11 +51,17 @@ public record InterruptiveTimerEventDefinition(String id,
         private String attachedToRef;
         private String duration;
         private Map<String, String> extensionProperties;
+        private LayoutCoordinates layout;
 
         private Builder() {}
 
         public Builder id(String id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder layout(LayoutCoordinates layout) {
+            this.layout = layout;
             return this;
         }
 
@@ -103,7 +113,7 @@ public record InterruptiveTimerEventDefinition(String id,
         }
 
         public InterruptiveTimerEventDefinition build() {
-            return new InterruptiveTimerEventDefinition(id, name, "BOUNDARY_INTERRUPTIVE_TIMER", description, delegateExpression, commitAfter, commitBefore, outgoing, attachedToRef, duration, extensionProperties);
+            return new InterruptiveTimerEventDefinition(id, name, "BOUNDARY_INTERRUPTIVE_TIMER", description, delegateExpression, commitAfter, commitBefore, outgoing, attachedToRef, duration, extensionProperties, layout);
         }
     }
 }

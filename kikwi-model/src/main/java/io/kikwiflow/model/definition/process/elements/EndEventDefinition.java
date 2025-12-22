@@ -17,6 +17,8 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
+import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +29,9 @@ public record EndEventDefinition(String id,
                                  String description,
                                  Boolean commitAfter,
                                  Boolean commitBefore,
-                                 List<SequenceFlowDefinition> outgoing, Map<String, String> extensionProperties) implements FlowNodeDefinition {
+                                 List<SequenceFlowDefinition> outgoing,
+                                 Map<String, String> extensionProperties,
+                                 LayoutCoordinates layout) implements FlowNodeDefinition {
 
     public static Builder builder() {
         return new Builder();
@@ -41,11 +45,17 @@ public record EndEventDefinition(String id,
         private Boolean commitBefore;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private Map<String, String> extensionProperties;
+        private LayoutCoordinates layout;
 
         private Builder() {}
 
         public Builder id(String id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder layout(LayoutCoordinates layout) {
+            this.layout = layout;
             return this;
         }
 
@@ -83,7 +93,7 @@ public record EndEventDefinition(String id,
         }
 
         public EndEventDefinition build() {
-            return new EndEventDefinition(id, name, description, "DEFAULT_END_EVENT", commitAfter, commitBefore, outgoing,extensionProperties);
+            return new EndEventDefinition(id, name, description, "DEFAULT_END_EVENT", commitAfter, commitBefore, outgoing,extensionProperties, layout);
         }
     }
 }

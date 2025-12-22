@@ -19,7 +19,7 @@ package io.kikwiflow.view.adapter;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.view.model.manual.Workflow;
 import io.kikwiflow.view.model.manual.WorkflowStage;
 
@@ -60,8 +60,8 @@ public class WorkflowAdapter {
             return;
         }
 
-        if (currentNode instanceof ManualTaskDefinition manualTask) {
-            List<ManualTaskDefinition> nextHumanTasks = findNextHumanTasks(manualTask, allNodes, new HashSet<>());
+        if (currentNode instanceof ExternalTaskDefinition manualTask) {
+            List<ExternalTaskDefinition> nextHumanTasks = findNextHumanTasks(manualTask, allNodes, new HashSet<>());
 
             stages.put(manualTask.id(), new WorkflowStage(
                     manualTask.id(),
@@ -70,7 +70,7 @@ public class WorkflowAdapter {
                     manualTask.extensionProperties()
             ));
 
-            for (ManualTaskDefinition nextTask : nextHumanTasks) {
+            for (ExternalTaskDefinition nextTask : nextHumanTasks) {
                 buildStagesRecursively(nextTask, allNodes, stages, visitedNodes);
             }
         } else {
@@ -85,12 +85,12 @@ public class WorkflowAdapter {
      * A partir de um nó inicial, encontra a(s) próxima(s) tarefa(s) humana(s) no fluxo,
      * atravessando nós não-humanos (como gateways e tarefas de sistema).
      */
-    private static List<ManualTaskDefinition> findNextHumanTasks(
+    private static List<ExternalTaskDefinition> findNextHumanTasks(
             FlowNodeDefinition startNode,
             Map<String, FlowNodeDefinition> allNodes,
             Set<String> visitedNodesInPath) {
 
-        List<ManualTaskDefinition> foundTasks = new ArrayList<>();
+        List<ExternalTaskDefinition> foundTasks = new ArrayList<>();
         if (startNode == null || !visitedNodesInPath.add(startNode.id())) {
             return foundTasks;
         }
@@ -98,7 +98,7 @@ public class WorkflowAdapter {
         for (var flow : startNode.outgoing()) {
             FlowNodeDefinition nextNode = allNodes.get(flow.targetNodeId());
 
-            if (nextNode instanceof ManualTaskDefinition manualTask) {
+            if (nextNode instanceof ExternalTaskDefinition manualTask) {
                 foundTasks.add(manualTask);
             } else {
                 foundTasks.addAll(findNextHumanTasks(nextNode, allNodes, visitedNodesInPath));
