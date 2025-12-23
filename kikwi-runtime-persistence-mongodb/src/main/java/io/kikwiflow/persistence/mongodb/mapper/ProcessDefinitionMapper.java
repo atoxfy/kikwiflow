@@ -58,7 +58,9 @@ public final class ProcessDefinitionMapper {
                 .append("name", definition.name())
                 .append("version", definition.version())
                 .append("checksum", definition.checksum())
-                .append("description", definition.description());
+                .append("description", definition.description())
+                .append("extensionProperties", definition.extensionProperties() != null ? new Document(definition.extensionProperties()) : new Document());
+
 
         if (definition.flowNodes() != null) {
             Document nodesDoc = new Document();
@@ -168,6 +170,16 @@ public final class ProcessDefinitionMapper {
         String defaultStartPointId = doc.getString("defaultStartPointId");
         FlowNodeDefinition defaultStartPoint = defaultStartPointId != null ? flowNodes.get(defaultStartPointId) : null;
 
+
+        Document extensionPropertiesDoc = doc.get("extensionProperties", Document.class);
+        Map<String, String> extensionProperties = Collections.emptyMap();
+        if (extensionPropertiesDoc != null) {
+            extensionProperties = extensionPropertiesDoc.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            entry -> (String) entry.getValue()));
+        }
+
         return ProcessDefinition.builder()
                 .id(doc.getString("_id"))
                 .key(doc.getString("key"))
@@ -177,6 +189,7 @@ public final class ProcessDefinitionMapper {
                 .description(doc.getString("description"))
                 .flowNodes(flowNodes)
                 .defaultStartPoint(defaultStartPoint)
+                .extensionProperties(extensionProperties)
                 .build();
     }
 

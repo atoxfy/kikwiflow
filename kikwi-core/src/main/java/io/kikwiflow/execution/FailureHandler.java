@@ -56,13 +56,13 @@ public class FailureHandler {
 
         // AQUI: Você precisa de um método no repositório para atualização atômica de tarefa
         // Não usamos UnitOfWork aqui para não deletar/recriar a task, apenas atualizar campos
-        repository.updateExecutableTaskRetries(
+        /*repository.updateExecutableTaskRetries(
                 task.id(),
                 retriesLeft,
                 nextRetry,
                 e.getMessage(),
                 ExecutableTaskStatus.PENDING // Volta para PENDING para o Acquirer pegar depois
-        );
+        );*/
     }
 
     private void handleIncident(ExecutableTask task, Exception e) {
@@ -80,7 +80,7 @@ public class FailureHandler {
         );
 
         // 2. Atualiza a Task para FAILED (para o Acquirer parar de pegar)
-        repository.updateExecutableTaskStatus(task.id(), ExecutableTaskStatus.ERROR, e.getMessage());
+        //repository.updateExecutableTaskStatus(task.id(), ExecutableTaskStatus.ERROR, e.getMessage());
 
         // 3. Salva o Incidente via UnitOfWork
         UnitOfWork uow = new UnitOfWork(

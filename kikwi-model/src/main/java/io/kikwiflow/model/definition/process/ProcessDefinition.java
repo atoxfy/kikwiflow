@@ -24,12 +24,13 @@ import java.util.Objects;
 
 public record ProcessDefinition(
         String id, String sla, Integer version, String key, String name, String description,
-        Map<String, FlowNodeDefinition> flowNodes, FlowNodeDefinition defaultStartPoint, String checksum
+        Map<String, FlowNodeDefinition> flowNodes, FlowNodeDefinition defaultStartPoint, String checksum, Map<String, String> extensionProperties
 ) {
     public ProcessDefinition {
         Objects.requireNonNull(key, "key cannot be null");
         Objects.requireNonNull(flowNodes, "flowNodes cannot be null");
         flowNodes = Map.copyOf(flowNodes);
+        extensionProperties = extensionProperties != null ? Map.copyOf(extensionProperties) : null;
     }
 
     public static Builder builder() {
@@ -46,11 +47,16 @@ public record ProcessDefinition(
         private String description;
         private Map<String, FlowNodeDefinition> flowNodes = Collections.emptyMap();
         private FlowNodeDefinition defaultStartPoint;
-
+       private  Map<String, String> extensionProperties;
         private Builder() {}
 
         public Builder id(String id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder extensionProperties(Map<String, String> extensionProperties) {
+            this.extensionProperties = extensionProperties;
             return this;
         }
 
@@ -95,7 +101,7 @@ public record ProcessDefinition(
         }
 
         public ProcessDefinition build() {
-            return new ProcessDefinition(id, sla, version, key, name, description, flowNodes, defaultStartPoint, checksum);
+            return new ProcessDefinition(id, sla, version, key, name, description, flowNodes, defaultStartPoint, checksum, extensionProperties);
         }
     }
 }

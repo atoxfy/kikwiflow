@@ -64,6 +64,26 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public long countExecutableTasksByDefinitionId(String taskDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public long countExternalTasksByDefinitionId(String taskDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public long countOpenIncidentsByProcessDefinition(String processDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public long countProcessInstancesByProcessDefinition(String processDefinitionId) {
+        return 0;
+    }
+
+    @Override
     public List<ProcessDefinition> findAProcessDefinitionsByParams(String key) {
         return List.of();
     }

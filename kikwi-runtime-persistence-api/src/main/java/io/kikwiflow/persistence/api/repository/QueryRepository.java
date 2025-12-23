@@ -28,6 +28,8 @@ import java.util.Optional;
 
 public interface QueryRepository {
 
+    long countExecutableTasksByDefinitionId(String taskDefinitionId);
+    long countExternalTasksByDefinitionId(String taskDefinitionId);
     long countOpenIncidentsByProcessDefinition(String processDefinitionId);
     long countProcessInstancesByProcessDefinition(String processDefinitionId);
 

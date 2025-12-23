@@ -82,6 +82,18 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         return mongoClient.getDatabase(databaseName);
     }
 
+    public long countExecutableTasksByDefinitionId(String id){
+        return getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION).countDocuments(
+                eq("taskDefinitionId", id)
+        );
+    }
+
+    public long countExternalTasksByDefinitionId(String id){
+        return getDatabase().getCollection(EXTERNAL_TASK_COLLECTION).countDocuments(
+                eq("taskDefinitionId", id)
+        );
+    }
+
     @Override
     public ProcessInstance saveProcessInstance(ProcessInstance instance) {
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
@@ -109,7 +121,8 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         ProcessDefinition definitionToSave = new ProcessDefinition(
                 processDefinitionDeploy.id(), processDefinitionDeploy.sla(), nextVersion, processDefinitionDeploy.key(), processDefinitionDeploy.name()
                 , processDefinitionDeploy.description(), processDefinitionDeploy.flowNodes(), processDefinitionDeploy.defaultStartPoint(),
-                processDefinitionDeploy.checksum()
+                processDefinitionDeploy.checksum(),
+                processDefinitionDeploy.extensionProperties()
         );
 
         Document doc = ProcessDefinitionMapper.toDocument(definitionToSave);
