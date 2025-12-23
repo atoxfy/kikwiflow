@@ -22,6 +22,7 @@ import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.exception.ProcessInstanceNotFoundException;
 import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.execution.ContinuationService;
+import io.kikwiflow.execution.FailureHandler;
 import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.execution.ProcessInstanceFactory;
@@ -62,6 +63,7 @@ public class KikwiflowEngine {
     private final KikwiEngineRepository kikwiEngineRepository;
     private final TaskAcquirer taskAcquirer;
     private final ContinuationService continuationService;
+    private final FailureHandler failureHandler;
 
     public KikwiflowEngine(ProcessDefinitionService processDefinitionService, Navigator navigator, ProcessExecutionManager processExecutionManager, KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, List<ExecutionEventListener> executionEventListeners){
         this.processDefinitionService = processDefinitionService;
@@ -75,6 +77,7 @@ public class KikwiflowEngine {
         this.eventListeners = executionEventListeners;
         this.taskAcquirer = new TaskAcquirer(this, kikwiEngineRepository, kikwiflowConfig );
         this.continuationService = new ContinuationService(kikwiEngineRepository, kikwiflowConfig);
+        this.failureHandler = new FailureHandler(kikwiEngineRepository);
     }
 
     public void start(){
@@ -133,6 +136,7 @@ public class KikwiflowEngine {
         Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false, targetFlowNodeId);
 
         ExecutionResult executionResult;
+
         if (continuation != null && !continuation.nextNodes().isEmpty()) {
             FlowNodeDefinition startPoint = continuation.nextNodes().get(0); 
             executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false, targetFlowNodeId);
@@ -152,8 +156,24 @@ public class KikwiflowEngine {
 
         ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
         FlowNodeDefinition flowNodeDefinition = processDefinition.flowNodes().get(executableTask.taskDefinitionId());
-        ExecutionResult executionResult = processExecutionManager.executeFlow(flowNodeDefinition, processInstanceExecution, processDefinition, true, null);
-        return this.continuationService.handleContinuation(executionResult, executableTask);
+        ExecutionResult executionResult;
+
+        try {
+            executionResult = processExecutionManager.executeFlow(
+                    flowNodeDefinition,
+                    processInstanceExecution,
+                    processDefinition,
+                    true,
+                    null
+            );
+
+            return this.continuationService.handleContinuation(executionResult, executableTask);
+
+        } catch (Exception e) {
+            System.err.println("Task execution failed: " + e.getMessage());
+            failureHandler.handleFailure(executableTask, e);
+            return processInstanceRecord;
+        }
     }
 
     private void registerListeners(List<ExecutionEventListener> executionEventListeners){

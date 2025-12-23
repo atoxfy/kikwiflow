@@ -15,24 +15,20 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.persistence.api.data;
+package io.kikwiflow.model.execution;
 
+import io.kikwiflow.model.execution.enumerated.IncidentStatus;
 
-import io.kikwiflow.model.event.OutboxEventEntity;
-import io.kikwiflow.model.execution.Incident;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.execution.node.ExecutableTask;
-import io.kikwiflow.model.execution.node.ExternalTask;
+import java.time.Instant;
 
-import java.util.List;
-
-public record UnitOfWork(
-        ProcessInstance instanceToUpdate,
-        ProcessInstance instanceToDelete,
-        List<ExecutableTask> executableTasksToCreate,
-        List<ExternalTask> externalTasksToCreate,
-        List<String> executableTasksToDelete,
-        List<String> externalTasksToDelete,
-        List<OutboxEventEntity> events,
-        List<Incident> incidentsToCreate,
-        List<String> incidentsToResolve) {}
+public record Incident(
+        String id,
+        String type,
+        String message,
+        String stackTrace,
+        String processDefinitionId,
+        String processInstanceId,
+        String executionId,
+        Instant createdAt,
+        IncidentStatus status) {
+}

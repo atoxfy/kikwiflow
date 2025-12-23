@@ -28,6 +28,9 @@ import java.util.Optional;
 
 public interface QueryRepository {
 
+    long countOpenIncidentsByProcessDefinition(String processDefinitionId);
+    long countProcessInstancesByProcessDefinition(String processDefinitionId);
+
     List<ProcessDefinition> findAProcessDefinitionsByParams(String key);
 
     List<ProcessDefinition> findAllProcessDefinitions();

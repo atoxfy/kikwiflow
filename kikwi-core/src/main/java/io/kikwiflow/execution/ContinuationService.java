@@ -136,7 +136,9 @@ public class ContinuationService {
                 nextExternalTasks,
                 executableTasksToDelete,
                 externalTasksToDelete,
-                events
+                events,
+                null,
+                null
         );
 
         kikwiEngineRepository.commitWork(updatedUnitOfWork);

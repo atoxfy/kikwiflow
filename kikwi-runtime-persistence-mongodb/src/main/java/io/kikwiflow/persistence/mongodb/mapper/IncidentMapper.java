@@ -15,24 +15,22 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.persistence.api.data;
+package io.kikwiflow.persistence.mongodb.mapper;
 
-
-import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.Incident;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.execution.node.ExecutableTask;
-import io.kikwiflow.model.execution.node.ExternalTask;
+import org.bson.Document;
 
-import java.util.List;
 
-public record UnitOfWork(
-        ProcessInstance instanceToUpdate,
-        ProcessInstance instanceToDelete,
-        List<ExecutableTask> executableTasksToCreate,
-        List<ExternalTask> externalTasksToCreate,
-        List<String> executableTasksToDelete,
-        List<String> externalTasksToDelete,
-        List<OutboxEventEntity> events,
-        List<Incident> incidentsToCreate,
-        List<String> incidentsToResolve) {}
+public class IncidentMapper {
+    public static Document toDocument(Incident incident) {
+        return new Document("_id", incident.id())
+                .append("type", incident.type())
+                .append("message", incident.message())
+                .append("processDefinitionId", incident.processDefinitionId())
+                .append("processInstanceId", incident.processInstanceId())
+                .append("executionId", incident.executionId())
+                .append("createdAt", incident.createdAt())
+                .append("status", incident.status().name());
+    }
+
+}

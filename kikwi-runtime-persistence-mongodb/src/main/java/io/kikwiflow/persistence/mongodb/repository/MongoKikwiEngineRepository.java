@@ -41,6 +41,7 @@ import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.persistence.mongodb.mapper.ExecutableTaskMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ExternalTaskMapper;
+import io.kikwiflow.persistence.mongodb.mapper.IncidentMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessInstanceMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper;
@@ -67,7 +68,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     private final String PROCESS_INSTANCE_COLLECTION = "process_instances";
     private final String EXTERNAL_TASK_COLLECTION = "external_tasks";
     private final String EXECUTABLE_TASK_COLLECTION = "executable_tasks";
-
+    private final String INCIDENTS_COLLECTION = "incidents";
 
     private final MongoClient mongoClient;
     private final String databaseName;
@@ -139,6 +140,22 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 .map(ProcessDefinitionMapper::fromDocument);
     }
 
+    public long countOpenIncidentsByProcessDefinition(String processDefinitionId) {
+        return getDatabase().getCollection(INCIDENTS_COLLECTION).countDocuments(
+                and(
+                        eq("processDefinitionId", processDefinitionId),
+                        eq("status", "OPEN")
+                )
+        );
+    }
+
+    @Override
+    public long countProcessInstancesByProcessDefinition(String processDefinitionId) {
+        return getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION).countDocuments(
+                eq("processDefinitionId", processDefinitionId)
+        );
+    }
+
     @Override
     public void commitWork(UnitOfWork unitOfWork) {
         try (ClientSession clientSession = mongoClient.startSession()) {
@@ -146,6 +163,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 MongoCollection<Document> processInstances = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
                 MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
                 MongoCollection<Document> executableTasks = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
+                MongoCollection<Document> incidents = getDatabase().getCollection(INCIDENTS_COLLECTION);
 
                 if (unitOfWork.instanceToDelete() != null) {
                     processInstances.deleteOne(eq("_id", unitOfWork.instanceToDelete().id()));
@@ -154,6 +172,14 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 if (unitOfWork.instanceToUpdate() != null) {
                     Document instanceDoc = ProcessInstanceMapper.toDocument(unitOfWork.instanceToUpdate());
                     processInstances.replaceOne(clientSession, eq("_id", unitOfWork.instanceToUpdate().id()), instanceDoc);
+                }
+
+                if (unitOfWork.incidentsToCreate() != null && !unitOfWork.incidentsToCreate().isEmpty()) {
+                    List<InsertOneModel<Document>> writes = new ArrayList<>();
+                    unitOfWork.incidentsToCreate().forEach(inc ->
+                            writes.add(new InsertOneModel<>(IncidentMapper.toDocument(inc)))
+                    );
+                    incidents.bulkWrite(clientSession, writes);
                 }
 
                 if(unitOfWork.events() != null){
