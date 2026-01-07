@@ -6,9 +6,23 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.kikwiflow</groupId>
     <artifactId>kikwiflow-parent</artifactId>
-    <version>0.1.33-SNAPSHOT</version>
+    <version>0.1.34</version>
     <packaging>pom</packaging>
     <name>kikwiflow :: Parent</name>
+    <url>https://kikwiflow.io</url>
+    <description>Kikwiflow Parent Pom</description>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>efagundes93</id>
+            <name>Emiliano Fagundes</name> <email>emiliano@atoxfy.com</email> </developer>
+    </developers>
     <scm>
         <connection>scm:git:https://github.com/atoxfy/kikwiflow.git</connection>
         <developerConnection>scm:git:https://github.com/atoxfy/kikwiflow.git</developerConnection>
@@ -51,20 +65,114 @@
         <module>kikwi-runtime-query-spring-boot-starter</module>
         <module>kikwi-in-memory-spring-boot-autoconfigure</module>
         <module>kikwi-in-memory-spring-boot-starter</module>
-        <module>kikwi-management-rest</module>
         <module>kikwi-delegate-api</module>
         <module>kikwi-rule-api</module>
         <module>kikwi-view-models</module>
         <module>kikwi-runtime-persistence-mongodb-spring-boot-autoconfigure</module>
         <module>kikwi-runtime-persistence-mongodb-spring-boot-starter</module>
-        <module>kikwi-forms</module>
-        <module>kikwi-forms-persistence-api</module>
+        <module>kikwi-api</module>
+        <module>kikwi-management-rest</module>
+        <module>kikwi-management-rest-spring-api</module>
+        <module>kikwi-management-rest-client-spring-boot-autoconfigure</module>
+        <module>kikwi-management-rest-spring-boot-autoconfigure</module>
+        <module>kikwi-management-rest-spring-boot-starter</module>
+        <module>kikwi-management-rest-client-spring-boot-starter</module>
     </modules>
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Atoxfy Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/atoxfy/kikwiflow</url>
-        </repository>
-    </distributionManagement>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>3.3.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>oss</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.4.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                    <tokenAuth>true</tokenAuth>
+                    <autoPublish>true</autoPublish>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals><goal>jar-no-fork</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals><goal>jar</goal></goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <failOnError>false</failOnError>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals><goal>sign</goal></goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <gpgArguments>
+                        <arg>--pinentry-mode</arg>
+                        <arg>loopback</arg>
+                    </gpgArguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
