@@ -45,6 +45,6 @@ public final class SequenceFlowMapper {
             return null;
         }
 
-        return new SequenceFlowDefinition(sequenceFlow.getId(), sequenceFlow.getCondition(), sequenceFlow.getTargetNodeId());
+        return new SequenceFlowDefinition(sequenceFlow.getId(), sequenceFlow.getCondition(), sequenceFlow.getTargetNodeId(), null, null);
     }
 }

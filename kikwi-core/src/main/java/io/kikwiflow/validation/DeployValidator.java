@@ -23,7 +23,7 @@ import io.kikwiflow.execution.DecisionRuleResolver;
 import io.kikwiflow.execution.DelegateResolver;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
-import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 
 /**
  * Validates a ProcessDefinition at deploy-time to ensure all its required
@@ -41,7 +41,7 @@ public class DeployValidator {
 
     public void validate(ProcessDefinition definition) {
         definition.flowNodes().values().forEach(node -> {
-            if (node instanceof ServiceTaskDefinition serviceTask) {
+            if (node instanceof ExecutableTaskDefinition serviceTask) {
                 String delegateExpression = serviceTask.delegateExpression();
                 if (delegateExpression != null && !delegateExpression.isBlank()) {
                     try {

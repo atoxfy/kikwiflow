@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2025 Atoxfy and/or licensed to Atoxfy
+  ~ Copyright 2026 Atoxfy and/or licensed to Atoxfy
   ~ under one or more contributor license agreements. See the NOTICE file
   ~ distributed with this work for additional information regarding copyright
   ~ ownership. Atoxfy licenses this file to you under the Apache License,
@@ -21,65 +21,40 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.23-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
+        <artifactId>kikwiflow-parent</artifactId>
+        <version>0.1.34</version>
     </parent>
 
     <artifactId>kikwi-management-rest</artifactId>
     <name>kikwiflow :: Management Rest</name>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.3.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
+    <description>Rest API to manage kikwiflow execution.</description>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version> <!-- Use a version consistent with your setup -->
-                <configuration>
-                    <parameters>true</parameters>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
     <dependencies>
-        <!-- Dependência para criar endpoints REST -->
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-management-spring-rest-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-core</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-runtime-query-api</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!-- Dependência para obter o bean da Engine (Comandos) -->
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-spring-boot-starter</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- Dependência para obter o bean de Consulta (Queries) -->
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-runtime-query-spring-boot-starter</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
-
 </project>

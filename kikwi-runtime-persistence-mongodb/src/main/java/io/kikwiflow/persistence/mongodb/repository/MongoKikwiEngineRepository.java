@@ -37,9 +37,11 @@ import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.persistence.mongodb.mapper.ExecutableTaskMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ExternalTaskMapper;
+import io.kikwiflow.persistence.mongodb.mapper.IncidentMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessInstanceMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper;
@@ -66,7 +68,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     private final String PROCESS_INSTANCE_COLLECTION = "process_instances";
     private final String EXTERNAL_TASK_COLLECTION = "external_tasks";
     private final String EXECUTABLE_TASK_COLLECTION = "executable_tasks";
-
+    private final String INCIDENTS_COLLECTION = "incidents";
 
     private final MongoClient mongoClient;
     private final String databaseName;
@@ -78,6 +80,18 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
     private MongoDatabase getDatabase() {
         return mongoClient.getDatabase(databaseName);
+    }
+
+    public long countExecutableTasksByDefinitionId(String id){
+        return getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION).countDocuments(
+                eq("taskDefinitionId", id)
+        );
+    }
+
+    public long countExternalTasksByDefinitionId(String id){
+        return getDatabase().getCollection(EXTERNAL_TASK_COLLECTION).countDocuments(
+                eq("taskDefinitionId", id)
+        );
     }
 
     @Override
@@ -105,9 +119,10 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         int nextVersion = last.map(def -> def.version() + 1).orElse(1);
 
         ProcessDefinition definitionToSave = new ProcessDefinition(
-                processDefinitionDeploy.id(), nextVersion, processDefinitionDeploy.key(), processDefinitionDeploy.name()
+                processDefinitionDeploy.id(), processDefinitionDeploy.sla(), nextVersion, processDefinitionDeploy.key(), processDefinitionDeploy.name()
                 , processDefinitionDeploy.description(), processDefinitionDeploy.flowNodes(), processDefinitionDeploy.defaultStartPoint(),
-                processDefinitionDeploy.checksum()
+                processDefinitionDeploy.checksum(),
+                processDefinitionDeploy.extensionProperties()
         );
 
         Document doc = ProcessDefinitionMapper.toDocument(definitionToSave);
@@ -138,6 +153,22 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 .map(ProcessDefinitionMapper::fromDocument);
     }
 
+    public long countOpenIncidentsByProcessDefinition(String processDefinitionId) {
+        return getDatabase().getCollection(INCIDENTS_COLLECTION).countDocuments(
+                and(
+                        eq("processDefinitionId", processDefinitionId),
+                        eq("status", "OPEN")
+                )
+        );
+    }
+
+    @Override
+    public long countProcessInstancesByProcessDefinition(String processDefinitionId) {
+        return getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION).countDocuments(
+                eq("processDefinitionId", processDefinitionId)
+        );
+    }
+
     @Override
     public void commitWork(UnitOfWork unitOfWork) {
         try (ClientSession clientSession = mongoClient.startSession()) {
@@ -145,6 +176,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 MongoCollection<Document> processInstances = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
                 MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
                 MongoCollection<Document> executableTasks = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
+                MongoCollection<Document> incidents = getDatabase().getCollection(INCIDENTS_COLLECTION);
 
                 if (unitOfWork.instanceToDelete() != null) {
                     processInstances.deleteOne(eq("_id", unitOfWork.instanceToDelete().id()));
@@ -155,8 +187,16 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     processInstances.replaceOne(clientSession, eq("_id", unitOfWork.instanceToUpdate().id()), instanceDoc);
                 }
 
-                if(unitOfWork.events() != null){
+                if (unitOfWork.incidentsToCreate() != null && !unitOfWork.incidentsToCreate().isEmpty()) {
+                    List<InsertOneModel<Document>> writes = new ArrayList<>();
+                    unitOfWork.incidentsToCreate().forEach(inc ->
+                            writes.add(new InsertOneModel<>(IncidentMapper.toDocument(inc)))
+                    );
+                    incidents.bulkWrite(clientSession, writes);
+                }
 
+                if(unitOfWork.events() != null){
+                    //TODO
                 }
 
                 List<WriteModel<Document>> externalTaskWrites = new ArrayList<>();
@@ -265,6 +305,54 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public void deleteProcessInstanceById(String processInstanceId) {
+        try (ClientSession clientSession = mongoClient.startSession()) {
+            clientSession.withTransaction(() -> {
+                getDatabase().getCollection(EXTERNAL_TASK_COLLECTION)
+                        .deleteMany(clientSession, eq("processInstanceId", processInstanceId));
+
+                getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION)
+                        .deleteMany(clientSession, eq("processInstanceId", processInstanceId));
+
+                getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION)
+                        .deleteOne(clientSession, eq("_id", processInstanceId));
+
+                // TODO: Considerar se os eventos do outbox e o histórico também devem ser deletados.
+                return "Deletion transaction committed for instance " + processInstanceId;
+            });
+        }
+    }
+
+    @Override
+    public List<ProcessDefinition> findAProcessDefinitionsByParams(String key) {
+        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
+        List<ProcessDefinition> definitions = new ArrayList<>();
+
+        if (key == null || key.isBlank()) {
+            return definitions;
+        }
+
+        collection.find(eq("key", key))
+                .sort(Sorts.descending("version"))
+                .map(ProcessDefinitionMapper::fromDocument)
+                .into(definitions);
+
+        return definitions;
+    }
+
+    @Override
+    public List<ProcessDefinition> findAllProcessDefinitions() {
+        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
+        List<ProcessDefinition> definitions = new ArrayList<>();
+        collection.find()
+                .sort(Sorts.descending("version"))
+                .map(ProcessDefinitionMapper::fromDocument)
+                .into(definitions);
+
+        return definitions;
+    }
+
+    @Override
     public Optional<ProcessInstance> findProcessInstanceById(String processInstanceId) {
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
         
@@ -313,8 +401,6 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 .map(ExternalTaskMapper::fromDocument);
     }
 
-  
-
     @Override
     public Optional<ExecutableTask> findExecutableTaskById(String executableTaskId) {
         MongoCollection<Document> collection = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
@@ -344,7 +430,6 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-
     public List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, String tenantId) {
         MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
 
@@ -445,5 +530,78 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 Indexes.compoundIndex(Indexes.ascending("assignee"), Indexes.ascending("tenantId")),
                 new IndexOptions().name("assignee_tenant_idx")
         );
+    }
+
+
+
+
+    @Override
+    public ExternalTaskQuery createExternalTaskQuery() {
+        return new MongoExternalTaskQuery();
+    }
+
+    /**
+     * Implementação interna da API de query fluente para ExternalTasks.
+     */
+    private class MongoExternalTaskQuery implements ExternalTaskQuery {
+        private final List<Bson> filters = new ArrayList<>();
+
+        @Override
+        public ExternalTaskQuery tenantId(String tenantId) {
+            if (tenantId != null) {
+                filters.add(eq("tenantId", tenantId));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery taskDefinitionId(String taskDefinitionId) {
+            if (taskDefinitionId != null) {
+                filters.add(eq("taskDefinitionId", taskDefinitionId));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery processInstanceId(String processInstanceId) {
+            if (processInstanceId != null) {
+                filters.add(eq("processInstanceId", processInstanceId));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery processDefinitionId(String processDefinitionId) {
+            if (processDefinitionId != null) {
+                filters.add(eq("processDefinitionId", processDefinitionId));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery assignee(String assignee) {
+            if (assignee != null) {
+                filters.add(eq("assignee", assignee));
+            }
+            return this;
+        }
+
+        @Override
+        public List<ExternalTask> list() {
+            MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+            List<ExternalTask> tasks = new ArrayList<>();
+            collection.find(buildFilter()).map(ExternalTaskMapper::fromDocument).into(tasks);
+            return tasks;
+        }
+
+
+        @Override
+        public long count() {
+            return getDatabase().getCollection(EXTERNAL_TASK_COLLECTION).countDocuments(buildFilter());
+        }
+
+        private Bson buildFilter() {
+            return filters.isEmpty() ? new Document() : and(filters);
+        }
     }
 }

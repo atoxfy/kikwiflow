@@ -24,6 +24,7 @@ import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
@@ -76,6 +77,36 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
         this.processInstanceCollection.put(instanceToSave.id(), instanceToSave);
         return instanceToSave;
+    }
+
+    @Override
+    public long countExecutableTasksByDefinitionId(String taskDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public long countExternalTasksByDefinitionId(String taskDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public long countOpenIncidentsByProcessDefinition(String processDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public long countProcessInstancesByProcessDefinition(String processDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public List<ProcessDefinition> findAProcessDefinitionsByParams(String key) {
+        return List.of();
+    }
+
+    @Override
+    public List<ProcessDefinition> findAllProcessDefinitions() {
+        return List.of();
     }
 
     @Override
@@ -261,6 +292,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public void deleteProcessInstanceById(String processInstanceId) {
+
+    }
+
+    @Override
     public Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId) {
         //TODO
         return Optional.empty();
@@ -311,6 +347,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 .stream()
                 .filter(t -> Objects.equals(assignee, t.assignee()) && Objects.equals(tenantId, t.tenantId()))
                 .toList();
+    }
+
+    @Override
+    public ExternalTaskQuery createExternalTaskQuery() {
+        return null;
     }
 
     @Override

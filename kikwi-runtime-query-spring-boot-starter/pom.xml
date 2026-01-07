@@ -23,11 +23,12 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.23-SNAPSHOT</version>
+        <version>0.1.34</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>kikwi-runtime-query-spring-boot-starter</artifactId>
     <name>kikwiflow :: Runtime Query Spring Boot Starter</name>
+    <description>Kikwiflow Spring Boot Query Methods </description>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

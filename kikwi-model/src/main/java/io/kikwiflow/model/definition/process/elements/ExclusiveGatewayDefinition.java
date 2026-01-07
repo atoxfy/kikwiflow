@@ -17,18 +17,21 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
+import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 public record ExclusiveGatewayDefinition(String id,
                                          String name,
+                                         String type,
                                          String description,
                                          Boolean commitAfter,
                                          Boolean commitBefore,
                                          String defaultFlow,
                                          List<SequenceFlowDefinition> outgoing,
-                                         Map<String, String> extensionProperties) implements FlowNodeDefinition {
+                                         Map<String, String> extensionProperties, LayoutCoordinates layout) implements FlowNodeDefinition {
 
     public static Builder builder() {
         return new Builder();
@@ -43,6 +46,7 @@ public record ExclusiveGatewayDefinition(String id,
         private String defaultFlow;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private Map<String, String> extensionProperties;
+        private LayoutCoordinates layout;
 
         private Builder() {}
 
@@ -50,6 +54,12 @@ public record ExclusiveGatewayDefinition(String id,
             this.id = id;
             return this;
         }
+
+        public Builder layout(LayoutCoordinates layout) {
+            this.layout = layout;
+            return this;
+        }
+
 
         public Builder name(String name) {
             this.name = name;
@@ -89,7 +99,7 @@ public record ExclusiveGatewayDefinition(String id,
         }
 
         public ExclusiveGatewayDefinition build() {
-            return new ExclusiveGatewayDefinition(id, name, description, commitAfter, commitBefore, defaultFlow, outgoing, extensionProperties);
+            return new ExclusiveGatewayDefinition(id, name, "EXCLUSIVE_GATEWAY", description, commitAfter, commitBefore, defaultFlow, outgoing, extensionProperties, layout);
         }
     }
 }

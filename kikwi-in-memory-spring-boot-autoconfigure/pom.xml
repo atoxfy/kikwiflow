@@ -7,25 +7,13 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.23-SNAPSHOT</version>
+        <version>0.1.34</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>kikwi-in-memory-spring-boot-autoconfigure</artifactId>
     <name>Kikwiflow :: InMemory :: Spring Boot In-Memory AutoConfiguration</name>
     <description>Contains the Spring Boot auto-configuration for the in-memory persistence addon. This module automatically registers the in-memory implementation of `KikwiEngineRepository` as a Spring bean, enabling a zero-configuration setup for testing and development.</description>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.3.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <!-- Módulo que contém a implementação a ser configurada -->

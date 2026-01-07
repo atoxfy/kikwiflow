@@ -19,7 +19,7 @@ package io.kikwiflow.bpmn.mapper.task;
 
 import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
 import io.kikwiflow.bpmn.model.task.ServiceTask;
-import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 
 import java.util.Objects;
 
@@ -29,11 +29,11 @@ public final class ServiceTaskMapper {
         // Utility class
     }
 
-    public static ServiceTaskDefinition toSnapshot(final ServiceTask serviceTask) {
+    public static ExecutableTaskDefinition toSnapshot(final ServiceTask serviceTask) {
         if (Objects.isNull(serviceTask)) {
             return null;
         }
-        return ServiceTaskDefinition.builder()
+        return ExecutableTaskDefinition.builder()
                 .id(serviceTask.getId())
                 .name(serviceTask.getName())
                 .description(serviceTask.getDescription())
