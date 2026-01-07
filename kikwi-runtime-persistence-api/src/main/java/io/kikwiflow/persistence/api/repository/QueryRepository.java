@@ -21,11 +21,21 @@ import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
+import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface QueryRepository {
+
+    long countExecutableTasksByDefinitionId(String taskDefinitionId);
+    long countExternalTasksByDefinitionId(String taskDefinitionId);
+    long countOpenIncidentsByProcessDefinition(String processDefinitionId);
+    long countProcessInstancesByProcessDefinition(String processDefinitionId);
+
+    List<ProcessDefinition> findAProcessDefinitionsByParams(String key);
+
+    List<ProcessDefinition> findAllProcessDefinitions();
 
     Optional<ProcessInstance> findProcessInstanceById(String processInstanceId);
 
@@ -52,4 +62,6 @@ public interface QueryRepository {
     List<ExternalTask> findExternalTasksByProcessDefinitionId(String processDefinitionId, List<String> tenantIds);
 
     List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId);
+
+    ExternalTaskQuery createExternalTaskQuery();
 }

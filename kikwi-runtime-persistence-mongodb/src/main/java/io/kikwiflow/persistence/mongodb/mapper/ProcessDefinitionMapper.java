@@ -18,6 +18,7 @@ package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.*;
+import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
 import org.bson.Document;
 
 import java.util.Collections;
@@ -36,8 +37,8 @@ public final class ProcessDefinitionMapper {
         fromDocMappers = Map.of(
                 StartEventDefinition.class.getName(), ProcessDefinitionMapper::fromDocToStartEvent,
                 EndEventDefinition.class.getName(), ProcessDefinitionMapper::fromDocToEndEvent,
-                ServiceTaskDefinition.class.getName(), ProcessDefinitionMapper::fromDocToServiceTask,
-                ManualTaskDefinition.class.getName(), ProcessDefinitionMapper::fromDocToManualTask,
+                ExecutableTaskDefinition.class.getName(), ProcessDefinitionMapper::fromDocToServiceTask,
+                ExternalTaskDefinition.class.getName(), ProcessDefinitionMapper::fromDocToManualTask,
                 ExclusiveGatewayDefinition.class.getName(), ProcessDefinitionMapper::fromDocToExclusiveGateway,
                 InterruptiveTimerEventDefinition.class.getName(), ProcessDefinitionMapper::fromDocToInterruptiveTimerEvent
         );
@@ -53,10 +54,13 @@ public final class ProcessDefinitionMapper {
 
         Document doc = new Document("_id", definition.id())
                 .append("key", definition.key())
+                .append("sla", definition.sla())
                 .append("name", definition.name())
                 .append("version", definition.version())
                 .append("checksum", definition.checksum())
-                .append("description", definition.description());
+                .append("description", definition.description())
+                .append("extensionProperties", definition.extensionProperties() != null ? new Document(definition.extensionProperties()) : new Document());
+
 
         if (definition.flowNodes() != null) {
             Document nodesDoc = new Document();
@@ -82,6 +86,8 @@ public final class ProcessDefinitionMapper {
                 .append("description", node.description())
                 .append("commitBefore", node.commitBefore())
                 .append("commitAfter", node.commitAfter())
+                .append("layout", node.layout() != null ? new Document().append("x", node.layout().x())
+                        .append("y", node.layout().y()) : null)
                 .append("extensionProperties", node.extensionProperties() != null ? new Document(node.extensionProperties()) : new Document());
 
         doc.append("_class", node.getClass().getName());
@@ -93,7 +99,7 @@ public final class ProcessDefinitionMapper {
         }
 
         switch (node) {
-            case ServiceTaskDefinition st -> {
+            case ExecutableTaskDefinition st -> {
                 doc.append("delegateExpression", st.delegateExpression());
                 if (st.boundaryEvents() != null) {
                     doc.append("boundaryEvents", st.boundaryEvents().stream()
@@ -106,7 +112,7 @@ public final class ProcessDefinitionMapper {
                     doc.append("defaultFlow", gt.defaultFlow());
                 }
             }
-            case ManualTaskDefinition mt -> {
+            case ExternalTaskDefinition mt -> {
                 if (mt.boundaryEvents() != null) {
                     doc.append("boundaryEvents", mt.boundaryEvents().stream()
                             .map(ProcessDefinitionMapper::toDocument)
@@ -129,9 +135,21 @@ public final class ProcessDefinitionMapper {
         if (flow == null) {
             return null;
         }
-        return new Document("id", flow.id())
+
+        Document sequenceFlow =  new Document("id", flow.id())
                 .append("targetNodeId", flow.targetNodeId())
-                .append("condition", flow.condition());
+                .append("condition", flow.condition())
+                .append("isDefault", flow.isDefault());
+
+        if (flow.positionHandlers() != null) {
+            sequenceFlow.append("positionHandlers", flow.positionHandlers()
+                    .stream().map(ph ->
+                        new Document("x", ph.x()).append("y", ph.y())
+                    ).collect(Collectors.toList()));
+        }
+
+        return sequenceFlow;
+
     }
 
     public static ProcessDefinition fromDocument(Document doc) {
@@ -152,6 +170,16 @@ public final class ProcessDefinitionMapper {
         String defaultStartPointId = doc.getString("defaultStartPointId");
         FlowNodeDefinition defaultStartPoint = defaultStartPointId != null ? flowNodes.get(defaultStartPointId) : null;
 
+
+        Document extensionPropertiesDoc = doc.get("extensionProperties", Document.class);
+        Map<String, String> extensionProperties = Collections.emptyMap();
+        if (extensionPropertiesDoc != null) {
+            extensionProperties = extensionPropertiesDoc.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            entry -> (String) entry.getValue()));
+        }
+
         return ProcessDefinition.builder()
                 .id(doc.getString("_id"))
                 .key(doc.getString("key"))
@@ -161,6 +189,7 @@ public final class ProcessDefinitionMapper {
                 .description(doc.getString("description"))
                 .flowNodes(flowNodes)
                 .defaultStartPoint(defaultStartPoint)
+                .extensionProperties(extensionProperties)
                 .build();
     }
 
@@ -191,8 +220,10 @@ public final class ProcessDefinitionMapper {
                 .commitAfter(doc.getBoolean("commitAfter"))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
+                .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
                 .build();
     }
+
 
     private static EndEventDefinition fromDocToEndEvent(Document doc) {
         return EndEventDefinition.builder()
@@ -203,11 +234,12 @@ public final class ProcessDefinitionMapper {
                 .commitAfter(doc.getBoolean("commitAfter"))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
+                .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
                 .build();
     }
 
-    private static ServiceTaskDefinition fromDocToServiceTask(Document doc) {
-        return ServiceTaskDefinition.builder()
+    private static ExecutableTaskDefinition fromDocToServiceTask(Document doc) {
+        return ExecutableTaskDefinition.builder()
                 .id(doc.getString("id"))
                 .name(doc.getString("name"))
                 .description(doc.getString("description"))
@@ -217,11 +249,12 @@ public final class ProcessDefinitionMapper {
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .boundaryEvents(fromDocToBoundaryEventsList(doc))
+                .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
                 .build();
     }
 
-    private static ManualTaskDefinition fromDocToManualTask(Document doc) {
-        return ManualTaskDefinition.builder()
+    private static ExternalTaskDefinition fromDocToManualTask(Document doc) {
+        return ExternalTaskDefinition.builder()
                 .id(doc.getString("id"))
                 .name(doc.getString("name"))
                 .description(doc.getString("description"))
@@ -230,6 +263,7 @@ public final class ProcessDefinitionMapper {
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .boundaryEvents(fromDocToBoundaryEventsList(doc))
+                .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
                 .build();
     }
 
@@ -243,6 +277,7 @@ public final class ProcessDefinitionMapper {
                 .defaultFlow(doc.getString("defaultFlow"))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
+                .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
                 .build();
     }
 
@@ -271,19 +306,44 @@ public final class ProcessDefinitionMapper {
     private static List<BoundaryEventDefinition> fromDocToBoundaryEventsList(Document doc) {
         List<Document> boundaryDocs = doc.getList("boundaryEvents", Document.class, Collections.emptyList());
         return boundaryDocs.stream()
-                .map(d -> (BoundaryEventDefinition) fromDocumentToFlowNode(d)) // Reutiliza o mapper principal
+                .map(d -> (BoundaryEventDefinition) fromDocumentToFlowNode(d))
                 .collect(Collectors.toList());
     }
 
     private static SequenceFlowDefinition fromDocToSequenceFlow(Document flowDoc) {
         if (flowDoc == null) return null;
+        List<Document> rawHandlers = flowDoc.getList("positionHandlers", Document.class);
+
+        List<LayoutCoordinates> positionHandlers = (rawHandlers == null)
+                ? Collections.emptyList()
+                : rawHandlers.stream()
+                .map(h -> new LayoutCoordinates(
+                        h.get("x", Number.class).doubleValue(),
+                        h.get("y", Number.class).doubleValue()
+                ))
+                .collect(Collectors.toList());
+
         return new SequenceFlowDefinition(
                 flowDoc.getString("id"),
                 flowDoc.getString("condition"),
-                flowDoc.getString("targetNodeId")
+                flowDoc.getString("targetNodeId"),
+                flowDoc.getBoolean("isDefault", false),
+                positionHandlers
         );
     }
-    
+
+    private static LayoutCoordinates fromDocToLayoutCoords(Document document) {
+        if (document == null) return null;
+
+        Number x = document.get("x", Number.class);
+        Number y = document.get("y", Number.class);
+
+        return new LayoutCoordinates(
+                x != null ? x.doubleValue() : 0.0,
+                y != null ? y.doubleValue() : 0.0
+        );
+    }
+
     private static Map<String, String> fromDocToExtensionProperties(Document document){
         if (document == null) {
             return Collections.emptyMap();

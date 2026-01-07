@@ -17,8 +17,14 @@
 
 package io.kikwiflow.model.definition.process.elements;
 
+import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+
+import java.util.List;
+
 public record SequenceFlowDefinition(
         String id,
         String condition,
-        String targetNodeId) {
+        String targetNodeId,
+        Boolean isDefault,
+        List<LayoutCoordinates> positionHandlers) {
 }

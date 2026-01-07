@@ -22,8 +22,8 @@ import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
-import io.kikwiflow.model.definition.process.elements.ServiceTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -73,9 +73,9 @@ class BpmnParserTest {
         //ServiceTask 1
         FlowNodeDefinition task1 = processDefinitionDeploy.flowNodes().get("Activity_0wn4t7o");
         assertNotNull(task1, "A primeira ServiceTask não foi encontrada.");
-        assertTrue(task1 instanceof ServiceTaskDefinition, "O nó deveria ser uma instância de ServiceTaskDefinition.");
+        assertTrue(task1 instanceof ExecutableTaskDefinition, "O nó deveria ser uma instância de ServiceTaskDefinition.");
         assertEquals("add variable", task1.name(), "O nome da primeira tarefa está incorreto.");
-        assertEquals("${addVariableDelegate}", ((ServiceTaskDefinition) task1).delegateExpression(), "A expressão delegate da primeira tarefa está incorreta.");
+        assertEquals("${addVariableDelegate}", ((ExecutableTaskDefinition) task1).delegateExpression(), "A expressão delegate da primeira tarefa está incorreta.");
         assertEquals(1, task1.outgoing().size(), "A primeira tarefa deveria ter um fluxo de saída.");
         assertEquals("Activity_16ovgt4", task1.outgoing().get(0).targetNodeId(), "O fluxo de saída da primeira tarefa aponta para o nó errado.");
 
@@ -83,7 +83,7 @@ class BpmnParserTest {
         FlowNodeDefinition task2 = processDefinitionDeploy.flowNodes().get("Activity_16ovgt4");
         assertNotNull(task2, "A segunda ServiceTask não foi encontrada.");
         assertEquals("remove variable", task2.name(), "O nome da segunda tarefa está incorreto.");
-        assertEquals("${removeVariableDelegate}", ((ServiceTaskDefinition) task2).delegateExpression(), "A expressão delegate da segunda tarefa está incorreta.");
+        assertEquals("${removeVariableDelegate}", ((ExecutableTaskDefinition) task2).delegateExpression(), "A expressão delegate da segunda tarefa está incorreta.");
 
         //EndEvent
         FlowNodeDefinition endEvent = processDefinitionDeploy.flowNodes().get("Event_0w1t1d3");
@@ -127,7 +127,7 @@ class BpmnParserTest {
         // 4. Assert a specific Human Task and its connectivity
         FlowNodeDefinition task1 = processDefinition.flowNodes().get("external-task-1");
         assertNotNull(task1);
-        assertTrue(task1 instanceof ManualTaskDefinition, "O nó deveria ser uma HumanTask");
+        assertTrue(task1 instanceof ExternalTaskDefinition, "O nó deveria ser uma HumanTask");
         assertEquals("External Task 1", task1.name());
         assertEquals(1, task1.outgoing().size(), "A Tarefa 1 deveria ter um fluxo de saída");
         assertEquals("external-task-2", task1.outgoing().get(0).targetNodeId(), "A Tarefa 1 deveria fluir para a Tarefa 2");

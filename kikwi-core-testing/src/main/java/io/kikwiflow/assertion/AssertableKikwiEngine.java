@@ -28,6 +28,7 @@ import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.InMemoryKikwiEngineRepository;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
@@ -60,6 +61,36 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public ProcessInstance saveProcessInstance(ProcessInstance instance) {
         return inMemoryKikwiEngineRepository.saveProcessInstance(instance);
+    }
+
+    @Override
+    public long countExecutableTasksByDefinitionId(String taskDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public long countExternalTasksByDefinitionId(String taskDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public long countOpenIncidentsByProcessDefinition(String processDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public long countProcessInstancesByProcessDefinition(String processDefinitionId) {
+        return 0;
+    }
+
+    @Override
+    public List<ProcessDefinition> findAProcessDefinitionsByParams(String key) {
+        return List.of();
+    }
+
+    @Override
+    public List<ProcessDefinition> findAllProcessDefinitions() {
+        return inMemoryKikwiEngineRepository.findAllProcessDefinitions();
     }
 
     @Override
@@ -113,6 +144,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public void deleteProcessInstanceById(String processInstanceId) {
+
+    }
+
+    @Override
     public Optional<ExternalTask> findExternalTaskById(String externalTaskId) {
         return inMemoryKikwiEngineRepository.findExternalTaskById(externalTaskId);
     }
@@ -155,6 +191,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId) {
         return this.inMemoryKikwiEngineRepository.findExternalTasksByAssignee(assignee, tenantId);
+    }
+
+    @Override
+    public ExternalTaskQuery createExternalTaskQuery() {
+        return null;
     }
 
     public void evaluateEvents(){

@@ -20,7 +20,7 @@ package io.kikwiflow.bpmn.mapper.task;
 import io.kikwiflow.bpmn.mapper.SequenceFlowMapper;
 import io.kikwiflow.bpmn.mapper.boundary.BoundaryEventMapper;
 import io.kikwiflow.bpmn.model.task.ManualTask;
-import io.kikwiflow.model.definition.process.elements.ManualTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 
 import java.util.Objects;
 
@@ -30,11 +30,11 @@ public class ManualTaskMapper {
         // Utility class
     }
 
-    public static ManualTaskDefinition  toSnapshot(final ManualTask manualTask) {
+    public static ExternalTaskDefinition  toSnapshot(final ManualTask manualTask) {
         if (Objects.isNull(manualTask)) {
             return null;
         }
-        return ManualTaskDefinition.builder()
+        return ExternalTaskDefinition.builder()
                 .id(manualTask.getId())
                 .name(manualTask.getName())
                 .description(manualTask.getDescription())

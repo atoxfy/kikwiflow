@@ -19,6 +19,7 @@ package io.kikwiflow.persistence.api.data;
 
 
 import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
@@ -32,4 +33,6 @@ public record UnitOfWork(
         List<ExternalTask> externalTasksToCreate,
         List<String> executableTasksToDelete,
         List<String> externalTasksToDelete,
-        List<OutboxEventEntity> events) {}
+        List<OutboxEventEntity> events,
+        List<Incident> incidentsToCreate,
+        List<String> incidentsToResolve) {}

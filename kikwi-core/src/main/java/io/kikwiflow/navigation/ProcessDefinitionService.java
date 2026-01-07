@@ -74,6 +74,13 @@ public class ProcessDefinitionService {
         return processDefinition;
     }
 
+    public ProcessDefinition deploy(ProcessDefinition processDefinitionDeploy){
+        deployValidator.validate(processDefinitionDeploy);
+        ProcessDefinition processDefinition =  kikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
+        processDefinitionCache.clear();;
+        return processDefinition;
+    }
+
     /**
      * Obtém uma definição de processo pela sua chave (key), utilizando uma estratégia de cache.
      * <p>
