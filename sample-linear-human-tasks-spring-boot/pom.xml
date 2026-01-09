@@ -27,7 +27,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>io.kikwiflow</groupId>
-    <version>0.1.34</version>
+    <version>0.1.35</version>
     <artifactId>linear-human-tasks-spring-boot-example</artifactId>
     <name>kikwiflow :: Sample App</name>
     <packaging>jar</packaging>
