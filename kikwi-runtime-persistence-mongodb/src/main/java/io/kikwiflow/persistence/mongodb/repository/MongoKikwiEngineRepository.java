@@ -563,6 +563,14 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         }
 
         @Override
+        public ExternalTaskQuery tenantIdIn(List<String> tenantIdIn) {
+            if (tenantIdIn != null && !tenantIdIn.isEmpty()) {
+                filters.add(in("tenantId", tenantIdIn));
+            }
+            return this;
+        }
+
+        @Override
         public ExternalTaskQuery processInstanceId(String processInstanceId) {
             if (processInstanceId != null) {
                 filters.add(eq("processInstanceId", processInstanceId));

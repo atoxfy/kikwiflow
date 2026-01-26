@@ -26,11 +26,14 @@ public interface ExternalTaskQuery {
 
     ExternalTaskQuery taskDefinitionId(String taskDefinitionId);
 
+    ExternalTaskQuery tenantIdIn(List<String> tenantIdIn);
+
     ExternalTaskQuery processInstanceId(String processInstanceId);
 
     ExternalTaskQuery processDefinitionId(String processDefinitionId);
 
     ExternalTaskQuery assignee(String assignee);
+
 
     List<ExternalTask> list();
 
