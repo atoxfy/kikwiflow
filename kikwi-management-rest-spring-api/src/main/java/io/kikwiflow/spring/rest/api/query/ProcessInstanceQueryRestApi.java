@@ -35,17 +35,17 @@ public interface ProcessInstanceQueryRestApi extends ProcessInstanceQueryApi {
     @Override
     @GetMapping("count")
     @ResponseStatus(HttpStatus.OK)
-    CountResponse count(@RequestParam(required = false) String processDefinitionId);
+    CountResponse count(@RequestParam(value = "process-definition-id", required = false) String processDefinitionId);
 
     @Override
     @GetMapping("{id}")
     @ResponseStatus(HttpStatus.OK)
-    ProcessInstance findProcessInstanceById(@PathVariable String id);
+    ProcessInstance findProcessInstanceById(@PathVariable(value = "id") String id);
 
     @Override
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    List<ProcessInstance> findAll(@RequestParam(required = false) List<String> ids,
-                                  @RequestParam(required = false) String processDefinitionId,
-                                  @RequestParam(required = false) String tenantId);
+    List<ProcessInstance> findAll(@RequestParam(value = "ids", required = false) List<String> ids,
+                                  @RequestParam(value = "process-definition-id" , required = false) String processDefinitionId,
+                                  @RequestParam(value = "tenant-id", required = false) String tenantId);
 }

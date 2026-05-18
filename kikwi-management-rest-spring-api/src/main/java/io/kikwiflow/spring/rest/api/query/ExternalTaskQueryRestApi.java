@@ -35,30 +35,30 @@ public interface ExternalTaskQueryRestApi extends ExternalTaskQueryApi {
     @Override
     @GetMapping("count")
     @ResponseStatus(HttpStatus.OK)
-    CountResponse count(@RequestParam(required = false) String processDefinitionId,
-                                                   @RequestParam(required = false) String tenantId,
-                                                   @RequestParam(required = false) String assignee,
-                                                   @RequestParam(required = false) String processInstanceId,
-                                                   @RequestParam(required = false) List<String> processInstanceIdIn,
-                                                   @RequestParam(required = false) String taskDefinitionId,
-                                                   @RequestParam(required = false) List<String> tenantIds);
+    CountResponse count(@RequestParam(value = "process-definition-id", required = false) String processDefinitionId,
+                                                   @RequestParam(value = "tenant-id", required = false) String tenantId,
+                                                   @RequestParam(value = "assignee", required = false) String assignee,
+                                                   @RequestParam(value = "process-instance-id", required = false) String processInstanceId,
+                                                   @RequestParam(value = "process-instance-id-in", required = false) List<String> processInstanceIdIn,
+                                                   @RequestParam(value = "task-definition-id", required = false) String taskDefinitionId,
+                                                   @RequestParam(value = "tenant-ids", required = false) List<String> tenantIds);
 
     @Override
     @GetMapping("{id}")
     @ResponseStatus(HttpStatus.OK)
-    ExternalTask findExternalTaskById(@PathVariable String id);
+    ExternalTask findExternalTaskById(@PathVariable(value = "id") String id);
 
 
     @Override
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    List<ExternalTask> findAll(@RequestParam(required = false) String processDefinitionId,
-                                                              @RequestParam(required = false) String tenantId,
-                                                              @RequestParam(required = false) String assignee,
-                                                              @RequestParam(required = false) String processInstanceId,
-                                                              @RequestParam(required = false) List<String> processInstanceIdIn,
-                                                              @RequestParam(required = false) String taskDefinitionId,
-                                                              @RequestParam(required = false) List<String> tenantIds);
+    List<ExternalTask> findAll(@RequestParam(value = "process-definition-id", required = false) String processDefinitionId,
+                               @RequestParam(value = "tenant-id", required = false) String tenantId,
+                               @RequestParam(value = "assignee", required = false) String assignee,
+                               @RequestParam(value = "process-instance-id", required = false) String processInstanceId,
+                               @RequestParam(value = "process-instance-id-in", required = false) List<String> processInstanceIdIn,
+                               @RequestParam(value = "task-definition-id", required = false) String taskDefinitionId,
+                               @RequestParam(value = "tenant-ids", required = false) List<String> tenantIds);
 
 
 }
