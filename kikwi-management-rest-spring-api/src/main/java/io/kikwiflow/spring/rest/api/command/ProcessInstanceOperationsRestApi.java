@@ -40,11 +40,11 @@ public interface ProcessInstanceOperationsRestApi extends ProcessInstanceOperati
     @Override
     @PutMapping("{id}/variables")
     @ResponseStatus(HttpStatus.OK)
-    ProcessInstance setVariables(@PathVariable String id, @RequestBody SetVariablesRequest setVariablesRequest);
+    ProcessInstance setVariables(@PathVariable(value = "id") String id, @RequestBody SetVariablesRequest setVariablesRequest);
 
     @Override
     @PutMapping("{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void deleteInstance(String processInstanceId);
+    void deleteInstance(@PathVariable(value = "id") String processInstanceId);
 
 }

@@ -15,7 +15,7 @@ target/
 
 # Ficheiros do Mobile Tools for Java (J2ME)
 .mtj.tmp/
-
+.flattened-pom.xml
 # Ficheiros do Package
 *.jar
 *.war
