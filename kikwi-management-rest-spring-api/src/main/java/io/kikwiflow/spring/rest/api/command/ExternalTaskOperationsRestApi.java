@@ -34,16 +34,16 @@ public interface ExternalTaskOperationsRestApi extends ExternalTaskOperationsApi
     @Override
     @PutMapping("{id}/claim/{assignee}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void claim(@PathVariable String id, @PathVariable String assignee);
+    void claim(@PathVariable(value = "id") String id, @PathVariable(value = "assignee") String assignee);
 
     @Override
     @PutMapping("{id}/unclaim")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void unclaim(@PathVariable String id);
+    void unclaim(@PathVariable(value = "id") String id);
 
     @Override
     @PostMapping("{id}/complete")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    ProcessInstance completeExternalTask(@PathVariable String id, @RequestBody CompleteExternalTaskRequest completeExternalTaskRequest);
+    ProcessInstance completeExternalTask(@PathVariable(value = "id") String id, @RequestBody CompleteExternalTaskRequest completeExternalTaskRequest);
 
 }

@@ -1,0 +1,17 @@
+server:
+  port: ${SERVER_PORT:8081}
+spring:
+  data:
+    mongodb:
+      uri: mongodb+srv://kikwiflow:guo2spMDrHzu9UbP@onboarding-sample.9um3zkc.mongodb.net/?appName=onboarding-sample
+      database: kikwiflow_db
+      auto-index-creation: true
+kikwiflow:
+  stats:
+    enabled: false
+  outbox:
+    events-enabled: false
+
+
+
+
