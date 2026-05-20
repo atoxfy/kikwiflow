@@ -42,7 +42,7 @@ public class DeployValidator {
     public void validate(ProcessDefinition definition) {
         definition.flowNodes().values().forEach(node -> {
             if (node instanceof ExecutableTaskDefinition serviceTask) {
-                String delegateExpression = serviceTask.delegateExpression();
+                String delegateExpression = serviceTask.executor();
                 if (delegateExpression != null && !delegateExpression.isBlank()) {
                     try {
                         delegateResolver.resolve(delegateExpression)

@@ -50,10 +50,10 @@ public class TaskExecutor {
      * Verifica se uma ServiceTask está configurada para ser executada por um JavaDelegate.
      *
      * @param serviceTask A definição da tarefa de serviço.
-     * @return {@code true} se a tarefa possuir um `delegateExpression`, {@code false} caso contrário.
+     * @return {@code true} se a tarefa possuir um `executor`, {@code false} caso contrário.
      */
     private boolean isExecutableByDelegate(ExecutableTaskDefinition serviceTask){
-        return Objects.nonNull(serviceTask.delegateExpression());
+        return Objects.nonNull(serviceTask.executor());
     }
 
     /**
@@ -71,8 +71,8 @@ public class TaskExecutor {
 
         if (executableTask instanceof ExecutableTaskDefinition serviceTask) {
             if(isExecutableByDelegate(serviceTask)){
-                String delegateExpression = serviceTask.delegateExpression();
-                String beanName = delegateExpression.replace("${", "").replace("}", "");
+                String executor = serviceTask.executor();
+                String beanName = executor.replace("${", "").replace("}", "");
                 JavaDelegate delegate = delegateResolver.resolve(beanName)
                         .orElseThrow(() -> new BadDefinitionExecutionException("JavaDelegate not found with name: " + beanName));
 
