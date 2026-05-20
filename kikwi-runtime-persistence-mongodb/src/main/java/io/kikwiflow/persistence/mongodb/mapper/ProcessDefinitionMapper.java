@@ -71,7 +71,7 @@ public final class ProcessDefinitionMapper {
         }
 
         if (definition.defaultStartPoint() != null) {
-            doc.append("defaultStartPointId", definition.defaultStartPoint().id());
+            doc.append("defaultStartPointId", definition.defaultStartPoint());
         }
         return doc;
     }
@@ -100,7 +100,7 @@ public final class ProcessDefinitionMapper {
 
         switch (node) {
             case ExecutableTaskDefinition st -> {
-                doc.append("delegateExpression", st.delegateExpression());
+                doc.append("executor", st.executor());
                 if (st.boundaryEvents() != null) {
                     doc.append("boundaryEvents", st.boundaryEvents().stream()
                             .map(ProcessDefinitionMapper::toDocument)
@@ -168,7 +168,6 @@ public final class ProcessDefinitionMapper {
         }
 
         String defaultStartPointId = doc.getString("defaultStartPointId");
-        FlowNodeDefinition defaultStartPoint = defaultStartPointId != null ? flowNodes.get(defaultStartPointId) : null;
 
 
         Document extensionPropertiesDoc = doc.get("extensionProperties", Document.class);
@@ -188,7 +187,7 @@ public final class ProcessDefinitionMapper {
                 .version(doc.getInteger("version"))
                 .description(doc.getString("description"))
                 .flowNodes(flowNodes)
-                .defaultStartPoint(defaultStartPoint)
+                .defaultStartPoint(defaultStartPointId)
                 .extensionProperties(extensionProperties)
                 .build();
     }
@@ -245,7 +244,7 @@ public final class ProcessDefinitionMapper {
                 .description(doc.getString("description"))
                 .commitBefore(doc.getBoolean("commitBefore"))
                 .commitAfter(doc.getBoolean("commitAfter"))
-                .delegateExpression(doc.getString("delegateExpression"))
+                .executor(doc.getString("executor"))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .boundaryEvents(fromDocToBoundaryEventsList(doc))

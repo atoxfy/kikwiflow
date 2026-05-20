@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.39</version>
+        <version>0.1.40</version>
     </parent>
 
     <artifactId>sample-onboarding-process</artifactId>
@@ -55,27 +55,27 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-spring-boot-starter</artifactId>
-            <version>0.1.39</version>
+            <version>0.1.40</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-runtime-persistence-mongodb-spring-boot-starter</artifactId>
-            <version>0.1.39</version>
+            <version>0.1.40</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-runtime-query-spring-boot-starter</artifactId>
-            <version>0.1.39</version>
+            <version>0.1.40</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-view-models</artifactId>
-            <version>0.1.39</version>
+            <version>0.1.40</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-management-rest-spring-boot-starter</artifactId>
-            <version>0.1.39</version>
+            <version>0.1.40</version>
         </dependency>
     </dependencies>
     <build>

@@ -42,15 +42,15 @@ public class DeployValidator {
     public void validate(ProcessDefinition definition) {
         definition.flowNodes().values().forEach(node -> {
             if (node instanceof ExecutableTaskDefinition serviceTask) {
-                String delegateExpression = serviceTask.executor();
-                if (delegateExpression != null && !delegateExpression.isBlank()) {
+                String executor = serviceTask.executor();
+                if (executor != null && !executor.isBlank()) {
                     try {
-                        delegateResolver.resolve(delegateExpression)
+                        delegateResolver.resolve(executor)
                                 .orElseThrow(() -> new JavaDelegateNotFoundException(""));
                     } catch (Exception e) {
                         throw new InvalidProcessDefinitionException(
                             String.format("Validation failed for Service Task '%s' (id: %s): Delegate bean '%s' not found in application context.",
-                                serviceTask.name(), serviceTask.id(), delegateExpression), e);
+                                serviceTask.name(), serviceTask.id(), executor), e);
                     }
                 }
             } else if (node instanceof ExclusiveGatewayDefinition gateway) {

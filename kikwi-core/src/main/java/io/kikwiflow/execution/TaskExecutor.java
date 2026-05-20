@@ -59,7 +59,7 @@ public class TaskExecutor {
     /**
      * Executa a lógica de negócio para o nó de fluxo fornecido no contexto de execução.
      * <p>
-     * Atualmente, suporta a execução de {@link ExecutableTaskDefinition} que possuem um `delegateExpression`.
+     * Atualmente, suporta a execução de {@link ExecutableTaskDefinition} que possuem um `executor`.
      *
      * @param executionContext O contexto da execução atual, que contém a instância do processo,
      *                         variáveis e informações sobre o nó atual.
