@@ -19,6 +19,7 @@ package io.kikwiflow.bpmn;
 
 
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
+import io.kikwiflow.bpmn.model.FlowNode;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
@@ -116,9 +117,11 @@ class BpmnParserTest {
         assertEquals(7, processDefinition.flowNodes().size(), "Deveria fazer o parse de 1 evento de início, 5 tarefas de usuário e 1 evento de fim");
 
         // 3. Assert Start Event
-        FlowNodeDefinition startEvent = processDefinition.defaultStartPoint();
-        assertNotNull(startEvent, "O ponto de início padrão deveria ser identificado");
-        assertEquals("Event_01chmjj", startEvent.id());
+        String startEventStr = processDefinition.defaultStartPoint();
+        assertNotNull(startEventStr, "O ponto de início padrão deveria ser identificado");
+        assertEquals("Event_01chmjj", startEventStr);
+
+        FlowNodeDefinition startEvent = processDefinition.flowNodes().get(startEventStr);
         assertEquals("Lead received", startEvent.name());
         assertTrue(startEvent instanceof StartEventDefinition, "O ponto de início deveria ser um StartEvent");
         assertEquals(1, startEvent.outgoing().size(), "O evento de início deveria ter um fluxo de saída");
