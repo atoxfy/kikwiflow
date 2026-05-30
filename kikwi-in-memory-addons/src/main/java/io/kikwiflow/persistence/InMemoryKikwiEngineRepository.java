@@ -23,6 +23,7 @@ import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
+import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
@@ -352,6 +353,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     @Override
     public ExternalTaskQuery createExternalTaskQuery() {
         return null;
+    }
+
+    @Override
+    public Map<String, KKFMetrics> getMetricsByNodeForProcessDefinition(String processDefinitionId) {
+        return Map.of();
     }
 
     @Override
