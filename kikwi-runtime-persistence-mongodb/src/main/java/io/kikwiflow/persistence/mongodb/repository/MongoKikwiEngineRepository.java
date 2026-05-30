@@ -17,11 +17,15 @@
 
 package io.kikwiflow.persistence.mongodb.repository;
 
+import com.mongodb.ReadPreference;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.DeleteManyModel;
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
@@ -36,6 +40,7 @@ import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
+import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
@@ -49,9 +54,11 @@ import io.kikwiflow.persistence.mongodb.util.MongoKeyEncoder;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -93,6 +100,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 eq("taskDefinitionId", id)
         );
     }
+
 
     @Override
     public ProcessInstance saveProcessInstance(ProcessInstance instance) {
@@ -533,12 +541,58 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
 
-
-
     @Override
     public ExternalTaskQuery createExternalTaskQuery() {
         return new MongoExternalTaskQuery();
     }
+
+    @Override
+    public Map<String, KKFMetrics> getMetricsByNodeForProcessDefinition(String processDefinitionId) {
+        Map<String, KKFMetrics> metricsMap = new HashMap<>();
+
+        List<Bson> executablePipeline = Arrays.asList(
+                Aggregates.match(Filters.eq("processDefinitionId", processDefinitionId)),
+                Aggregates.group("$taskDefinitionId",
+                        Accumulators.sum("running", new Document("$cond", Arrays.asList(
+                                new Document("$in", Arrays.asList("$status", Arrays.asList("PENDING", "EXECUTING"))), 1, 0
+                        ))),
+                        Accumulators.sum("failed", new Document("$cond", Arrays.asList(
+                                new Document("$eq", Arrays.asList("$status", "ERROR")), 1, 0
+                        )))
+                )
+        );
+
+        getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION)
+                .withReadPreference(ReadPreference.secondaryPreferred())
+                .aggregate(executablePipeline)
+                .forEach(doc -> {
+                    String nodeId = doc.getString("_id");
+                    long running = doc.getInteger("running", 0);
+                    long failed = doc.getInteger("failed", 0);
+                    metricsMap.put(nodeId, new KKFMetrics(running, 100.00, failed));
+                });
+
+        List<Bson> externalPipeline = Arrays.asList(
+                Aggregates.match(Filters.eq("processDefinitionId", processDefinitionId)),
+                Aggregates.group("$taskDefinitionId",
+                        Accumulators.sum("running", new Document("$cond", Arrays.asList(
+                                new Document("$eq", Arrays.asList("$status", "CREATED")), 1, 0
+                        )))
+                )
+        );
+
+        getDatabase().getCollection(EXTERNAL_TASK_COLLECTION)
+                .withReadPreference(ReadPreference.secondaryPreferred())
+                .aggregate(externalPipeline)
+                .forEach(doc -> {
+                    String nodeId = doc.getString("_id");
+                    long running = doc.getInteger("running", 0);
+                    metricsMap.put(nodeId, new KKFMetrics(running, 100.00, 0L));
+                });
+
+        return metricsMap;
+    }
+
 
     /**
      * Implementação interna da API de query fluente para ExternalTasks.

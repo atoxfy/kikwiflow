@@ -21,9 +21,11 @@ import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
+import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface QueryRepository {
@@ -64,4 +66,6 @@ public interface QueryRepository {
     List<ExternalTask> findExternalTasksByAssignee(String assignee, String tenantId);
 
     ExternalTaskQuery createExternalTaskQuery();
+
+    Map<String, KKFMetrics> getMetricsByNodeForProcessDefinition(String processDefinitionId);
 }
