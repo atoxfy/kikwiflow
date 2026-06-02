@@ -35,7 +35,8 @@ public class WorkflowAdapter {
 
     public static Workflow toManualWorkflow(ProcessDefinition definition) {
         Map<String, WorkflowStage> stagesMap = new LinkedHashMap<>();
-        buildStagesRecursively(definition.defaultStartPoint(), definition.flowNodes(), stagesMap, new HashSet<>());
+        FlowNodeDefinition defaultStartPoint = definition.flowNodes().get(definition.defaultStartPoint());
+        buildStagesRecursively(defaultStartPoint, definition.flowNodes(), stagesMap, new HashSet<>());
 
         return new Workflow(
                 definition.id(),

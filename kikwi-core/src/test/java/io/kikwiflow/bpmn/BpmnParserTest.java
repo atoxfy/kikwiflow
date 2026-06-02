@@ -19,6 +19,7 @@ package io.kikwiflow.bpmn;
 
 
 import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
+import io.kikwiflow.bpmn.model.FlowNode;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
@@ -75,7 +76,7 @@ class BpmnParserTest {
         assertNotNull(task1, "A primeira ServiceTask não foi encontrada.");
         assertTrue(task1 instanceof ExecutableTaskDefinition, "O nó deveria ser uma instância de ServiceTaskDefinition.");
         assertEquals("add variable", task1.name(), "O nome da primeira tarefa está incorreto.");
-        assertEquals("${addVariableDelegate}", ((ExecutableTaskDefinition) task1).delegateExpression(), "A expressão delegate da primeira tarefa está incorreta.");
+        assertEquals("${addVariableDelegate}", ((ExecutableTaskDefinition) task1).executor(), "A expressão delegate da primeira tarefa está incorreta.");
         assertEquals(1, task1.outgoing().size(), "A primeira tarefa deveria ter um fluxo de saída.");
         assertEquals("Activity_16ovgt4", task1.outgoing().get(0).targetNodeId(), "O fluxo de saída da primeira tarefa aponta para o nó errado.");
 
@@ -83,7 +84,7 @@ class BpmnParserTest {
         FlowNodeDefinition task2 = processDefinitionDeploy.flowNodes().get("Activity_16ovgt4");
         assertNotNull(task2, "A segunda ServiceTask não foi encontrada.");
         assertEquals("remove variable", task2.name(), "O nome da segunda tarefa está incorreto.");
-        assertEquals("${removeVariableDelegate}", ((ExecutableTaskDefinition) task2).delegateExpression(), "A expressão delegate da segunda tarefa está incorreta.");
+        assertEquals("${removeVariableDelegate}", ((ExecutableTaskDefinition) task2).executor(), "A expressão delegate da segunda tarefa está incorreta.");
 
         //EndEvent
         FlowNodeDefinition endEvent = processDefinitionDeploy.flowNodes().get("Event_0w1t1d3");
@@ -116,9 +117,11 @@ class BpmnParserTest {
         assertEquals(7, processDefinition.flowNodes().size(), "Deveria fazer o parse de 1 evento de início, 5 tarefas de usuário e 1 evento de fim");
 
         // 3. Assert Start Event
-        FlowNodeDefinition startEvent = processDefinition.defaultStartPoint();
-        assertNotNull(startEvent, "O ponto de início padrão deveria ser identificado");
-        assertEquals("Event_01chmjj", startEvent.id());
+        String startEventStr = processDefinition.defaultStartPoint();
+        assertNotNull(startEventStr, "O ponto de início padrão deveria ser identificado");
+        assertEquals("Event_01chmjj", startEventStr);
+
+        FlowNodeDefinition startEvent = processDefinition.flowNodes().get(startEventStr);
         assertEquals("Lead received", startEvent.name());
         assertTrue(startEvent instanceof StartEventDefinition, "O ponto de início deveria ser um StartEvent");
         assertEquals(1, startEvent.outgoing().size(), "O evento de início deveria ter um fluxo de saída");

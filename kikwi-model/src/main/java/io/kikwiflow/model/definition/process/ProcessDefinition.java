@@ -24,7 +24,7 @@ import java.util.Objects;
 
 public record ProcessDefinition(
         String id, String sla, Integer version, String key, String name, String description,
-        Map<String, FlowNodeDefinition> flowNodes, FlowNodeDefinition defaultStartPoint, String checksum, Map<String, String> extensionProperties
+        Map<String, FlowNodeDefinition> flowNodes, String defaultStartPoint, String checksum, Map<String, String> extensionProperties
 ) {
     public ProcessDefinition {
         Objects.requireNonNull(key, "key cannot be null");
@@ -46,8 +46,8 @@ public record ProcessDefinition(
         private String sla;
         private String description;
         private Map<String, FlowNodeDefinition> flowNodes = Collections.emptyMap();
-        private FlowNodeDefinition defaultStartPoint;
-       private  Map<String, String> extensionProperties;
+        private String defaultStartPoint;
+        private  Map<String, String> extensionProperties;
         private Builder() {}
 
         public Builder id(String id) {
@@ -95,7 +95,7 @@ public record ProcessDefinition(
             return this;
         }
 
-        public Builder defaultStartPoint(FlowNodeDefinition defaultStartPoint) {
+        public Builder defaultStartPoint(String defaultStartPoint) {
             this.defaultStartPoint = defaultStartPoint;
             return this;
         }

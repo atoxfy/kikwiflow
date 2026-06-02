@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.kikwiflow</groupId>
     <artifactId>kikwiflow-parent</artifactId>
-    <version>0.1.37</version>
+    <version>0.1.42</version>
     <packaging>pom</packaging>
     <name>kikwiflow :: Parent</name>
     <url>https://kikwiflow.io</url>
@@ -78,7 +78,7 @@
         <module>kikwi-management-rest-spring-boot-autoconfigure</module>
         <module>kikwi-management-rest-spring-boot-starter</module>
         <module>kikwi-management-rest-client-spring-boot-starter</module>
-        <module>sample-onboarding-process</module>
+       <!-- <module>sample-onboarding-process</module> -->
     </modules>
     <dependencyManagement>
         <dependencies>

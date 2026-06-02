@@ -27,7 +27,9 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Import;
 
-@AutoConfiguration
+@AutoConfiguration(
+        afterName = "io.kikwiflow.starter.autoconfigure.KikwiflowAutoConfiguration"
+)
 @ConditionalOnClass(ProcessDefinitionQueryController.class)
 @Import({
         ProcessDefinitionQueryController.class,
