@@ -35,6 +35,8 @@ public interface QueryRepository {
     long countOpenIncidentsByProcessDefinition(String processDefinitionId);
     long countProcessInstancesByProcessDefinition(String processDefinitionId);
 
+    KKFMetrics getProcessMacroMetrics(String processDefinitionId);
+
     List<ProcessDefinition> findAProcessDefinitionsByParams(String key);
 
     List<ProcessDefinition> findAllProcessDefinitions();

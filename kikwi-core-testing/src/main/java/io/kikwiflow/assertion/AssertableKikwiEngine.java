@@ -85,6 +85,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public KKFMetrics getProcessMacroMetrics(String processDefinitionId) {
+        return inMemoryKikwiEngineRepository.getProcessMacroMetrics(processDefinitionId);
+    }
+
+    @Override
     public List<ProcessDefinition> findAProcessDefinitionsByParams(String key) {
         return List.of();
     }

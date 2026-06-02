@@ -89,6 +89,25 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         return mongoClient.getDatabase(databaseName);
     }
 
+    @Override
+    public KKFMetrics getProcessMacroMetrics(String processDefinitionId) {
+        long running = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION)
+                .withReadPreference(ReadPreference.secondaryPreferred())
+                .countDocuments(and(
+                        eq("processDefinitionId", processDefinitionId),
+                        eq("status", "ACTIVE")
+                ));
+
+        long failed = getDatabase().getCollection(INCIDENTS_COLLECTION)
+                .withReadPreference(ReadPreference.secondaryPreferred())
+                .countDocuments(and(
+                        eq("processDefinitionId", processDefinitionId),
+                        eq("status", "OPEN")
+                ));
+
+        return new KKFMetrics(running, 100.0, failed);
+    }
+
     public long countExecutableTasksByDefinitionId(String id){
         return getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION).countDocuments(
                 eq("taskDefinitionId", id)

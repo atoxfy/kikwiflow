@@ -101,6 +101,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public KKFMetrics getProcessMacroMetrics(String processDefinitionId) {
+        return null;
+    }
+
+    @Override
     public List<ProcessDefinition> findAProcessDefinitionsByParams(String key) {
         return List.of();
     }
