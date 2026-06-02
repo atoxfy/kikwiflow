@@ -27,7 +27,7 @@ public record InterruptiveTimerEventDefinition(String id,
                                                String name,
                                                String type,
                                                String description,
-                                               String delegateExpression,
+                                               String executor,
                                                Boolean commitAfter,
                                                Boolean commitBefore,
                                                List<SequenceFlowDefinition> outgoing,
@@ -44,7 +44,7 @@ public record InterruptiveTimerEventDefinition(String id,
         private String id;
         private String name;
         private String description;
-        private String delegateExpression;
+        private String executor;
         private Boolean commitAfter;
         private Boolean commitBefore;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
@@ -80,8 +80,8 @@ public record InterruptiveTimerEventDefinition(String id,
             return this;
         }
 
-        public Builder delegateExpression(String delegateExpression) {
-            this.delegateExpression = delegateExpression;
+        public Builder executor(String executor) {
+            this.executor = executor;
             return this;
         }
 
@@ -113,7 +113,7 @@ public record InterruptiveTimerEventDefinition(String id,
         }
 
         public InterruptiveTimerEventDefinition build() {
-            return new InterruptiveTimerEventDefinition(id, name, "BOUNDARY_INTERRUPTIVE_TIMER", description, delegateExpression, commitAfter, commitBefore, outgoing, attachedToRef, duration, extensionProperties, layout);
+            return new InterruptiveTimerEventDefinition(id, name, "BOUNDARY_INTERRUPTIVE_TIMER", description, executor, commitAfter, commitBefore, outgoing, attachedToRef, duration, extensionProperties, layout);
         }
     }
 }

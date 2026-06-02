@@ -119,7 +119,7 @@ public class DefaultBpmnParser implements BpmnParser {
                 }
 
                 if (flowNode != null) {
-                    if(isDefaultStartPoint) processDefinitionGraphDeploy.setDefaultStartPoint(flowNode);
+                    if(isDefaultStartPoint) processDefinitionGraphDeploy.setDefaultStartPoint(flowNode.getId());
                     processDefinitionGraphDeploy.addFlowNode(flowNode);
                 }
             }

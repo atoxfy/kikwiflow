@@ -37,7 +37,7 @@ public final class ServiceTaskMapper {
                 .id(serviceTask.getId())
                 .name(serviceTask.getName())
                 .description(serviceTask.getDescription())
-                .delegateExpression(serviceTask.getDelegateExpression())
+                .executor(serviceTask.getDelegateExpression())
                 .commitAfter(serviceTask.getCommitAfter())
                 .commitBefore(serviceTask.getCommitBefore())
                 .outgoing(SequenceFlowMapper.toSnapshot(serviceTask.getOutgoing()))

@@ -27,14 +27,14 @@ public class ProcessDefinitionGraph {
     private String name;
     private String description;
     private Map<String, FlowNode> flowNodes = new HashMap<>();
-    private FlowNode defaultStartPoint;
+    private String defaultStartPoint;
     private String checksum;
 
-    public FlowNode getDefaultStartPoint() {
+    public String getDefaultStartPoint() {
         return defaultStartPoint;
     }
 
-    public void setDefaultStartPoint(FlowNode defaultStartPoint) {
+    public void setDefaultStartPoint(String defaultStartPoint) {
         this.defaultStartPoint = defaultStartPoint;
     }
 

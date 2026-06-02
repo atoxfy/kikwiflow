@@ -28,7 +28,7 @@ public record ExecutableTaskDefinition(String id,
                                        String name,
                                        String type,
                                        String description,
-                                       String delegateExpression,
+                                       String executor,
                                        Boolean commitAfter,
                                        Boolean commitBefore,
                                        List<SequenceFlowDefinition> outgoing,
@@ -45,7 +45,7 @@ public record ExecutableTaskDefinition(String id,
         private String id;
         private String name;
         private String description;
-        private String delegateExpression;
+        private String executor;
         private Boolean commitAfter;
         private Boolean commitBefore;
         private LayoutCoordinates layout;
@@ -70,8 +70,8 @@ public record ExecutableTaskDefinition(String id,
             return this;
         }
 
-        public Builder delegateExpression(String delegateExpression) {
-            this.delegateExpression = delegateExpression;
+        public Builder executor(String executor) {
+            this.executor = executor;
             return this;
         }
 
@@ -111,7 +111,7 @@ public record ExecutableTaskDefinition(String id,
         }
 
         public ExecutableTaskDefinition build() {
-            return new ExecutableTaskDefinition(id, name, description, "SERVICE_TASK", delegateExpression,  commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
+            return new ExecutableTaskDefinition(id, name, description, "SERVICE_TASK", executor,  commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
         }
     }
 }

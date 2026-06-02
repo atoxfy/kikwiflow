@@ -34,16 +34,16 @@ public interface ProcessDefinitionQueryRestApi extends ProcessDefinitionQueryApi
     @Override
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    List<ProcessDefinition> findAll(@RequestParam(required = false) String key);
+    List<ProcessDefinition> findAll(@RequestParam(value = "key", required = false) String key);
 
     @Override
-    @GetMapping("one-by-key/{processDefinitionKey}")
+    @GetMapping("one-by-key/{process-definition-key}")
     @ResponseStatus(HttpStatus.OK)
-    ProcessDefinition findProcessDefinitionByKey(@PathVariable String processDefinitionKey);
+    ProcessDefinition findProcessDefinitionByKey(@PathVariable(value = "process-definition-key") String processDefinitionKey);
 
     @Override
     @GetMapping("{id}")
     @ResponseStatus(HttpStatus.OK)
-    ProcessDefinition findProcessDefinitionById(@PathVariable String id);
+    ProcessDefinition findProcessDefinitionById(@PathVariable(value = "id") String id);
 
 }

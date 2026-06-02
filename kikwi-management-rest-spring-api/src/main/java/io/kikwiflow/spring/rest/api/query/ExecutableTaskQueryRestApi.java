@@ -32,5 +32,5 @@ public interface ExecutableTaskQueryRestApi extends ExecutableTaskQueryApi {
     @Override
     @GetMapping("count")
     @ResponseStatus(HttpStatus.OK)
-    CountResponse count(@RequestParam(required = false) String taskDefinitionId);
+    CountResponse count(@RequestParam(value = "task-definition-id", required = false) String taskDefinitionId);
 }

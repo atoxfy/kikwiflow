@@ -275,9 +275,10 @@ public class KikwiflowEngine {
             ProcessDefinition processDefinition = engine.processDefinitionService.getByKeyOrElseThrow(processDefinitionKey);
             ProcessInstance processInstance = engine.kikwiEngineRepository.saveProcessInstance(ProcessInstanceFactory.create(businessKey, processDefinition.id(), variables, businessValue, tenantId, origin));
             ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstance);
-            FlowNodeDefinition startPoint = processDefinition.defaultStartPoint();
-            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false, targetFlowNodeId);
-
+            String defaultStartPointId  = processDefinition.defaultStartPoint();
+            FlowNodeDefinition defaultStartPoint = processDefinition.flowNodes().get(defaultStartPointId);
+            Objects.requireNonNull(defaultStartPoint, "Malformed process definition: unknown default start point. The default start point needs to be declared in flow nodes map");
+            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(defaultStartPoint, processInstanceExecution, processDefinition, false, targetFlowNodeId);
             return engine.continuationService.handleContinuation(executionResult);
         }
     }

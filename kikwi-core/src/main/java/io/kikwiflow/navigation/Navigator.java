@@ -31,14 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Responsável pela lógica de navegação dentro do grafo de um processo BPMN.
- * <p>
- * Esta classe encapsula as regras para determinar qual o próximo nó a ser executado,
- * com base no estado atual do processo e na estrutura da definição do processo.
- * Ela lida com a travessia dos fluxos de sequência (sequence flows) e a identificação
- * de pontos de início e continuação.
- */
 public class Navigator {
 
 
@@ -50,7 +42,6 @@ public class Navigator {
 
 
     public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync, String targetFlowId) {
-        //todo mudar para usar logica de optional.or
         List<SequenceFlowDefinition> outgoingFlows = completedNode.outgoing();
 
         if (outgoingFlows.isEmpty()) {
@@ -58,52 +49,69 @@ public class Navigator {
         }
 
         List<FlowNodeDefinition> nextNodes = new ArrayList<>();
+
         if (completedNode instanceof ExclusiveGatewayDefinition gateway) {
-            Optional<SequenceFlowDefinition> chosenFlow = Optional.empty();
+            Optional<SequenceFlowDefinition> chosenFlow;
 
             if (targetFlowId != null && !targetFlowId.isBlank()) {
-                chosenFlow = outgoingFlows.stream().filter(sf -> sf.targetNodeId().equals(targetFlowId)).findFirst();
-            }
+                chosenFlow = outgoingFlows.stream()
+                        .filter(sf -> sf.targetNodeId().equals(targetFlowId))
+                        .findFirst();
 
-            if (chosenFlow.isEmpty()) {
-                for (SequenceFlowDefinition flow : outgoingFlows) {
-                    if (flow.condition() != null && !flow.condition().isBlank()) {
-                        DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition()).orElseThrow(
-                                () -> new DecisionRuleNotFoundException("DecisionRule not found with key: " + flow.condition()));
-
-                        if (decisionRule.evaluate(variables)) {
-                            chosenFlow = Optional.of(flow);
-                            break;
-                        }
-                    }
+                if (chosenFlow.isEmpty()) {
+                    throw new IllegalArgumentException("Execution Error: Forced targetFlowId '" + targetFlowId +
+                            "' is not a valid outgoing path from gateway '" + gateway.id() + "'.");
                 }
-            }
-
-            if (chosenFlow.isEmpty()) {
-                String defaultFlowId = gateway.defaultFlow();
-                if (defaultFlowId != null) {
-                    chosenFlow = outgoingFlows.stream().filter(sf -> sf.id().equals(defaultFlowId)).findFirst();
-                }
+            } else {
+                chosenFlow = evaluateConditions(outgoingFlows, variables)
+                        .or(() -> evaluateDefaultFlow(gateway, outgoingFlows));
             }
 
             if (chosenFlow.isPresent()) {
-                nextNodes.add(processDefinition.flowNodes().get(chosenFlow.get().targetNodeId()));
+                FlowNodeDefinition nextNode = processDefinition.flowNodes().get(chosenFlow.get().targetNodeId());
+                if (nextNode == null) {
+                    throw new IllegalStateException("Architectural Error: Target node '" + chosenFlow.get().targetNodeId() +
+                            "' defined in sequence flow does not exist in the process definition.");
+                }
+                nextNodes.add(nextNode);
             } else {
-                throw new IllegalStateException("Execution Error: Exclusive gateway '" + gateway.id() + "' has no valid outgoing sequence flow for the given variables.");
+                throw new IllegalStateException("Execution Error: Exclusive gateway '" + gateway.id() +
+                        "' has no valid outgoing sequence flow for the given variables.");
             }
 
         } else {
             String targetNodeId = outgoingFlows.get(0).targetNodeId();
-            nextNodes.add(processDefinition.flowNodes().get(targetNodeId));
+            FlowNodeDefinition nextNode = processDefinition.flowNodes().get(targetNodeId);
+            if (nextNode == null) {
+                throw new IllegalStateException("Architectural Error: Next node '" + targetNodeId + "' not found.");
+            }
+            nextNodes.add(nextNode);
         }
 
-        boolean isAsync = false;
-        if (forceAsync) {
-            isAsync = true;
-        } else {
-            isAsync = Boolean.TRUE.equals(nextNodes.get(0).commitBefore());
-        }
+        boolean isAsync = forceAsync || Boolean.TRUE.equals(nextNodes.get(0).commitBefore());
 
         return new Continuation(nextNodes, isAsync);
+    }
+
+    // Métodos auxiliares para manter o método principal legível (Módulos Profundos)
+    private Optional<SequenceFlowDefinition> evaluateConditions(List<SequenceFlowDefinition> outgoingFlows, Map<String, ProcessVariable> variables) {
+        return outgoingFlows.stream()
+                .filter(flow -> flow.condition() != null && !flow.condition().isBlank())
+                .filter(flow -> {
+                    DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition())
+                            .orElseThrow(() -> new DecisionRuleNotFoundException("DecisionRule not found with key: " + flow.condition()));
+                    return decisionRule.evaluate(variables);
+                })
+                .findFirst();
+    }
+
+    private Optional<SequenceFlowDefinition> evaluateDefaultFlow(ExclusiveGatewayDefinition gateway, List<SequenceFlowDefinition> outgoingFlows) {
+        String defaultFlowId = gateway.defaultFlow();
+        if (defaultFlowId == null || defaultFlowId.isBlank()) {
+            return Optional.empty();
+        }
+        return outgoingFlows.stream()
+                .filter(sf -> sf.id().equals(defaultFlowId))
+                .findFirst();
     }
 }
