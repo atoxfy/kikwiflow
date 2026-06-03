@@ -18,12 +18,12 @@
 package io.kikwiflow.execution.delegate;
 
 import io.kikwiflow.execution.api.ExecutionContext;
-import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.execution.api.TaskHandler;
 
 
-public class RemoveVariableDelegate implements JavaDelegate {
+public class RemoveVariableDelegate implements TaskHandler {
     @Override
-    public void execute(ExecutionContext execution) {
+    public void handle(ExecutionContext execution) {
         System.out.println("RemoveVariableDelegate => Before "  + execution.getVariable("food"));
         execution.removeVariable("food");
         System.out.println("RemoveVariableDelegate => After "  + execution.getVariable("food"));

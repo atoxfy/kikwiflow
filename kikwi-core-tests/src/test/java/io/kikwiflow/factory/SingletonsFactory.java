@@ -17,8 +17,6 @@
 
 package io.kikwiflow.factory;
 
-import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.execution.ContinuationService;
 import io.kikwiflow.execution.DecisionRuleResolver;
@@ -33,12 +31,9 @@ import io.kikwiflow.validation.DeployValidator;
 
 public class SingletonsFactory {
 
-    public static BpmnParser bpmnParser() {
-        return new DefaultBpmnParser();
-    }
 
-    public static ProcessDefinitionService processDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository repository, DeployValidator deployValidator) {
-        return new ProcessDefinitionService(bpmnParser, repository, deployValidator);
+    public static ProcessDefinitionService processDefinitionService(KikwiEngineRepository repository, DeployValidator deployValidator) {
+        return new ProcessDefinitionService(repository, deployValidator);
     }
 
     public static DeployValidator deployValidator(DelegateResolver delegateResolver, DecisionRuleResolver decisionRuleResolver){

@@ -14,12 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.bpmn.model.end;
+package io.kikwiflow.execution.api;
 
 
-import io.kikwiflow.bpmn.model.FlowNode;
-
-public class EndEvent extends FlowNode {
-
-
+public interface  TaskHandler {
+     void handle(ExecutionContext execution);
 }

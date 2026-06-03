@@ -16,14 +16,12 @@
  */
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.cache.ProcessDefinitionCache;
 import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.validation.DeployValidator;
 
-import java.io.InputStream;
 import java.util.Optional;
 
 /**
@@ -35,7 +33,6 @@ import java.util.Optional;
  * frequentemente utilizadas.
  */
 public class ProcessDefinitionService {
-    private final BpmnParser bpmnParser;
     private final KikwiEngineRepository kikwiEngineRepository;
     private final ProcessDefinitionCache processDefinitionCache;
     private final DeployValidator deployValidator;
@@ -43,36 +40,14 @@ public class ProcessDefinitionService {
     /**
      * Constrói uma nova instância do ProcessDefinitionService.
      *
-     * @param bpmnParser O parser responsável por ler um arquivo BPMN e transformá-lo num objeto {@link ProcessDefinition}.
      * @param kikwiEngineRepository O repositório para persistir e buscar as definições de processo.
      */
-    public ProcessDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository kikwiEngineRepository, DeployValidator deployValidator){
-        this.bpmnParser =  bpmnParser;
+    public ProcessDefinitionService(KikwiEngineRepository kikwiEngineRepository, DeployValidator deployValidator){
         this.kikwiEngineRepository = kikwiEngineRepository;
         this.deployValidator = deployValidator;
         this.processDefinitionCache = new ProcessDefinitionCache();
     }
 
-    /**
-     * Implanta (deploy) uma nova definição de processo a partir de um stream de arquivo BPMN.
-     * O processo envolve:
-     * <ol>
-     *   <li>Fazer o parse do arquivo XML.</li>
-     *   <li>Transformá-lo num objeto {@link ProcessDefinition}.</li>
-     *   <li>Persistir a nova definição no repositório.</li>
-     * </ol>
-     *
-     * @param inputStream O stream do arquivo BPMN a ser implantado.
-     * @return A {@link ProcessDefinition} persistida, incluindo o seu ID e versão.
-     * @throws Exception se ocorrer um erro durante o parse ou a persistência.
-     */
-    public ProcessDefinition deploy(InputStream inputStream) throws Exception {
-        ProcessDefinition processDefinitionDeploy = bpmnParser.parse(inputStream);
-        deployValidator.validate(processDefinitionDeploy);
-        ProcessDefinition processDefinition =  kikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
-        processDefinitionCache.clear();;
-        return processDefinition;
-    }
 
     public ProcessDefinition deploy(ProcessDefinition processDefinitionDeploy){
         deployValidator.validate(processDefinitionDeploy);

@@ -58,7 +58,7 @@ public class StatsSSEQueryController {
     }
 
 
-    @GetMapping(value = "pulse/stream/process-definition/{processDefinitionId}/snapshot")
+    @GetMapping(value = "/process-definition/{processDefinitionId}/snapshot/stream")
     public SseEmitter streamSnapshotSse(@PathVariable String processDefinitionId) {
 
         SseEmitter emitter = new SseEmitter(0L);

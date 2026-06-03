@@ -17,24 +17,24 @@
 package io.kikwiflow.starter.autoconfigure;
 
 import io.kikwiflow.execution.DelegateResolver;
-import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.execution.api.TaskHandler;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 
 import java.util.Optional;
 
-public class SpringDelegateResolver implements DelegateResolver {
+public class SpringTaskHandlerResolver implements DelegateResolver {
 
     private final ApplicationContext applicationContext;
 
-    public SpringDelegateResolver(ApplicationContext applicationContext) {
+    public SpringTaskHandlerResolver(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
 
     @Override
-    public Optional<JavaDelegate> resolve(String beanName) {
+    public Optional<TaskHandler> resolve(String beanName) {
         try {
-            return Optional.of(applicationContext.getBean(beanName, JavaDelegate.class));
+            return Optional.of(applicationContext.getBean(beanName, TaskHandler.class));
         } catch (NoSuchBeanDefinitionException e) {
             return Optional.empty();
         }

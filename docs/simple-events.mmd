@@ -5,7 +5,7 @@ sequenceDiagram
     participant SharedExecutor as "Executor Partilhado<br>(para Listeners)"
 
     VThread_A ->>+ TaskExecutorService: execute(tarefa)
-    Note right of TaskExecutorService: Lógica do JavaDelegate é executada aqui...
+    Note right of TaskExecutorService: Lógica do TaskHandler é executada aqui...
     TaskExecutorService ->>+ EventPublisher: publishEvent(TaskCompletedEvent)
 
     Note right of EventPublisher: A thread principal NÃO espera.

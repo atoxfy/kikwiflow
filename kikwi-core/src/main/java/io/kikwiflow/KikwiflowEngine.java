@@ -182,10 +182,6 @@ public class KikwiflowEngine {
         }
     }
 
-    public ProcessDefinition deployDefinition(InputStream is) throws Exception {
-        return processDefinitionService.deploy(is);
-    }
-
     public ProcessDefinition deploy(ProcessDefinition processDefinition){
         return processDefinitionService.deploy(processDefinition);
     }

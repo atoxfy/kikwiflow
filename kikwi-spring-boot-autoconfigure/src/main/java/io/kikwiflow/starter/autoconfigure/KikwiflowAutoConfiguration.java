@@ -17,8 +17,6 @@
 package io.kikwiflow.starter.autoconfigure;
 
 import io.kikwiflow.KikwiflowEngine;
-import io.kikwiflow.bpmn.BpmnParser;
-import io.kikwiflow.bpmn.impl.DefaultBpmnParser;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.execution.ContinuationService;
@@ -47,11 +45,6 @@ import java.util.List;
 @EnableConfigurationProperties(KikwiflowProperties.class)
 public class KikwiflowAutoConfiguration {
 
-    @Bean
-    @ConditionalOnMissingBean
-    public BpmnParser bpmnParser() {
-        return new DefaultBpmnParser();
-    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -61,8 +54,8 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ProcessDefinitionService processDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository repository, DeployValidator deployValidator) {
-        return new ProcessDefinitionService(bpmnParser, repository, deployValidator);
+    public ProcessDefinitionService processDefinitionService(KikwiEngineRepository repository, DeployValidator deployValidator) {
+        return new ProcessDefinitionService(repository, deployValidator);
     }
 
     @Bean
@@ -100,7 +93,7 @@ public class KikwiflowAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public DelegateResolver delegateResolver(ApplicationContext applicationContext) {
-        return new SpringDelegateResolver(applicationContext);
+        return new SpringTaskHandlerResolver(applicationContext);
     }
 
     @Bean

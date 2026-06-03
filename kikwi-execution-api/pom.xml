@@ -23,12 +23,12 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.44</version>
+        <version>0.1.45</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>kikwi-delegate-api</artifactId>
+    <artifactId>kikwi-execution-api</artifactId>
     <name>kikwiflow :: Delegate API</name>
-    <description>Defines the API contract for service task automation. This module contains the `JavaDelegate` interface, allowing developers to implement custom business logic that can be invoked by the engine.</description>
+    <description>Defines the API contract for service task automation. This module contains the `TaskHandler` interface, allowing developers to implement custom business logic that can be invoked by the engine.</description>
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>

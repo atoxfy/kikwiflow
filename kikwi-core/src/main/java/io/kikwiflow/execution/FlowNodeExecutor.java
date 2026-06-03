@@ -46,7 +46,7 @@ public class FlowNodeExecutor {
     /**
      * Constrói uma nova instância do FlowNodeExecutor.
      *
-     * @param taskExecutor O executor responsável por invocar a lógica de negócio de uma tarefa (ex: {@link JavaDelegate}).
+     * @param taskExecutor O executor responsável por invocar a lógica de negócio de uma tarefa (ex: {@link TaskHandler}).
      */
     public FlowNodeExecutor(TaskExecutor taskExecutor) {
         this.taskExecutor = taskExecutor;
