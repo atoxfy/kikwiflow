@@ -18,8 +18,8 @@
 package io.kikwiflow.management.service;
 
 import io.kikwiflow.management.controller.stats.mapper.ProcessMapper;
-import io.kikwiflow.management.controller.stats.response.KKFProcess;
-import io.kikwiflow.management.controller.stats.response.elements.KKFFlowNodeDefinition;
+import io.kikwiflow.management.dtos.KKFProcessStats;
+import io.kikwiflow.management.dtos.elements.KKFFlowNodeDefinition;
 import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
@@ -38,7 +38,7 @@ public class StatsService {
         this.queryRepository = queryRepository;
     }
 
-    public KKFProcess buildProcessSnapshot(String processDefinitionId) {
+    public KKFProcessStats buildProcessSnapshot(String processDefinitionId) {
         return queryRepository.findProcessDefinitionById(processDefinitionId)
                 .map(definition -> {
                     KKFMetrics macroMetrics = queryRepository.getProcessMacroMetrics(processDefinitionId);
@@ -55,7 +55,7 @@ public class StatsService {
                         }
                     });
 
-                    return new KKFProcess(
+                    return new KKFProcessStats(
                             definition.id(), definition.key(), definition.name(),
                             definition.description(), definition.sla(), macroMetrics, definition.checksum(),
                             flowNodes, definition.defaultStartPoint(), definition.extensionProperties()

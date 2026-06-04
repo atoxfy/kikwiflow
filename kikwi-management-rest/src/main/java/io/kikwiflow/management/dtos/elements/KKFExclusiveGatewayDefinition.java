@@ -15,23 +15,23 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.management.controller.stats.response.elements;
+package io.kikwiflow.management.dtos.elements;
 
 
-
-import io.kikwiflow.management.controller.stats.response.layout.KKFLayoutCoordinates;
+import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
 
 import java.util.List;
 import java.util.Map;
 
-public record KKFStartEventDefinition(String id,
-                                      String name,
-                                      String description,
-                                      String type,
-                                      Boolean commitAfter,
-                                      Boolean commitBefore,
-                                      List<KKFSequenceFlowDefinition> outgoing,
-                                      Map<String, String> extensionProperties,
-                                      KKFLayoutCoordinates layout) implements KKFFlowNodeDefinition {
+public record KKFExclusiveGatewayDefinition(String id,
+                                            String name,
+                                            String type,
+                                            String description,
+                                            Boolean commitAfter,
+                                            Boolean commitBefore,
+                                            String defaultFlow,
+                                            List<KKFSequenceFlowDefinition> outgoing,
+                                            Map<String, String> extensionProperties,
+                                            KKFLayoutCoordinates layout) implements KKFFlowNodeDefinition {
 
 }

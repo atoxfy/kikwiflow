@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.management.controller.stats.response.elements;
+package io.kikwiflow.management.dtos.elements;
 
 
 
-import io.kikwiflow.management.controller.stats.response.layout.KKFLayoutCoordinates;
+import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
 
 import java.util.List;
 import java.util.Map;

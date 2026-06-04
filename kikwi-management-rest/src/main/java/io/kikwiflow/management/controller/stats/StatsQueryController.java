@@ -18,13 +18,13 @@
 package io.kikwiflow.management.controller.stats;
 
 import io.kikwiflow.management.annotation.KikwiRestController;
-import io.kikwiflow.management.controller.stats.response.KKFProcess;
+import io.kikwiflow.management.dtos.KKFProcessStats;
 import io.kikwiflow.management.service.StatsService;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 @KikwiRestController
 @ConditionalOnBean(QueryRepository.class)
@@ -38,7 +38,7 @@ public class StatsQueryController {
     }
 
     @GetMapping("process-definition/{processDefinitionId}/snapshot")
-    public KKFProcess getSnapshot(String processDefinitionId) {
+    public KKFProcessStats getSnapshot(@PathVariable(value = "processDefinitionId") String processDefinitionId) {
         return statsService.buildProcessSnapshot(processDefinitionId);
     }
 

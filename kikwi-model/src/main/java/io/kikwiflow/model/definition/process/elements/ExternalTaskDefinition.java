@@ -105,7 +105,7 @@ public  record ExternalTaskDefinition(String id,
 
 
         public ExternalTaskDefinition build() {
-            return new ExternalTaskDefinition(id, name, description, "EXTERNAL_TASK", commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
+            return new ExternalTaskDefinition(id, name, "EXTERNAL_TASK", description, commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
         }
     }
 }

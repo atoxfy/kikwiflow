@@ -15,20 +15,17 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.management.controller.stats.response.elements;
+package io.kikwiflow.management.dtos.elements;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-@JsonTypeInfo(
-        use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.EXISTING_PROPERTY,
-        property = "type",
-        visible = true
-)
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = KKFInterruptiveTimerEventDefinition.class, name = "INTERRUPTIVE_TIMER"),
-})
-public sealed interface KKFBoundaryEventDefinition extends KKFFlowNodeDefinition permits KKFInterruptiveTimerEventDefinition {
-     String attachedToRef();
+import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
+
+import java.util.List;
+
+public record KKFSequenceFlowDefinition(
+        String id,
+        String condition,
+        String targetNodeId,
+        Boolean isDefault,
+        List<KKFLayoutCoordinates> positionHandlers) {
 }

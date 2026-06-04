@@ -18,27 +18,15 @@
 package io.kikwiflow.management.controller.stats;
 
 import io.kikwiflow.management.annotation.KikwiRestController;
-import io.kikwiflow.management.controller.stats.mapper.ProcessMapper;
-import io.kikwiflow.management.controller.stats.response.KKFProcess;
-import io.kikwiflow.management.controller.stats.response.elements.KKFFlowNodeDefinition;
-import io.kikwiflow.management.exception.NotFoundException;
+import io.kikwiflow.management.dtos.KKFProcessStats;
 import io.kikwiflow.management.service.StatsService;
-import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
-import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
-import io.kikwiflow.model.stats.KKFMetrics;
-import io.kikwiflow.persistence.api.repository.QueryRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 @KikwiRestController
@@ -60,7 +48,7 @@ public class StatsSSEQueryController {
 
 
     @GetMapping(value = "/process-definition/{processDefinitionId}/snapshot/stream")
-    public SseEmitter streamSnapshotSse(@PathVariable String processDefinitionId) {
+    public SseEmitter streamSnapshotSse(@PathVariable(value = "processDefinitionId") String processDefinitionId) {
 
         SseEmitter emitter = new SseEmitter(0L);
         sseExecutor.submit(() -> {
@@ -68,7 +56,7 @@ public class StatsSSEQueryController {
 
             while (isConnected) {
                 try {
-                    KKFProcess snapshot = statsService.buildProcessSnapshot(processDefinitionId);
+                    KKFProcessStats snapshot = statsService.buildProcessSnapshot(processDefinitionId);
                     emitter.send(snapshot);
                     Thread.sleep(updateIntervalMillis);
 

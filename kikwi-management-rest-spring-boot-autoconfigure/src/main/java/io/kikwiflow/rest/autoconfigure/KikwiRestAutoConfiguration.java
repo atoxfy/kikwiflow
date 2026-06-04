@@ -48,6 +48,7 @@ import java.util.concurrent.Executors;
 @EnableConfigurationProperties({KikwiflowPulseProperties.class, KikwiflowRestProperties.class})
 @Import({
         KikwiflowWebMvcAutoConfiguration.class,
+        KikwiflowJacksonAutoConfiguration.class,
         ProcessDefinitionQueryController.class,
         ProcessInstanceQueryController.class,
         ExternalTaskQueryController.class,

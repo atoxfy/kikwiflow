@@ -15,7 +15,23 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.management.controller.stats.response.layout;
+package io.kikwiflow.management.dtos.elements;
 
-public record KKFLayoutCoordinates(Double x, Double y) {
+
+
+import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
+
+import java.util.List;
+import java.util.Map;
+
+public record KKFEndEventDefinition(String id,
+                                    String name,
+                                    String type,
+                                    String description,
+                                    Boolean commitAfter,
+                                    Boolean commitBefore,
+                                    List<KKFSequenceFlowDefinition> outgoing,
+                                    Map<String, String> extensionProperties,
+                                    KKFLayoutCoordinates layout) implements KKFFlowNodeDefinition {
+
 }
