@@ -40,6 +40,7 @@ import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.util.KikwiflowBanner;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -81,6 +82,7 @@ public class KikwiflowEngine {
     }
 
     public void start(){
+        KikwiflowBanner.print();
         taskAcquirer.start();
     }
 
