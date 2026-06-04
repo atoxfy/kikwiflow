@@ -17,6 +17,7 @@
 
 package io.kikwiflow.management.controller.stats;
 
+import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.management.controller.stats.mapper.ProcessMapper;
 import io.kikwiflow.management.controller.stats.response.KKFProcess;
 import io.kikwiflow.management.controller.stats.response.elements.KKFFlowNodeDefinition;
@@ -40,8 +41,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-@RestController
-@RequestMapping("${kikwiflow.api.base-path:/engine/api/v1}/pulse")
+@KikwiRestController
+@RequestMapping("/pulse")
 public class StatsSSEQueryController {
 
     private final StatsService statsService;

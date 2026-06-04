@@ -19,12 +19,13 @@ package io.kikwiflow.management.controller.externaltask;
 
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.api.dto.CompleteExternalTaskRequest;
+import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.spring.rest.api.command.ExternalTaskOperationsRestApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@KikwiRestController
 @ConditionalOnBean(KikwiflowEngine.class)
 public class ExternalTaskCommandController implements ExternalTaskOperationsRestApi {
 

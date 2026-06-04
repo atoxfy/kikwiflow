@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@RequestMapping("${kikwiflow.api.path:/engine/api/v1}/external-tasks")
+@RequestMapping("/external-tasks")
 public interface ExternalTaskOperationsRestApi extends ExternalTaskOperationsApi {
 
     @Override

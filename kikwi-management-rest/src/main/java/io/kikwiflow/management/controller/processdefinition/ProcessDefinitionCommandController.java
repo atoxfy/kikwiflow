@@ -18,12 +18,13 @@
 package io.kikwiflow.management.controller.processdefinition;
 
 import io.kikwiflow.KikwiflowEngine;
+import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.spring.rest.api.command.ProcessDefinitionOperationsRestApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@KikwiRestController
 @ConditionalOnBean(KikwiflowEngine.class)
 public class ProcessDefinitionCommandController implements ProcessDefinitionOperationsRestApi {
 

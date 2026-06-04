@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.List;
 
-@RequestMapping("${kikwiflow.api.base-path:/engine/api/v1}/process-instances")
+@RequestMapping("/process-instances")
 public interface ProcessInstanceQueryRestApi extends ProcessInstanceQueryApi {
 
     @Override

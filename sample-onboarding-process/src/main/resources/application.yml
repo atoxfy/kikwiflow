@@ -3,14 +3,22 @@ server:
 spring:
   data:
     mongodb:
-      uri: mongodb+srv://kikwiflow:{pass}@onboarding-sample.9um3zkc.mongodb.net/?appName=onboarding-sample
+      uri: your-mongodb-host
       database: kikwiflow_db
       auto-index-creation: true
 kikwiflow:
+  rest:
+   # base-path: "engine/teste"
+    cors:
+      allowed-origins: "http://localhost:3000"
   stats:
     enabled: false
   outbox:
     events-enabled: false
+  pulse:
+    sse-endpoints:
+      enabled: true #Default true
+      interval: 5000 # default 5000
 
 
 

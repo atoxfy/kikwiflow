@@ -18,6 +18,7 @@
 package io.kikwiflow.management.controller.processinstance;
 
 import io.kikwiflow.api.dto.CountResponse;
+import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.management.exception.NotImplementedException;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -28,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@RestController
+@KikwiRestController
 @ConditionalOnBean(QueryRepository.class)
 public class ProcessInstanceQueryController implements ProcessInstanceQueryRestApi {
 

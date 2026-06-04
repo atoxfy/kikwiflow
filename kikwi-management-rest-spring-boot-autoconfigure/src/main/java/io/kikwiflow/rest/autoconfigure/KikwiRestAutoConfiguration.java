@@ -28,6 +28,7 @@ import io.kikwiflow.management.controller.stats.StatsSSEQueryController;
 import io.kikwiflow.management.service.StatsService;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
 import io.kikwiflow.rest.autoconfigure.properties.KikwiflowPulseProperties;
+import io.kikwiflow.rest.autoconfigure.properties.KikwiflowRestProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -44,8 +45,9 @@ import java.util.concurrent.Executors;
         afterName = "io.kikwiflow.starter.autoconfigure.KikwiflowAutoConfiguration"
 )
 @ConditionalOnClass(ProcessDefinitionQueryController.class)
-@EnableConfigurationProperties(KikwiflowPulseProperties.class)
+@EnableConfigurationProperties({KikwiflowPulseProperties.class, KikwiflowRestProperties.class})
 @Import({
+        KikwiflowWebMvcAutoConfiguration.class,
         ProcessDefinitionQueryController.class,
         ProcessInstanceQueryController.class,
         ExternalTaskQueryController.class,

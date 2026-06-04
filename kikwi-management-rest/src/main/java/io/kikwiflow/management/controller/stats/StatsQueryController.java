@@ -17,6 +17,7 @@
 
 package io.kikwiflow.management.controller.stats;
 
+import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.management.controller.stats.response.KKFProcess;
 import io.kikwiflow.management.service.StatsService;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
@@ -25,9 +26,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@KikwiRestController
 @ConditionalOnBean(QueryRepository.class)
-@RequestMapping("${kikwiflow.api.base-path:/engine/api/v1}/pulse")
+@RequestMapping("/pulse")
 public class StatsQueryController {
 
     private final StatsService statsService;

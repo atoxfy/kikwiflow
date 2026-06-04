@@ -15,22 +15,17 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.spring.rest.api.query;
+package io.kikwiflow.sample.onboarding.process.executors;
 
-import io.kikwiflow.api.dto.CountResponse;
-import io.kikwiflow.api.query.ExecutableTaskQueryApi;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import io.kikwiflow.execution.api.ExecutionContext;
+import io.kikwiflow.execution.api.TaskHandler;
+import org.springframework.stereotype.Component;
 
-@RequestMapping("/executable-tasks")
-public interface ExecutableTaskQueryRestApi extends ExecutableTaskQueryApi {
+@Component
+public class EnrichCustomerProfileTaskHandler implements TaskHandler {
 
     @Override
-    @GetMapping("count")
-    @ResponseStatus(HttpStatus.OK)
-    CountResponse count(@RequestParam(value = "task-definition-id", required = false) String taskDefinitionId);
+    public void handle(ExecutionContext execution) {
+
+    }
 }
