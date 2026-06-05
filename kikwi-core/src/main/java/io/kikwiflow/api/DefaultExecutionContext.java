@@ -25,6 +25,7 @@ import io.kikwiflow.model.execution.ProcessVariable;
 
 public class DefaultExecutionContext implements ExecutionContext {
 
+
     private final ProcessInstanceExecution processInstance;
     private final ProcessDefinition processDefinition;
     private final FlowNodeDefinition flowNodeDefinition;

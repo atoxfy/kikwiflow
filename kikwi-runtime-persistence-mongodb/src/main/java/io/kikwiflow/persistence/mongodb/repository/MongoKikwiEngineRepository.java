@@ -30,18 +30,21 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.InsertOneModel;
+import com.mongodb.client.model.ReplaceOneModel;
 import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.WriteModel;
+import com.mongodb.client.result.UpdateResult;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.stats.KKFMetrics;
-import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.data. UnitOfWork;
+import io.kikwiflow.persistence.api.exception.OptimisticLockingFailureException;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.persistence.mongodb.mapper.ExecutableTaskMapper;
@@ -205,13 +208,29 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 MongoCollection<Document> executableTasks = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
                 MongoCollection<Document> incidents = getDatabase().getCollection(INCIDENTS_COLLECTION);
 
+                if (unitOfWork.instanceToCreate() != null) {
+                    Document instanceDoc = ProcessInstanceMapper.toDocument(unitOfWork.instanceToCreate());
+                    processInstances.insertOne(clientSession, instanceDoc);
+                }
+
                 if (unitOfWork.instanceToDelete() != null) {
                     processInstances.deleteOne(eq("_id", unitOfWork.instanceToDelete().id()));
                 }
 
                 if (unitOfWork.instanceToUpdate() != null) {
-                    Document instanceDoc = ProcessInstanceMapper.toDocument(unitOfWork.instanceToUpdate());
-                    processInstances.replaceOne(clientSession, eq("_id", unitOfWork.instanceToUpdate().id()), instanceDoc);
+                    ProcessInstance instance = unitOfWork.instanceToUpdate();
+                    Document instanceDoc = ProcessInstanceMapper.toDocument(instance);
+
+                    Bson filter = and(
+                            eq("_id", instance.id()),
+                            eq("version", instance.version())
+                    );
+
+                    instanceDoc.put("version", instance.version() + 1);
+                    UpdateResult result = processInstances.replaceOne(clientSession, filter, instanceDoc);
+                    if (result.getModifiedCount() == 0) {
+                        throw new OptimisticLockingFailureException("The instance " + instance.id() + " is locked by another transaction");
+                    }
                 }
 
                 if (unitOfWork.incidentsToCreate() != null && !unitOfWork.incidentsToCreate().isEmpty()) {
@@ -250,7 +269,14 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 if (unitOfWork.executableTasksToDelete() != null && !unitOfWork.executableTasksToDelete().isEmpty()) {
                     executableTaskWrites.add(new DeleteManyModel<>(in("_id", unitOfWork.executableTasksToDelete())));
                 }
-                
+
+                if (unitOfWork.executableTasksToUpdate() != null && !unitOfWork.executableTasksToUpdate().isEmpty()) {
+                    unitOfWork.executableTasksToUpdate().forEach(task -> {
+                        Document taskDoc = ExecutableTaskMapper.toDocument(task);
+                        executableTaskWrites.add(new ReplaceOneModel<>(eq("_id", task.id()), taskDoc));
+                    });
+                }
+
                 if (!executableTaskWrites.isEmpty()) {
                     executableTasks.bulkWrite(clientSession, executableTaskWrites);
                 }

@@ -17,15 +17,27 @@
 
 package io.kikwiflow.sample.onboarding.process.executors;
 
+import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.api.TaskHandler;
+import io.kikwiflow.model.execution.ProcessVariable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Component
 public class CalculateCustomerRiskTaskHandler implements TaskHandler {
+    private static Logger logger = LogManager.getLogger(CalculateCustomerRiskTaskHandler.class);
 
     @Override
     public void handle(ExecutionContext execution) {
+        logger.info("CalculateCustomerRiskTaskHandler - handle {} ", execution.getProcessInstanceId());
+        logger.info("CalculateCustomerRiskTaskHandler - {} ", Optional.of(execution.getVariable("TESTE001"))
+                .map(ProcessVariable::value).orElse(null));
+
+        throw new RuntimeException();
 
     }
 }

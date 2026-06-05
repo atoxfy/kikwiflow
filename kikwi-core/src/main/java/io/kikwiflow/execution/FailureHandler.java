@@ -28,6 +28,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -42,20 +43,67 @@ public class FailureHandler {
     public void handleFailure(ExecutableTask task, Exception exception) {
         long retriesLeft = task.retries() - 1;
 
+        List<ExecutableTask> tasksToUpdate = new ArrayList<>();
+        List<Incident> incidentsToCreate = new ArrayList<>();
+
         if (retriesLeft > 0) {
-            handleRetry(task, exception, retriesLeft);
+            // Retentativa: Joga para o futuro e volta o status para PENDING
+            Instant nextRetry = Instant.now().plus(1, ChronoUnit.MINUTES);
+
+            ExecutableTask updatedTask = task.toBuilder()
+                    .retries(retriesLeft)
+                    .dueDate(nextRetry)
+                    .status(ExecutableTaskStatus.PENDING)
+                    .error(exception.getMessage())
+                    .executorId(null) // Libera o lock
+                    .build();
+
+            tasksToUpdate.add(updatedTask);
         } else {
-            handleIncident(task, exception);
+            // Esgotaram os retries: A tarefa morre em ERROR e o Incidente nasce
+            ExecutableTask failedTask = task.toBuilder()
+                    .retries(0L)
+                    .status(ExecutableTaskStatus.ERROR)
+                    .error(exception.getMessage())
+                    .executorId(null)
+                    .build();
+
+            tasksToUpdate.add(failedTask);
+
+            Incident incident = new Incident(
+                    UUID.randomUUID().toString(),
+                    "FAILED_JOB",
+                    exception.getMessage(),
+                    getStackTrace(exception),
+                    task.processDefinitionId(),
+                    task.processInstanceId(),
+                    task.id(),
+                    Instant.now(),
+                    IncidentStatus.OPEN
+            );
+            incidentsToCreate.add(incident);
         }
+
+        // Commita as atualizações em uma única transação atômica
+        UnitOfWork uow = new UnitOfWork(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                tasksToUpdate,
+                null,
+                null,
+                incidentsToCreate,
+                null
+        );
+        repository.commitWork(uow);
     }
 
     private void handleRetry(ExecutableTask task, Exception e, long retriesLeft) {
-        // Implementação simplificada: Calcula novo DueDate (ex: +2 minutos)
-        // O ideal é ler a estratégia de backoff da definição do processo
         Instant nextRetry = Instant.now().plus(1, ChronoUnit.MINUTES);
 
-        // AQUI: Você precisa de um método no repositório para atualização atômica de tarefa
-        // Não usamos UnitOfWork aqui para não deletar/recriar a task, apenas atualizar campos
         /*repository.updateExecutableTaskRetries(
                 task.id(),
                 retriesLeft,
@@ -63,35 +111,6 @@ public class FailureHandler {
                 e.getMessage(),
                 ExecutableTaskStatus.PENDING // Volta para PENDING para o Acquirer pegar depois
         );*/
-    }
-
-    private void handleIncident(ExecutableTask task, Exception e) {
-        // 1. Cria o Incidente
-        Incident incident = new Incident(
-                UUID.randomUUID().toString(),
-                "FAILED_JOB",
-                e.getMessage(),
-                getStackTrace(e),
-                task.processDefinitionId(),
-                task.processInstanceId(),
-                task.id(),
-                Instant.now(),
-                IncidentStatus.OPEN
-        );
-
-        // 2. Atualiza a Task para FAILED (para o Acquirer parar de pegar)
-        //repository.updateExecutableTaskStatus(task.id(), ExecutableTaskStatus.ERROR, e.getMessage());
-
-        // 3. Salva o Incidente via UnitOfWork
-        UnitOfWork uow = new UnitOfWork(
-                null,
-                null,
-                null,
-                null, null, null, null,
-                List.of(incident) ,
-                null
-        );
-        repository.commitWork(uow);
     }
 
     private String getStackTrace(Throwable t) {

@@ -34,6 +34,7 @@ import java.util.Map;
  * que é usado para persistência, snapshots e comunicação entre os limites do motor.
  */
 public class ProcessInstanceExecution {
+    private boolean isPersisted = false;
     private String id;
     private String businessKey;
     private ProcessInstanceStatus status;
@@ -44,6 +45,23 @@ public class ProcessInstanceExecution {
     private BigDecimal businessValue;
     private String tenantId;
     private String origin;
+    private int version;
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public boolean isPersisted() {
+        return isPersisted;
+    }
+
+    public void setPersisted(boolean persisted) {
+        isPersisted = persisted;
+    }
 
     public String getOrigin() {
         return origin;

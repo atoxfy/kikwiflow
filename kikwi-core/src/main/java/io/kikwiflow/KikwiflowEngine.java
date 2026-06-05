@@ -42,7 +42,6 @@ import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.util.KikwiflowBanner;
 
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.HashMap;
@@ -267,12 +266,16 @@ public class KikwiflowEngine {
          * @return Um snapshot do estado da instância do processo após a execução inicial.
          */
         public ProcessInstance execute() {
+
             Objects.requireNonNull(processDefinitionKey, "Process definition key cannot be null. Use byKey().");
             Objects.requireNonNull(businessKey, "Business key cannot be null. Use withBusinessKey().");
 
             ProcessDefinition processDefinition = engine.processDefinitionService.getByKeyOrElseThrow(processDefinitionKey);
-            ProcessInstance processInstance = engine.kikwiEngineRepository.saveProcessInstance(ProcessInstanceFactory.create(businessKey, processDefinition.id(), variables, businessValue, tenantId, origin));
+
+            ProcessInstance processInstance = ProcessInstanceFactory.create(businessKey, processDefinition.id(), variables, businessValue, tenantId, origin);
             ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstance);
+            processInstanceExecution.setPersisted(false);
+
             String defaultStartPointId  = processDefinition.defaultStartPoint();
             FlowNodeDefinition defaultStartPoint = processDefinition.flowNodes().get(defaultStartPointId);
             Objects.requireNonNull(defaultStartPoint, "Malformed process definition: unknown default start point. The default start point needs to be declared in flow nodes map");
