@@ -32,4 +32,4 @@ Apache License 2.0 - Veja [LICENSE](LICENSE) para detalhes.
 
 <h2>Apoio</h2>
 
-[Kikwiflow](https://kikwiflow.io) é um projeto open-source mantido pela [{Atoxfy}](https://atoxfy.com).
+[Kikwiflow](https://kikwiflow.io) é um projeto open-core mantido pela [{Atoxfy}](https://atoxfy.com).
