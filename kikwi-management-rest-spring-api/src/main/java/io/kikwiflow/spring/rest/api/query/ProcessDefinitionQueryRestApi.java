@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.List;
 
-@RequestMapping("${kikwiflow.api.base-path:/engine/api/v1}/process-definitions")
+@RequestMapping("/process-definitions")
 public interface ProcessDefinitionQueryRestApi extends ProcessDefinitionQueryApi {
 
     @Override

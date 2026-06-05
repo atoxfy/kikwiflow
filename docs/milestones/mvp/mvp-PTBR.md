@@ -8,7 +8,7 @@ O objetivo deste milestone é entregar a primeira versão funcional e de ponta a
 
 Este milestone foca-se na entrega das seguintes capacidades essenciais:
 
--   **Execução de Tarefas de Serviço:** Suporte completo para `serviceTask` com compatibilidade para `JavaDelegate`, permitindo a execução de lógica de negócio em Java.
+-   **Execução de Tarefas de Serviço:** Suporte completo para `serviceTask` com compatibilidade para `TaskHandler`, permitindo a execução de lógica de negócio em Java.
 
 -   **Ciclo de Vida de Tarefas Humanas:** Suporte para `userTask`, incluindo a criação de tarefas pendentes (`WaitState`), e a capacidade de as consultar e completar através de uma API.
 
@@ -26,7 +26,7 @@ A seguir, a lista detalhada de objetivos técnicos e entregas para este mileston
 
     -   Disponibilizar interface para deploy de definições que não seja "amarrada" a BPMN e permita extensão futura para outras notações/parsers.
     -   Realizar o parse de BPMN para um grafo direcional
-    -   Interpretar e executar tarefas automatizadas (ServiceTasks) utilizando `JavaDelegate`.
+    -   Interpretar e executar tarefas automatizadas (ServiceTasks) utilizando `TaskHandler`.
     -   Interpretar, criar e concluir tarefas externas à engine (HumanTasks).
     -   Interpretar gateways exclusivos.
     -   Implementar a navegação no processo.

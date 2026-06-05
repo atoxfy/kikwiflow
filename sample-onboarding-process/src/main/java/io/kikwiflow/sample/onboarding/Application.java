@@ -42,7 +42,7 @@ public class Application {
     @Bean
      CommandLineRunner deployProcess(KikwiflowEngine engine){
         return args -> {
-            logger.info("#### Engine successfully started!");
+            logger.info("### - Process Engine Started");
         };
     }
 }

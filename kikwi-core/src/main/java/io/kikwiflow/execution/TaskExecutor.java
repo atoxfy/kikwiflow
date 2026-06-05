@@ -18,7 +18,7 @@ package io.kikwiflow.execution;
 
 import io.kikwiflow.exception.BadDefinitionExecutionException;
 import io.kikwiflow.execution.api.ExecutionContext;
-import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.execution.api.TaskHandler;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 
@@ -30,7 +30,7 @@ import java.util.Objects;
  * Esta classe atua como um despachante (dispatcher). Quando o motor encontra uma tarefa
  * que requer a execução de código Java (como uma {@link ExecutableTaskDefinition}),
  * o {@code TaskExecutor} utiliza um {@link DelegateResolver} para encontrar e invocar
- * a implementação correta da {@link JavaDelegate}.
+ * a implementação correta da {@link TaskHandler}.
  */
 public class TaskExecutor {
 
@@ -39,7 +39,7 @@ public class TaskExecutor {
     /**
      * Constrói uma nova instância do TaskExecutor.
      *
-     * @param delegateResolver O resolvedor que encontra a instância do bean {@link JavaDelegate}
+     * @param delegateResolver O resolvedor que encontra a instância do bean {@link TaskHandler}
      *                         com base no nome fornecido na definição do processo (ex: `${myBean}`).
      */
     public TaskExecutor(DelegateResolver delegateResolver) {
@@ -47,7 +47,7 @@ public class TaskExecutor {
     }
 
     /**
-     * Verifica se uma ServiceTask está configurada para ser executada por um JavaDelegate.
+     * Verifica se uma ServiceTask está configurada para ser executada por um TaskHandler.
      *
      * @param serviceTask A definição da tarefa de serviço.
      * @return {@code true} se a tarefa possuir um `executor`, {@code false} caso contrário.
@@ -72,11 +72,10 @@ public class TaskExecutor {
         if (executableTask instanceof ExecutableTaskDefinition serviceTask) {
             if(isExecutableByDelegate(serviceTask)){
                 String executor = serviceTask.executor();
-                String beanName = executor.replace("${", "").replace("}", "");
-                JavaDelegate delegate = delegateResolver.resolve(beanName)
-                        .orElseThrow(() -> new BadDefinitionExecutionException("JavaDelegate not found with name: " + beanName));
+                TaskHandler delegate = delegateResolver.resolve(executor)
+                        .orElseThrow(() -> new BadDefinitionExecutionException("TaskHandler not found with name: " + executor));
 
-                delegate.execute(executionContext);
+                delegate.handle(executionContext);
 
             }else {
                 throw new BadDefinitionExecutionException("Invalid execution method for task " + serviceTask.id());

@@ -129,12 +129,34 @@ public class ContinuationService {
             }
         }
 
+        boolean isProcessCompleted = ProcessInstanceStatus.COMPLETED.equals(processInstanceToSave.status());
+        boolean isPersisted = processInstance.isPersisted();
+
+        ProcessInstance instanceToCreate = null;
+        ProcessInstance instanceToUpdate = null;
+        ProcessInstance instanceToDelete = null;
+
+        if (isProcessCompleted) {
+            if (isPersisted) {
+                instanceToDelete = processInstanceToSave;
+            }
+        } else {
+            if (isPersisted) {
+                instanceToUpdate = processInstanceToSave;
+            } else {
+                instanceToCreate = processInstanceToSave;
+                processInstance.setPersisted(true);
+            }
+        }
+
         UnitOfWork updatedUnitOfWork = new UnitOfWork(
-                !ProcessInstanceStatus.COMPLETED.equals(processInstanceToSave.status()) ? processInstanceToSave : null,
-                ProcessInstanceStatus.COMPLETED.equals(processInstanceToSave.status()) ? processInstanceToSave : null,
+                instanceToCreate,
+                instanceToUpdate,
+                instanceToDelete,
                 nextExecutableTasks,
                 nextExternalTasks,
                 executableTasksToDelete,
+                null,
                 externalTasksToDelete,
                 events,
                 null,

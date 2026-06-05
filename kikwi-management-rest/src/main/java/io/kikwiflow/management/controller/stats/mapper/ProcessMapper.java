@@ -1,15 +1,15 @@
 package io.kikwiflow.management.controller.stats.mapper;
 
-import io.kikwiflow.management.controller.stats.response.elements.KKFBoundaryEventDefinition;
-import io.kikwiflow.management.controller.stats.response.elements.KKFEndEventDefinition;
-import io.kikwiflow.management.controller.stats.response.elements.KKFExclusiveGatewayDefinition;
-import io.kikwiflow.management.controller.stats.response.elements.KKFExecutableTaskDefinition;
-import io.kikwiflow.management.controller.stats.response.elements.KKFExternalTaskDefinition;
-import io.kikwiflow.management.controller.stats.response.elements.KKFFlowNodeDefinition;
-import io.kikwiflow.management.controller.stats.response.elements.KKFInterruptiveTimerEventDefinition;
-import io.kikwiflow.management.controller.stats.response.elements.KKFSequenceFlowDefinition;
-import io.kikwiflow.management.controller.stats.response.elements.KKFStartEventDefinition;
-import io.kikwiflow.management.controller.stats.response.layout.KKFLayoutCoordinates;
+import io.kikwiflow.management.dtos.elements.KKFBoundaryEventDefinition;
+import io.kikwiflow.management.dtos.elements.KKFEndEventDefinition;
+import io.kikwiflow.management.dtos.elements.KKFExclusiveGatewayDefinition;
+import io.kikwiflow.management.dtos.elements.KKFExecutableTaskDefinition;
+import io.kikwiflow.management.dtos.elements.KKFExternalTaskDefinition;
+import io.kikwiflow.management.dtos.elements.KKFFlowNodeDefinition;
+import io.kikwiflow.management.dtos.elements.KKFInterruptiveTimerEventDefinition;
+import io.kikwiflow.management.dtos.elements.KKFSequenceFlowDefinition;
+import io.kikwiflow.management.dtos.elements.KKFStartEventDefinition;
+import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
 import io.kikwiflow.model.definition.process.elements.BoundaryEventDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;

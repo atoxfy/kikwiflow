@@ -20,7 +20,7 @@ Estes módulos definem as interfaces e os modelos de dados que formam o "contrat
     *   **Propósito:** Define a API pública para consultas de alto nível. Contém a interface `ExternalTaskQueryService`, que serve como a fachada segura para a camada de leitura (CQRS), respeitando as regras de visibilidade de variáveis.
 
 *   **`kikwi-delegate-api`**
-    *   **Propósito:** Define o ponto de extensão para automações. Contém a interface `JavaDelegate`, que permite aos desenvolvedores implementar a lógica de negócio para `ServiceTasks`.
+    *   **Propósito:** Define o ponto de extensão para automações. Contém a interface `TaskHandler`, que permite aos desenvolvedores implementar a lógica de negócio para `ServiceTasks`.
 
 *   **`kikwi-rule-api`**
     *   **Propósito:** Define o ponto de extensão para a lógica de decisão. Contém a interface `DecisionRule`, que é a base do nosso padrão "Rule Directory" para gateways, eliminando a necessidade de linguagens de expressão inseguras.

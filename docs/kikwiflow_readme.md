@@ -65,7 +65,7 @@ Qualquer processo complexo pode ser decomposto nestes três tipos fundamentais d
 ### 2. Crie um delegate (automação)
 ```java
 @Component("enviarEmail")
-public class EnviarEmailDelegate implements JavaDelegate {
+public class EnviarEmailDelegate implements TaskHandler {
     
     @Override
     public void execute(DelegateExecution execution) {

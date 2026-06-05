@@ -60,8 +60,8 @@ public final class ProcessInstanceMapper {
             persistentVariables,
             instance.getStartedAt(),
             instance.getEndedAt(),
-            instance.getOrigin()
-
+            instance.getOrigin(),
+            instance.getVersion()
         );
     }
 
@@ -76,6 +76,8 @@ public final class ProcessInstanceMapper {
         processInstanceEntity.setOrigin(processInstance.origin());
         processInstanceEntity.setTenantId(processInstance.tenantId());
         processInstanceEntity.setBusinessValue(processInstance.businessValue());
+        processInstanceEntity.setPersisted(true);
+        processInstanceEntity.setVersion(processInstance.version());
         return processInstanceEntity;
     }
 }

@@ -46,7 +46,7 @@ Nossas escolhas arquiteturais visam maximizar a segurança, clareza e manutenibi
 ### 4.3. Governança: Validação em Tempo de Deploy
 **O Problema:** É comum implantar processos com referências quebradas a classes Java ou regras, causando erros em tempo de execução.
 
-**A Solução Kikwiflow:** Implementamos um `DeployValidator` que é executado **antes** de um processo ser persistido. Ele verifica se todas as referências a `JavaDelegate`s e `DecisionRule`s são válidas e resolvíveis, impedindo o deploy de processos "quebrados".
+**A Solução Kikwiflow:** Implementamos um `DeployValidator` que é executado **antes** de um processo ser persistido. Ele verifica se todas as referências a `TaskHandler`s e `DecisionRule`s são válidas e resolvíveis, impedindo o deploy de processos "quebrados".
 
 ### 4.4. Persistência e Transações: O Padrão Unit of Work
 **O Problema:** Garantir que múltiplas alterações no estado de um processo (atualizar a instância, criar uma tarefa, deletar outra) sejam salvas atomicamente.
@@ -79,7 +79,7 @@ A versão atual do Kikwiflow suporta um conjunto robusto de funcionalidades para
     *   Eventos de Borda: `boundaryEvent` com `timerEventDefinition` (timers interruptivos).
 *   **Continuidades Assíncronas:** Suporte completo para os atributos `camunda:asyncBefore` e `camunda:asyncAfter` para definir limites de transação.
 *   **Execução de Lógica Customizada:**
-    *   **Automações:** Padrão `JavaDelegate` para executar código Java em `serviceTask`s.
+    *   **Automações:** Padrão `TaskHandler` para executar código Java em `serviceTask`s.
     *   **Decisões:** Padrão `DecisionRule` para encapsular a lógica de gateways.
 *   **API de Gerenciamento (CQRS):**
     *   **Comandos:** Iniciar processos, completar tarefas externas.

@@ -4,7 +4,7 @@
 <p align="center">
 <img alt="Build Status" src="https://img.shields.io/badge/build-passing-34d399?style=for-the-badge">
 <img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-0ea5e9?style=for-the-badge">
-<img alt="Version" src="https://img.shields.io/badge/version-0.1.42--SNAPSHOT-4c1d95?style=for-the-badge">
+<img alt="Version" src="https://img.shields.io/badge/version-0.1.52--SNAPSHOT-4c1d95?style=for-the-badge">
 </p>
 
 <h3 align="center">Você não precisa ser um especialista em BPPMN, para construir processos eficientes, observáveis e seguros com Java!</h3>
@@ -32,4 +32,4 @@ Apache License 2.0 - Veja [LICENSE](LICENSE) para detalhes.
 
 <h2>Apoio</h2>
 
-[Kikwiflow](https://kikwiflow.io) é um projeto open-source mantido pela [{Atoxfy}](https://atoxfy.com).
+[Kikwiflow](https://kikwiflow.io) é um projeto open-core mantido pela [{Atoxfy}](https://atoxfy.com).

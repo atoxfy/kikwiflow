@@ -5,7 +5,7 @@
 
     -   Parse BPMN into a directed graph.
 
-    -   Interpret and execute automated tasks (ServiceTasks) using `JavaDelegate`.
+    -   Interpret and execute automated tasks (ServiceTasks) using `TaskHandler`.
 
     -   Interpret, create, and complete tasks external to the engine (HumanTasks).
 

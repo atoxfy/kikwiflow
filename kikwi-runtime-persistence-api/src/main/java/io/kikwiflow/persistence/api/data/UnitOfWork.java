@@ -27,11 +27,13 @@ import io.kikwiflow.model.execution.node.ExternalTask;
 import java.util.List;
 
 public record UnitOfWork(
+        ProcessInstance instanceToCreate,
         ProcessInstance instanceToUpdate,
         ProcessInstance instanceToDelete,
         List<ExecutableTask> executableTasksToCreate,
         List<ExternalTask> externalTasksToCreate,
         List<String> executableTasksToDelete,
+        List<ExecutableTask> executableTasksToUpdate,
         List<String> externalTasksToDelete,
         List<OutboxEventEntity> events,
         List<Incident> incidentsToCreate,

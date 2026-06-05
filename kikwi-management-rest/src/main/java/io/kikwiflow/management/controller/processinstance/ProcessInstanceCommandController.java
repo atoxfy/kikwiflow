@@ -20,12 +20,13 @@ package io.kikwiflow.management.controller.processinstance;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.api.dto.ProcessInstanceStartRequest;
 import io.kikwiflow.api.dto.SetVariablesRequest;
+import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.spring.rest.api.command.ProcessInstanceOperationsRestApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@KikwiRestController
 @ConditionalOnBean(KikwiflowEngine.class)
 public class ProcessInstanceCommandController implements ProcessInstanceOperationsRestApi {
 

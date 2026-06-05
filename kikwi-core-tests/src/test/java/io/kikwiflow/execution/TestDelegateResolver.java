@@ -18,22 +18,22 @@
 package io.kikwiflow.execution;
 
 
-import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.execution.api.TaskHandler;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class TestDelegateResolver implements DelegateResolver {
-    private final Map<String, JavaDelegate> delegatesMap = new HashMap<>();
+    private final Map<String, TaskHandler> delegatesMap = new HashMap<>();
 
 
-    public void register(String name, JavaDelegate delegate){
+    public void register(String name, TaskHandler delegate){
         delegatesMap.put(name, delegate);
     }
 
     @Override
-    public Optional<JavaDelegate> resolve(String beanName) {
+    public Optional<TaskHandler> resolve(String beanName) {
         return Optional.ofNullable(delegatesMap.get(beanName));
     }
 }

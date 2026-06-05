@@ -43,7 +43,8 @@ public final class ProcessInstanceMapper {
                 .append("tenantId", instance.tenantId())
                 .append("startedAt", instance.startedAt())
                 .append("endedAt", instance.endedAt())
-                .append("origin", instance.origin());
+                .append("origin", instance.origin())
+                .append("version", instance.version());
 
         if (instance.businessValue() != null) {
             doc.append("businessValue", new Decimal128(instance.businessValue()));
@@ -90,6 +91,7 @@ public final class ProcessInstanceMapper {
                 .startedAt(InstantMapper.mapToInstant("startedAt", doc))
                 .endedAt(InstantMapper.mapToInstant("endedAt", doc))
                 .origin(doc.getString("origin"))
+                .version(doc.getInteger("version", 0))
                 .build();
     }
 

@@ -93,7 +93,7 @@ public record StartEventDefinition(String id,
         }
 
         public StartEventDefinition build() {
-            return new StartEventDefinition(id, name, description, "DEFAULT_START_EVENT",commitAfter, commitBefore, outgoing, extensionProperties, layout);
+            return new StartEventDefinition(id, name, description, "DEFAULT_START_EVENT", commitAfter, commitBefore, outgoing, extensionProperties, layout);
         }
     }
 }

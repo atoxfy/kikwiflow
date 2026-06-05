@@ -111,7 +111,7 @@ public record ExecutableTaskDefinition(String id,
         }
 
         public ExecutableTaskDefinition build() {
-            return new ExecutableTaskDefinition(id, name, description, "SERVICE_TASK", executor,  commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
+            return new ExecutableTaskDefinition(id, name, "EXECUTABLE_TASK", description, executor,  commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
         }
     }
 }

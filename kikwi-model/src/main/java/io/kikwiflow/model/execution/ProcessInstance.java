@@ -26,8 +26,17 @@ import java.util.UUID;
 
 
 public record ProcessInstance(
-        String id, String businessKey, BigDecimal businessValue, String tenantId, ProcessInstanceStatus status, String processDefinitionId,
-        Map<String, ProcessVariable> variables, Instant startedAt, Instant endedAt, String origin) {
+        String id,
+        String businessKey,
+        BigDecimal businessValue,
+        String tenantId,
+        ProcessInstanceStatus status,
+        String processDefinitionId,
+        Map<String, ProcessVariable>
+        variables, Instant startedAt,
+        Instant endedAt,
+        String origin,
+        int version) {
 
     public static Builder builder() {
         return new Builder();
@@ -44,14 +53,22 @@ public record ProcessInstance(
         private BigDecimal businessValue;
         private String tenantId;
         private String origin;
+        private int version = 0;
 
 
         private Builder() {}
+
+        public Builder version(int version) {
+            this.version = version;
+            return this;
+        }
+
 
         public Builder id(String id) {
             this.id = id;
             return this;
         }
+
 
         public Builder businessKey(String businessKey) {
             this.businessKey = businessKey;
@@ -107,7 +124,7 @@ public record ProcessInstance(
                 status = ProcessInstanceStatus.ACTIVE;
             }
 
-            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt, origin);
+            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt, origin, version);
         }
     }
 }

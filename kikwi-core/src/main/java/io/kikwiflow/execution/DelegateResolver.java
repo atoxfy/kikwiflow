@@ -17,11 +17,11 @@
 package io.kikwiflow.execution;
 
 
-import io.kikwiflow.execution.api.JavaDelegate;
+import io.kikwiflow.execution.api.TaskHandler;
 
 import java.util.Optional;
 
 
 public interface DelegateResolver {
-    Optional<JavaDelegate> resolve(String beanName);
+    Optional<TaskHandler> resolve(String beanName);
 }
