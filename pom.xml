@@ -78,6 +78,7 @@
         <module>kikwi-management-rest-spring-boot-autoconfigure</module>
         <module>kikwi-management-rest-spring-boot-starter</module>
         <module>kikwi-management-rest-client-spring-boot-starter</module>
+        <module>sample-onboarding-process</module>
     </modules>
     <dependencyManagement>
         <dependencies>
