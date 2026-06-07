@@ -1,8 +1,6 @@
 {
-  "id": "f8476ea5-d333-4068-9c58-4f86a65970ea",
   "key": "know-your-customer-async",
   "name": "KYC Async",
-  "version": 1,
   "description": "",
   "extensionProperties": {
     "threshold.sla.warning": "99.0",
