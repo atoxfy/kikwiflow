@@ -1,0 +1,95 @@
+{
+  "id": "f8476ea5-d333-4068-9c58-4f86a65970ea",
+  "key": "know-your-customer-async",
+  "name": "KYC Async",
+  "version": 1,
+  "description": "",
+  "extensionProperties": {
+    "threshold.sla.warning": "99.0",
+    "threshold.sla.critical": "90.0",
+    "threshold.fail.tolerance": "1"
+  },
+  "sla": "",
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-f5751917-5a85-4ccf-99c1-001264cac6ba",
+          "name": "",
+          "targetNodeId": "ENRICH_CUSTOMER_PROFILE_ST",
+          "transitionType": "automated",
+          "isDefault": false,
+          "extensionProperties": {}
+        }
+      ],
+      "layout": {
+        "x": 282,
+        "y": 592
+      },
+      "extensionProperties": {}
+    },
+    "ENRICH_CUSTOMER_PROFILE_ST": {
+      "id": "ENRICH_CUSTOMER_PROFILE_ST",
+      "name": "Enriquecer dados do Cliente",
+      "type": "EXECUTABLE_TASK",
+      "executor": "enrichCustomerProfileTaskHandler",
+      "commitBefore": true,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-76c978b4-7729-45ea-8bae-5286aa62ef82",
+          "name": "",
+          "targetNodeId": "CALCULATE_CUSTOMER_RISK_ST",
+          "transitionType": "automated",
+          "extensionProperties": {}
+        }
+      ],
+      "layout": {
+        "x": 360,
+        "y": 580
+      },
+      "extensionProperties": {}
+    },
+    "CALCULATE_CUSTOMER_RISK_ST": {
+      "id": "CALCULATE_CUSTOMER_RISK_ST",
+      "name": "Calcular Risco",
+      "type": "EXECUTABLE_TASK",
+      "executor": "calculateCustomerRiskTaskHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-628fad75-ec4d-4090-b3f7-b0b78cb35bea",
+          "name": "",
+          "targetNodeId": "END_EVENT",
+          "transitionType": "automated",
+          "extensionProperties": {}
+        }
+      ],
+      "layout": {
+        "x": 696,
+        "y": 580
+      },
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "layout": {
+        "x": 1038,
+        "y": 592
+      },
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}
