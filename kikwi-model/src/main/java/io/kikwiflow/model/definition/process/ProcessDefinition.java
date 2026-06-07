@@ -33,6 +33,20 @@ public record ProcessDefinition(
         extensionProperties = extensionProperties != null ? Map.copyOf(extensionProperties) : null;
     }
 
+    public Builder toBuilder() {
+        return new Builder()
+                .id(this.id)
+                .sla(this.sla)
+                .version(this.version)
+                .key(this.key)
+                .name(this.name)
+                .description(this.description)
+                .flowNodes(this.flowNodes)
+                .defaultStartPoint(this.defaultStartPoint)
+                .checksum(this.checksum)
+                .extensionProperties(this.extensionProperties);
+    }
+
     public static Builder builder() {
         return new Builder();
     }

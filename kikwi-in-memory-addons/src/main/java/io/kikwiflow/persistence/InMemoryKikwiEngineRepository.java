@@ -366,6 +366,16 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public Optional<ProcessDefinition> findByKeyAndChecksum(String key, String checksum) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ProcessDefinition> findLatestVersionByKey(String key) {
+        return Optional.empty();
+    }
+
+    @Override
     public void ensureIndexes() {
 
     }

@@ -209,6 +209,16 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
         return this.inMemoryKikwiEngineRepository.getMetricsByNodeForProcessDefinition(processDefinitionId);
     }
 
+    @Override
+    public Optional<ProcessDefinition> findByKeyAndChecksum(String key, String checksum) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ProcessDefinition> findLatestVersionByKey(String key) {
+        return Optional.empty();
+    }
+
     public void evaluateEvents(){
         this.assertableEventListener.runOnce();
     }

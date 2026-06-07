@@ -133,32 +133,13 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionDeploy) {
-
+    public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionToSave) {
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
-
-        Document existingIdentical = collection.find(
-                and(eq("key", processDefinitionDeploy.key()), eq("checksum", processDefinitionDeploy.checksum()))
-        ).first();
-
-        if (existingIdentical != null) {
-            return ProcessDefinitionMapper.fromDocument(existingIdentical);
-        }
-
-        Optional<ProcessDefinition> last = findProcessDefinitionByKey(processDefinitionDeploy.key());
-        int nextVersion = last.map(def -> def.version() + 1).orElse(1);
-
-        ProcessDefinition definitionToSave = new ProcessDefinition(
-                processDefinitionDeploy.id(), processDefinitionDeploy.sla(), nextVersion, processDefinitionDeploy.key(), processDefinitionDeploy.name()
-                , processDefinitionDeploy.description(), processDefinitionDeploy.flowNodes(), processDefinitionDeploy.defaultStartPoint(),
-                processDefinitionDeploy.checksum(),
-                processDefinitionDeploy.extensionProperties()
-        );
-
-        Document doc = ProcessDefinitionMapper.toDocument(definitionToSave);
-        collection.replaceOne(eq("_id", definitionToSave.id()), doc, new ReplaceOptions().upsert(true));
-        return definitionToSave;
+        Document doc = ProcessDefinitionMapper.toDocument(processDefinitionToSave);
+        collection.replaceOne(eq("_id", processDefinitionToSave.id()), doc, new ReplaceOptions().upsert(true));
+        return processDefinitionToSave;
     }
+
 
     @Override
     public Optional<ProcessDefinition> findProcessDefinitionByKey(String processDefinitionKey) {
@@ -172,6 +153,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         return Optional.ofNullable(doc)
                 .map(ProcessDefinitionMapper::fromDocument);
     }
+
 
     @Override
     public Optional<ProcessDefinition> findProcessDefinitionById(String processDefinitionId) {
@@ -561,7 +543,11 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 new IndexOptions().name("key_version_idx")
         );
 
-        // indice de tarefas executaveis baseada em status e due date
+        getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION).createIndex(
+                Indexes.compoundIndex(Indexes.ascending("key"), Indexes.ascending("checksum")),
+                new IndexOptions().name("key_checksum_idx")
+        );
+
         getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION).createIndex(
                 Indexes.compoundIndex(Indexes.ascending("status"), Indexes.ascending("dueDate")),
                 new IndexOptions().name("status_duedate_idx")
@@ -636,6 +622,30 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 });
 
         return metricsMap;
+    }
+
+    @Override
+    public Optional<ProcessDefinition> findByKeyAndChecksum(String key, String checksum) {
+        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
+        Document doc = collection.find(
+                and(eq("key", key), eq("checksum", checksum))
+        ).first();
+
+        return Optional.ofNullable(doc)
+                .map(ProcessDefinitionMapper::fromDocument);
+    }
+
+    @Override
+    public Optional<ProcessDefinition> findLatestVersionByKey(String key) {
+        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
+
+        Document doc = collection.find(eq("key", key))
+                .sort(Sorts.descending("version"))
+                .limit(1)
+                .first();
+
+        return Optional.ofNullable(doc)
+                .map(ProcessDefinitionMapper::fromDocument);
     }
 
 

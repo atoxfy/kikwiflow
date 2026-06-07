@@ -32,6 +32,7 @@ import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
@@ -42,6 +43,7 @@ import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.util.KikwiflowBanner;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.HashMap;
@@ -183,14 +185,17 @@ public class KikwiflowEngine {
         }
     }
 
-    public ProcessDefinition deploy(ProcessDefinition processDefinition){
-        return processDefinitionService.deploy(processDefinition);
+    public ProcessDefinition deployDefinition(ProcessDefinitionDeployRequest content) throws Exception {
+        return processDefinitionService.deploy(content);
+    }
+
+    public ProcessDefinition deployDefinition(byte[] content) throws Exception {
+        return processDefinitionService.deploy(content);
     }
 
     public ProcessInstance setVariables(String processInstanceId, Map<String, ProcessVariable> variables){
         return kikwiEngineRepository.addVariables(processInstanceId, variables);
     }
-
 
     public void clearDefinitionCache(){
         processDefinitionService.clearCache();
@@ -204,6 +209,7 @@ public class KikwiflowEngine {
     public ProcessStarter startProcess() {
         return new ProcessStarter(this);
     }
+
 
     /**
      * Builder para configurar e iniciar uma nova instância de processo.

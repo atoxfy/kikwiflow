@@ -36,6 +36,11 @@
             <artifactId>kikwi-lightweight-events-api</artifactId>
               <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-parser-jackson</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring Boot -->
         <dependency>

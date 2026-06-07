@@ -15,21 +15,19 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.rest.autoconfigure;
+package io.kikwiflow.execution.api;
 
-import io.kikwiflow.management.translation.FlowNodeDefinitionMixin;
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 
-@Configuration(proxyBeanMethods = false)
-public class KikwiflowJacksonAutoConfiguration {
+import java.io.InputStream;
 
-    @Bean
-    public Jackson2ObjectMapperBuilderCustomizer kikwiflowJacksonCustomizer() {
-        return builder -> {
-            builder.mixIn(FlowNodeDefinition.class, FlowNodeDefinitionMixin.class);
-        };
-    }
+/**
+ * Interface agnóstica para conversão de arquivos físicos em definições de processo.
+ */
+public interface ProcessDefinitionParser {
+    ProcessDefinitionDeployRequest parse(byte[] processContent ) throws Exception;
+    String calculateChecksum (ProcessDefinitionDeployRequest processDefinitionDeployRequest) throws Exception;
+    ProcessDefinition parse(ProcessDefinitionDeployRequest processContent );
+
 }

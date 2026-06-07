@@ -37,7 +37,5 @@ public class CalculateCustomerRiskTaskHandler implements TaskHandler {
         logger.info("CalculateCustomerRiskTaskHandler - {} ", Optional.of(execution.getVariable("TESTE001"))
                 .map(ProcessVariable::value).orElse(null));
 
-        throw new RuntimeException();
-
     }
 }

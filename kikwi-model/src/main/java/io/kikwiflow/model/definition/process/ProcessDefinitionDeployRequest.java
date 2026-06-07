@@ -15,12 +15,18 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.api.command;
+package io.kikwiflow.model.definition.process;
 
-import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 
-public interface ProcessDefinitionOperationsApi {
-    ProcessDefinition deploy( ProcessDefinitionDeployRequest deployRequest) throws Exception;
-    void clearDefinitionCache();
-}
+import java.util.Map;
+
+public record ProcessDefinitionDeployRequest(
+        String key,
+        String name,
+        String description,
+        String sla,
+        String defaultStartPoint,
+        Map<String, FlowNodeDefinition> flowNodes,
+        Map<String, String> extensionProperties
+) {}

@@ -23,10 +23,13 @@ public class KikwiflowProperties {
 
     private final Stats stats = new Stats();
     private final Outbox outbox = new Outbox();
+    private final AutoDeploy autoDeploy = new AutoDeploy();
 
     public Stats getStats() {
         return stats;
     }
+
+    public AutoDeploy getAutoDeploy() { return autoDeploy; }
 
     public Outbox getOutbox() {
         return outbox;
@@ -44,5 +47,15 @@ public class KikwiflowProperties {
 
         public boolean isEventsEnabled() { return eventsEnabled; }
         public void setEventsEnabled(boolean eventsEnabled) { this.eventsEnabled = eventsEnabled; }
+    }
+
+    public static class AutoDeploy {
+        private boolean enabled = true; // Por padrão ativado para DX
+        private String path = "classpath*:processes/**/*.json";
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public String getPath() { return path; }
+        public void setPath(String path) { this.path = path; }
     }
 }

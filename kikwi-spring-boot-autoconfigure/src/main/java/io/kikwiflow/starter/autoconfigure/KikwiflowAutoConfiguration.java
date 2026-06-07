@@ -16,6 +16,7 @@
  */
 package io.kikwiflow.starter.autoconfigure;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.ExecutionEventListener;
@@ -25,17 +26,22 @@ import io.kikwiflow.execution.DelegateResolver;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.TaskExecutor;
+import io.kikwiflow.execution.api.ProcessDefinitionParser;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
+import io.kikwiflow.parser.jackson.JacksonProcessDefinitionParser;
+import io.kikwiflow.parser.jackson.KikwiflowJacksonModule;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.validation.DeployValidator;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.support.ResourcePatternResolver;
 
 import java.util.Collections;
 import java.util.List;
@@ -53,9 +59,35 @@ public class KikwiflowAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(KikwiflowJacksonModule.class)
+    public KikwiflowJacksonModule kikwiflowJacksonModule() {
+        return new KikwiflowJacksonModule();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ProcessDefinitionParser.class)
+    public ProcessDefinitionParser processDefinitionParser(ObjectMapper objectMapper) {
+        return new JacksonProcessDefinitionParser(objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "kikwiflow.auto-deploy", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public KikwiflowAutoDeployer kikwiflowAutoDeployer(
+            KikwiflowEngine engine,
+            ResourcePatternResolver resourcePatternResolver,
+            KikwiflowProperties properties) {
+
+        return new KikwiflowAutoDeployer(
+                engine,
+                resourcePatternResolver,
+                properties.getAutoDeploy().getPath()
+        );
+    }
+
+    @Bean
     @ConditionalOnMissingBean
-    public ProcessDefinitionService processDefinitionService(KikwiEngineRepository repository, DeployValidator deployValidator) {
-        return new ProcessDefinitionService(repository, deployValidator);
+    public ProcessDefinitionService processDefinitionService(ProcessDefinitionParser parser, KikwiEngineRepository repository, DeployValidator deployValidator) {
+        return new ProcessDefinitionService(parser, repository, deployValidator);
     }
 
     @Bean

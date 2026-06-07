@@ -33,7 +33,7 @@ public class SingletonsFactory {
 
 
     public static ProcessDefinitionService processDefinitionService(KikwiEngineRepository repository, DeployValidator deployValidator) {
-        return new ProcessDefinitionService(repository, deployValidator);
+        return  new ProcessDefinitionService(null, repository, deployValidator);
     }
 
     public static DeployValidator deployValidator(DelegateResolver delegateResolver, DecisionRuleResolver decisionRuleResolver){

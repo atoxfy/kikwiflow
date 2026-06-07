@@ -26,48 +26,31 @@
         <version>0.1.52</version>
     </parent>
 
-    <artifactId>kikwi-management-rest-spring-boot-autoconfigure</artifactId>
-    <name>kikwiflow :: Management Rest API Spring Boot Autoconfiguration</name>
-    <description>Management Rest API autoconfiguration for Spring Boot Applications</description>
+    <groupId>io.kikwiflow</groupId>
+    <artifactId>kikwi-parser-jackson</artifactId>
+    <name>kikwiflow :: Parser Jackson</name>
+    <description>Contains JSON parsing interfaces</description>
+
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
     <dependencies>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-management-rest</artifactId>
+            <artifactId>kikwi-model</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-parser-jackson</artifactId>
+            <artifactId>kikwi-execution-api</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-core</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-runtime-query-api</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
 </project>

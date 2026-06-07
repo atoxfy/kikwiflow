@@ -70,4 +70,7 @@ public interface QueryRepository {
     ExternalTaskQuery createExternalTaskQuery();
 
     Map<String, KKFMetrics> getMetricsByNodeForProcessDefinition(String processDefinitionId);
+
+    Optional<ProcessDefinition> findByKeyAndChecksum(String key, String checksum);
+    Optional<ProcessDefinition> findLatestVersionByKey(String key);
 }

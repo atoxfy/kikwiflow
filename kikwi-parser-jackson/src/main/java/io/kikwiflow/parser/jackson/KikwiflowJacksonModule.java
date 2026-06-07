@@ -15,12 +15,15 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.api.command;
+package io.kikwiflow.parser.jackson;
 
-import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 
-public interface ProcessDefinitionOperationsApi {
-    ProcessDefinition deploy( ProcessDefinitionDeployRequest deployRequest) throws Exception;
-    void clearDefinitionCache();
+public class KikwiflowJacksonModule extends SimpleModule {
+
+    public KikwiflowJacksonModule() {
+        super("KikwiflowModule");
+        setMixInAnnotation(FlowNodeDefinition.class, FlowNodeDefinitionMixin.class);
+    }
 }

@@ -19,10 +19,16 @@ package io.kikwiflow.navigation;
 import io.kikwiflow.cache.ProcessDefinitionCache;
 import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.execution.api.ProcessDefinitionParser;
+import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.validation.DeployValidator;
 
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Gerencia o ciclo de vida das definições de processo ({@link ProcessDefinition}).
@@ -33,6 +39,7 @@ import java.util.Optional;
  * frequentemente utilizadas.
  */
 public class ProcessDefinitionService {
+    private final ProcessDefinitionParser processDefinitionParser;
     private final KikwiEngineRepository kikwiEngineRepository;
     private final ProcessDefinitionCache processDefinitionCache;
     private final DeployValidator deployValidator;
@@ -42,19 +49,52 @@ public class ProcessDefinitionService {
      *
      * @param kikwiEngineRepository O repositório para persistir e buscar as definições de processo.
      */
-    public ProcessDefinitionService(KikwiEngineRepository kikwiEngineRepository, DeployValidator deployValidator){
+    public ProcessDefinitionService(ProcessDefinitionParser processDefinitionParser, KikwiEngineRepository kikwiEngineRepository, DeployValidator deployValidator){
+        this.processDefinitionParser = processDefinitionParser;
         this.kikwiEngineRepository = kikwiEngineRepository;
         this.deployValidator = deployValidator;
         this.processDefinitionCache = new ProcessDefinitionCache();
     }
 
-
-    public ProcessDefinition deploy(ProcessDefinition processDefinitionDeploy){
-        deployValidator.validate(processDefinitionDeploy);
-        ProcessDefinition processDefinition =  kikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
-        processDefinitionCache.clear();;
-        return processDefinition;
+    public ProcessDefinition deploy(byte[] content) throws Exception {
+        ProcessDefinitionDeployRequest processDefinitionDeployRequest = processDefinitionParser.parse(content);
+        return deploy(processDefinitionDeployRequest);
     }
+
+    public ProcessDefinition deploy(ProcessDefinitionDeployRequest processContent) throws Exception {
+        // 1. Calcula o Checksum antes de qualquer coisa
+        String checksum = processDefinitionParser.calculateChecksum(processContent);
+
+        // Nota: Você precisará adicionar findByKeyAndChecksum() e findLatestVersionByKey() no QueryRepository[cite: 5]
+        ProcessDefinition parsedDefinition = processDefinitionParser.parse(processContent);
+
+        Optional<ProcessDefinition> existingIdentical = kikwiEngineRepository.findByKeyAndChecksum(parsedDefinition.key(), checksum);
+        if (existingIdentical.isPresent()) {
+            return existingIdentical.get(); // Fuga rápida!
+        }
+
+        // 3. Arquivo novo ou alterado: Descobrir a próxima versão
+        int nextVersion = kikwiEngineRepository.findLatestVersionByKey(parsedDefinition.key())
+                .map(def -> def.version() + 1)
+                .orElse(1);
+
+        // 4. Enriquecer o domínio com regras de negócio
+        ProcessDefinition definitionToSave = parsedDefinition.toBuilder()
+                .id(UUID.randomUUID().toString())
+                .version(nextVersion)
+                .checksum(checksum)
+                .build();
+
+        // 5. Validar e Persistir
+        deployValidator.validate(definitionToSave);
+        ProcessDefinition savedDefinition = kikwiEngineRepository.saveProcessDefinition(definitionToSave);
+        processDefinitionCache.clear();
+
+        return savedDefinition;
+    }
+
+
+
 
     /**
      * Obtém uma definição de processo pela sua chave (key), utilizando uma estratégia de cache.

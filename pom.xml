@@ -52,6 +52,7 @@
         <module>kikwi-core</module>
         <module>kikwi-core-testing</module>
         <module>kikwi-core-tests</module>
+        <module>kikwi-parser-jackson</module>
 
         <!-- Spring Boot Integration -->
         <module>kikwi-spring-boot-starter</module>

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.management.translation;
+package io.kikwiflow.parser.jackson;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
