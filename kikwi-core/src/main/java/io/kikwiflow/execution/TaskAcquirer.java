@@ -104,7 +104,7 @@ public class TaskAcquirer implements Runnable {
                 int limitToFetch = Math.min(availablePermits, kikwiflowConfig.getTaskAcquisitionMaxTasks());
                 List<ExecutableTask> taskList = kikwiEngineRepository.findAndLockDueTasks(
                         Instant.now(),
-                        limitToFetch, 
+                        limitToFetch,
                         this.workerId,
                         this.kikwiflowConfig.getLockTimeoutMillis()
                 );
