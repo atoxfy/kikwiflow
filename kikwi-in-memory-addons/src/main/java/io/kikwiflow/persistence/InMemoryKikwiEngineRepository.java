@@ -259,7 +259,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId) {
+    public List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId, long lockTimeoutMillis) {//TODO
         List<ExecutableTask> candidates = this.executableTaskCollection.values().stream()
                 .filter(task -> task.status() == ExecutableTaskStatus.PENDING)
                 .filter(task -> task.dueDate() == null || !task.dueDate().isAfter(now))

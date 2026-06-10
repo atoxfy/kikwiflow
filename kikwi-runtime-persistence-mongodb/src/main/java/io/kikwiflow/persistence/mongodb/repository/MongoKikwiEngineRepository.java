@@ -40,6 +40,7 @@ import com.mongodb.client.result.UpdateResult;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.stats.KKFMetrics;
@@ -272,21 +273,30 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId) {
+    public List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId, long lockTimeoutMillis) {
         MongoCollection<Document> collection = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
         List<ExecutableTask> lockedTasks = new ArrayList<>();
 
+        Instant lockExpirationThreshold = now.minusMillis(lockTimeoutMillis);
+
         for (int i = 0; i < limit; i++) {
-            Bson filter = and(
-                    eq("status", "PENDING"),
+            Bson pendingFilter = and(
+                    eq("status", ExecutableTaskStatus.PENDING.name()),
                     or(
                             eq("dueDate", null),
                             lte("dueDate", now)
                     )
             );
 
+            Bson stuckLockedFilter = and(
+                    eq("status", ExecutableTaskStatus.LOCKED.name()),
+                    lte("acquiredAt", lockExpirationThreshold)
+            );
+
+            Bson finalFilter = or(pendingFilter, stuckLockedFilter);
+
             Bson update = Updates.combine(
-                    Updates.set("status", "LOCKED"),
+                    Updates.set("status", ExecutableTaskStatus.LOCKED.name()),
                     Updates.set("executorId", workerId),
                     Updates.set("acquiredAt", Instant.now())
             );
@@ -295,7 +305,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     .returnDocument(ReturnDocument.AFTER)
                     .sort(Sorts.ascending("dueDate"));
 
-            Document lockedDoc = collection.findOneAndUpdate(filter, update, options);
+            Document lockedDoc = collection.findOneAndUpdate(finalFilter, update, options);
 
             if (lockedDoc == null) {
                 break;

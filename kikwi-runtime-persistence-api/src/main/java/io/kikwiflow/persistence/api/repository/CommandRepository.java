@@ -25,7 +25,7 @@ public interface CommandRepository {
 
     void commitWork(UnitOfWork unitOfWork);
 
-    List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId);
+    List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId, long lockTimeoutMillis);
 
     ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables);
 

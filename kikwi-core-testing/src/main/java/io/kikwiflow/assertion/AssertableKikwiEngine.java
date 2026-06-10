@@ -130,8 +130,8 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
-    public List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId) {
-        return this.inMemoryKikwiEngineRepository.findAndLockDueTasks(now, limit, workerId);
+    public List<ExecutableTask> findAndLockDueTasks(Instant now, int limit, String workerId, long lockTimeoutMillis) {
+        return this.inMemoryKikwiEngineRepository.findAndLockDueTasks(now, limit, workerId, lockTimeoutMillis);
     }
 
     @Override

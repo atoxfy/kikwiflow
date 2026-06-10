@@ -47,9 +47,38 @@ public class KikwiflowConfig {
 
     private long taskAcquisitionIntervalMillis = 5000L;
     private int taskAcquisitionMaxTasks = 10;
+    private int maxConcurrentTasks = 200;
+    private int shutdownGracePeriodSeconds = 20;
+    private long lockTimeoutMillis = 5000L;
+
+    private String instanceName;
 
 
     public KikwiflowConfig() {
+    }
+
+    public String getInstanceName() {
+        return instanceName;
+    }
+
+    public void setLockTimeoutMillis(long lockTimeoutMillis) {
+        this.lockTimeoutMillis = lockTimeoutMillis;
+    }
+
+    public long getLockTimeoutMillis() {
+        return lockTimeoutMillis;
+    }
+
+    public void setInstanceName(String instanceName) {
+        this.instanceName = instanceName;
+    }
+
+    public void setMaxConcurrentTasks(int maxConcurrentTasks) {
+        this.maxConcurrentTasks = maxConcurrentTasks;
+    }
+
+    public void setShutdownGracePeriodSeconds(int shutdownGracePeriodSeconds) {
+        this.shutdownGracePeriodSeconds = shutdownGracePeriodSeconds;
     }
 
     public long getTaskAcquisitionIntervalMillis() {
@@ -85,5 +114,28 @@ public class KikwiflowConfig {
 
     public boolean isOutboxEventsEnabled() {
         return isOutboxEventsEnabled;
+    }
+
+    public int getMaxConcurrentTasks() {
+        return maxConcurrentTasks;
+    }
+
+    public long getShutdownGracePeriodSeconds() {
+        return shutdownGracePeriodSeconds;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("KikwiflowConfig{");
+        sb.append("isStatsEnabled=").append(isStatsEnabled);
+        sb.append(", isOutboxEventsEnabled=").append(isOutboxEventsEnabled);
+        sb.append(", taskAcquisitionIntervalMillis=").append(taskAcquisitionIntervalMillis);
+        sb.append(", taskAcquisitionMaxTasks=").append(taskAcquisitionMaxTasks);
+        sb.append(", maxConcurrentTasks=").append(maxConcurrentTasks);
+        sb.append(", shutdownGracePeriodSeconds=").append(shutdownGracePeriodSeconds);
+        sb.append(", lockTimeoutMillis=").append(lockTimeoutMillis);
+        sb.append(", instanceName='").append(instanceName).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 }

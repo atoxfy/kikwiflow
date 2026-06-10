@@ -35,6 +35,9 @@ public class EnrichCustomerProfileTaskHandler implements TaskHandler {
     @Override
     public void handle(ExecutionContext execution) {
 
+        String threadName = Thread.currentThread().getName();
+        logger.info("[{}] EnrichCustomerProfileTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
+
         logger.info("EnrichCustomerProfileTaskHandler - handle {} ", execution.getProcessInstanceId());
         String varName = "TESTE001";
         String varValue = "TESTE001-EXECUTADO";

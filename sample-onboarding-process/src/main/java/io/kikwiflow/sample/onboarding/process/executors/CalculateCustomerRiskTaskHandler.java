@@ -33,9 +33,11 @@ public class CalculateCustomerRiskTaskHandler implements TaskHandler {
 
     @Override
     public void handle(ExecutionContext execution) {
-        logger.info("CalculateCustomerRiskTaskHandler - handle {} ", execution.getProcessInstanceId());
-        logger.info("CalculateCustomerRiskTaskHandler - {} ", Optional.of(execution.getVariable("TESTE001"))
-                .map(ProcessVariable::value).orElse(null));
+        String threadName = Thread.currentThread().getName();
+        logger.info("[{}] CalculateCustomerRiskTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
+
+        logger.info("[{}] CalculateCustomerRiskTaskHandler - Valor da variável: {}", threadName,
+                Optional.of(execution.getVariable("TESTE001")).map(ProcessVariable::value).orElse(null));
 
     }
 }

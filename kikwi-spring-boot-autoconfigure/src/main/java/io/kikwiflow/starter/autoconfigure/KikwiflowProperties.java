@@ -16,14 +16,27 @@
  */
 package io.kikwiflow.starter.autoconfigure;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "kikwiflow")
 public class KikwiflowProperties {
 
+    @Value("${spring.application.name:kikwiflow-engine}")
+    private String instanceName;
+
     private final Stats stats = new Stats();
     private final Outbox outbox = new Outbox();
     private final AutoDeploy autoDeploy = new AutoDeploy();
+    private final Execution execution = new Execution();
+
+    public Execution getExecution() {
+        return execution;
+    }
+
+    public String getInstanceName() {
+        return instanceName;
+    }
 
     public Stats getStats() {
         return stats;
@@ -57,5 +70,53 @@ public class KikwiflowProperties {
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
         public String getPath() { return path; }
         public void setPath(String path) { this.path = path; }
+    }
+
+    public static class Execution {
+        private long taskAcquisitionIntervalMillis = 5000L;
+        private int taskAcquisitionMaxTasks = 10;
+        private int maxConcurrentTasks = 200;
+        private int shutdownGracePeriodSeconds = 20;
+        private long lockTimeoutMillis = 12;
+
+        public void setTaskAcquisitionIntervalMillis(long taskAcquisitionIntervalMillis) {
+            this.taskAcquisitionIntervalMillis = taskAcquisitionIntervalMillis;
+        }
+
+        public void setTaskAcquisitionMaxTasks(int taskAcquisitionMaxTasks) {
+            this.taskAcquisitionMaxTasks = taskAcquisitionMaxTasks;
+        }
+
+        public void setMaxConcurrentTasks(int maxConcurrentTasks) {
+            this.maxConcurrentTasks = maxConcurrentTasks;
+        }
+
+        public void setShutdownGracePeriodSeconds(int shutdownGracePeriodSeconds) {
+            this.shutdownGracePeriodSeconds = shutdownGracePeriodSeconds;
+        }
+
+        public void setLockTimeoutMillis(long lockTimeoutMillis) {
+            this.lockTimeoutMillis = lockTimeoutMillis;
+        }
+
+        public long getTaskAcquisitionIntervalMillis() {
+            return taskAcquisitionIntervalMillis;
+        }
+
+        public int getTaskAcquisitionMaxTasks() {
+            return taskAcquisitionMaxTasks;
+        }
+
+        public long getLockTimeoutMillis() {
+            return lockTimeoutMillis;
+        }
+
+        public int getMaxConcurrentTasks() {
+            return maxConcurrentTasks;
+        }
+
+        public int getShutdownGracePeriodSeconds() {
+            return shutdownGracePeriodSeconds;
+        }
     }
 }

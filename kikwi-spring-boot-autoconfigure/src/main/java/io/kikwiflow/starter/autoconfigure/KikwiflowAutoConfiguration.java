@@ -112,12 +112,23 @@ public class KikwiflowAutoConfiguration {
     @ConditionalOnMissingBean
     public KikwiflowConfig kikwiflowConfig(KikwiflowProperties properties) {
         KikwiflowConfig config = new KikwiflowConfig();
+        config.setInstanceName(properties.getInstanceName());
         if (properties.getStats().isEnabled()) {
             config.statsEnabled();
         }
+
         if (properties.getOutbox().isEventsEnabled()) {
             config.outboxEventsEnabled();
         }
+
+        if(properties.getExecution() != null){
+            config.setTaskAcquisitionMaxTasks(properties.getExecution().getTaskAcquisitionMaxTasks());
+            config.setTaskAcquisitionIntervalMillis(properties.getExecution().getTaskAcquisitionIntervalMillis());
+            config.setMaxConcurrentTasks(properties.getExecution().getMaxConcurrentTasks());
+            config.setShutdownGracePeriodSeconds(properties.getExecution().getShutdownGracePeriodSeconds());
+            config.setLockTimeoutMillis(properties.getExecution().getLockTimeoutMillis());
+        }
+
         return config;
     }
 

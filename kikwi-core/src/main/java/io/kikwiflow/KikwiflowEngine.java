@@ -43,7 +43,6 @@ import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.util.KikwiflowBanner;
 
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.HashMap;
