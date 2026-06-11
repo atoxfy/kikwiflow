@@ -26,6 +26,7 @@ import org.bson.types.Decimal128;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -45,6 +46,12 @@ public final class ProcessInstanceMapper {
                 .append("endedAt", instance.endedAt())
                 .append("origin", instance.origin())
                 .append("version", instance.version());
+
+        if (instance.activeNodes() != null && !instance.activeNodes().isEmpty()) {
+            doc.append("activeNodes", new Document(instance.activeNodes()));
+        } else {
+            doc.append("activeNodes", new Document());
+        }
 
         if (instance.businessValue() != null) {
             doc.append("businessValue", new Decimal128(instance.businessValue()));
@@ -70,6 +77,18 @@ public final class ProcessInstanceMapper {
             businessValue = doc.get("businessValue", Decimal128.class).bigDecimalValue();
         }
 
+
+        Map<String, Integer> activeNodes = new java.util.HashMap<>();
+        Document activeNodesDoc = doc.get("activeNodes", Document.class);
+        if (activeNodesDoc != null) {
+            activeNodesDoc.forEach((key, value) -> {
+                if (value instanceof Integer) {
+                    activeNodes.put(key, (Integer) value);
+                }
+            });
+        }
+
+
         Map<String, ProcessVariable> variables = Collections.emptyMap();
         Document variablesDoc = doc.get("variables", Document.class);
         if (variablesDoc != null) {
@@ -92,6 +111,7 @@ public final class ProcessInstanceMapper {
                 .endedAt(InstantMapper.mapToInstant("endedAt", doc))
                 .origin(doc.getString("origin"))
                 .version(doc.getInteger("version", 0))
+                .activeNodes(activeNodes)
                 .build();
     }
 

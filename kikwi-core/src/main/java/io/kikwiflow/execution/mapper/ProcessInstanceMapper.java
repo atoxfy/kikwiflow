@@ -61,7 +61,8 @@ public final class ProcessInstanceMapper {
             instance.getStartedAt(),
             instance.getEndedAt(),
             instance.getOrigin(),
-            instance.getVersion()
+            instance.getVersion(),
+            instance.getActiveNodes()
         );
     }
 
@@ -78,6 +79,11 @@ public final class ProcessInstanceMapper {
         processInstanceEntity.setBusinessValue(processInstance.businessValue());
         processInstanceEntity.setPersisted(true);
         processInstanceEntity.setVersion(processInstance.version());
+
+        processInstanceEntity.setActiveNodes(
+                processInstance.activeNodes() != null ? new java.util.HashMap<>(processInstance.activeNodes()) : new java.util.HashMap<>()
+        );
+
         return processInstanceEntity;
     }
 }

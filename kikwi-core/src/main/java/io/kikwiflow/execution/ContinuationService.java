@@ -71,12 +71,18 @@ public class ContinuationService {
      */
     private ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask,
                                                ExecutableTask completedExecutableTask) {
+
         Continuation continuation = executionResult.continuation();
         ExecutionOutcome executionOutcome = executionResult.outcome();
         ProcessInstanceExecution processInstance = executionOutcome.processInstance();
 
+        if (processInstance.getActiveNodes() == null) {
+            processInstance.setActiveNodes(new java.util.HashMap<>());
+        }
+
         List<ExecutableTask> nextExecutableTasks = new ArrayList<>();
         List<ExternalTask>  nextExternalTasks = new ArrayList<>();
+
         if (isAsyncContinuation(continuation)) {
             continuation.nextNodes().forEach(flowNodeDefinitionSnapshot -> {
                 generateNextTasks(flowNodeDefinitionSnapshot, processInstance,  nextExecutableTasks, nextExternalTasks);
@@ -105,12 +111,19 @@ public class ContinuationService {
         ProcessInstance processInstanceToSave = ProcessInstanceMapper.mapToRecord(processInstance);
         List<String> executableTasksToDelete = new ArrayList<>();
         List<String> externalTasksToDelete = new ArrayList<>();
+        List<String> completedNodeDefinitions = new ArrayList<>();
 
-        if (completedExecutableTask!= null) {
+        if (completedExecutableTask != null) {
             executableTasksToDelete.add(completedExecutableTask.id());
+            completedNodeDefinitions.add(completedExecutableTask.taskDefinitionId());
+            String nodeId = completedExecutableTask.taskDefinitionId();
+            processInstance.getActiveNodes().merge(nodeId, -1, Integer::sum);
+
             if(Objects.nonNull(completedExecutableTask.boundaryEvents())){
                 executableTasksToDelete.addAll(completedExecutableTask.boundaryEvents());
+                //completedNodeDefinitions.addAll(completedExecutableTask.boundaryEvents()); //Ver se nao precisamos de um novo status
             }
+
 
             if(Objects.nonNull(completedExecutableTask.attachedToRefId())){
                 if(completedExecutableTask.attachedToRefType().equals(AttachedTaskType.EXECUTABLE_TASK)){
@@ -124,8 +137,12 @@ public class ContinuationService {
 
         if (completedExternalTask != null) {
             externalTasksToDelete.add(completedExternalTask.id());
+            String nodeId = completedExternalTask.taskDefinitionId();
+            processInstance.getActiveNodes().merge(nodeId, -1, Integer::sum);
+
             if(Objects.nonNull(completedExternalTask.boundaryEvents())){
                 executableTasksToDelete.addAll(completedExternalTask.boundaryEvents());
+                completedNodeDefinitions.add(completedExternalTask.taskDefinitionId());
             }
         }
 
@@ -160,7 +177,8 @@ public class ContinuationService {
                 externalTasksToDelete,
                 events,
                 null,
-                null
+                null,
+                completedNodeDefinitions
         );
 
         kikwiEngineRepository.commitWork(updatedUnitOfWork);
@@ -191,6 +209,8 @@ public class ContinuationService {
         String flowNodeDefinitionId = flowNodeDefinition.id();
         String processInstanceId = processInstanceExecution.getId();
         String processDefinitionId = processInstanceExecution.getProcessDefinitionId();
+
+        processInstanceExecution.getActiveNodes().merge(flowNodeDefinitionId, 1, Integer::sum);
 
         if(flowNodeDefinition instanceof ExternalTaskDefinition mt){
 

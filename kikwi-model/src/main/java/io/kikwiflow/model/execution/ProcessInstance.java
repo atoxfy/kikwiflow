@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -36,7 +37,8 @@ public record ProcessInstance(
         variables, Instant startedAt,
         Instant endedAt,
         String origin,
-        int version) {
+        int version,
+        Map<String, Integer> activeNodes) {
 
     public static Builder builder() {
         return new Builder();
@@ -54,7 +56,7 @@ public record ProcessInstance(
         private String tenantId;
         private String origin;
         private int version = 0;
-
+        private Map<String, Integer> activeNodes = new java.util.HashMap<>();
 
         private Builder() {}
 
@@ -63,6 +65,12 @@ public record ProcessInstance(
             return this;
         }
 
+        public Builder activeNodes(Map<String, Integer> activeNodes) {
+            if (activeNodes != null) {
+                this.activeNodes = activeNodes;
+            }
+            return this;
+        }
 
         public Builder id(String id) {
             this.id = id;
@@ -124,7 +132,7 @@ public record ProcessInstance(
                 status = ProcessInstanceStatus.ACTIVE;
             }
 
-            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt, origin, version);
+            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt, origin, version, activeNodes);
         }
     }
 }

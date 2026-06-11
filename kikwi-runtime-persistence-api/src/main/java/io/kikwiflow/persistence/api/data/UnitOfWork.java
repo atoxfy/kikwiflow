@@ -37,4 +37,5 @@ public record UnitOfWork(
         List<String> externalTasksToDelete,
         List<OutboxEventEntity> events,
         List<Incident> incidentsToCreate,
-        List<String> incidentsToResolve) {}
+        List<String> incidentsToResolve,
+        List<String> completedNodeDefinitions) {}

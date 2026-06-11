@@ -96,8 +96,10 @@ public class FailureHandler {
                 null,
                 null,
                 incidentsToCreate,
+                null,
                 null
         );
+
         repository.commitWork(uow);
     }
 

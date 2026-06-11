@@ -22,6 +22,7 @@ import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Representa uma instância de processo em execução.
@@ -46,6 +47,7 @@ public class ProcessInstanceExecution {
     private String tenantId;
     private String origin;
     private int version;
+    private Map<String, Integer> activeNodes;
 
     public int getVersion() {
         return version;
@@ -57,6 +59,14 @@ public class ProcessInstanceExecution {
 
     public boolean isPersisted() {
         return isPersisted;
+    }
+
+    public Map<String, Integer> getActiveNodes() {
+        return activeNodes;
+    }
+
+    public void setActiveNodes(Map<String, Integer> activeNodes) {
+        this.activeNodes = activeNodes;
     }
 
     public void setPersisted(boolean persisted) {

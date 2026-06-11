@@ -202,15 +202,52 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
                 if (unitOfWork.instanceToUpdate() != null) {
                     ProcessInstance instance = unitOfWork.instanceToUpdate();
-                    Document instanceDoc = ProcessInstanceMapper.toDocument(instance);
+
+                    List<Bson> updates = new ArrayList<>();
+                    updates.add(Updates.inc("version", 1));
+                    if (unitOfWork.completedNodeDefinitions() != null) {
+                        for (String nodeId : unitOfWork.completedNodeDefinitions()) {
+                            updates.add(Updates.inc("activeNodes." + nodeId, -1));
+                        }
+                    }
+
+                    if (unitOfWork.executableTasksToCreate() != null) {
+                        for (ExecutableTask t : unitOfWork.executableTasksToCreate()) {
+                            updates.add(Updates.inc("activeNodes." + t.taskDefinitionId(), 1));
+                        }
+                    }
+
+                    if (unitOfWork.externalTasksToCreate() != null) {
+                        for (ExternalTask t : unitOfWork.externalTasksToCreate()) {
+                            updates.add(Updates.inc("activeNodes." + t.taskDefinitionId(), 1));
+                        }
+                    }
+
+                    if (instance.status() != null) {
+                        updates.add(Updates.set("status", instance.status().name()));
+                    }
+                    if (instance.endedAt() != null) {
+                        updates.add(Updates.set("endedAt", instance.endedAt()));
+                    }
+                    if (instance.businessValue() != null) {
+                        updates.add(Updates.set("businessValue", new org.bson.types.Decimal128(instance.businessValue())));
+                    }
+
+                    if (instance.variables() != null) {
+                        Document variablesDoc = new Document();
+                        instance.variables().forEach((key, variable) ->
+                                variablesDoc.put(MongoKeyEncoder.encode(key), ProcessVariableMapper.toDocument(variable))
+                        );
+                        updates.add(Updates.set("variables", variablesDoc));
+                    }
 
                     Bson filter = and(
                             eq("_id", instance.id()),
                             eq("version", instance.version())
                     );
 
-                    instanceDoc.put("version", instance.version() + 1);
-                    UpdateResult result = processInstances.replaceOne(clientSession, filter, instanceDoc);
+                    UpdateResult result = processInstances.updateOne(clientSession, filter, Updates.combine(updates));
+
                     if (result.getModifiedCount() == 0) {
                         throw new OptimisticLockingFailureException("The instance " + instance.id() + " is locked by another transaction");
                     }
@@ -547,7 +584,8 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     public void ensureIndexes() {
-        // indice para ProcessDefinition usando KEY e version
+
+
         getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION).createIndex(
                 Indexes.compoundIndex(Indexes.ascending("key"), Indexes.descending("version")),
                 new IndexOptions().name("key_version_idx")
@@ -561,6 +599,11 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION).createIndex(
                 Indexes.compoundIndex(Indexes.ascending("status"), Indexes.ascending("dueDate")),
                 new IndexOptions().name("status_duedate_idx")
+        );
+
+        getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION).createIndex(
+                Indexes.ascending("activeNodes"),
+                new IndexOptions().name("active_nodes_idx")
         );
 
         // indice de tarefas externas por process instance id
