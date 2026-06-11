@@ -22,9 +22,13 @@ import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.management.exception.NotImplementedException;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessInstanceSummary;
+import io.kikwiflow.model.shared.PageResult;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
 import io.kikwiflow.spring.rest.api.query.ProcessInstanceQueryRestApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -65,5 +69,23 @@ public class ProcessInstanceQueryController implements ProcessInstanceQueryRestA
         }
 
         throw new NotImplementedException("");
+    }
+
+
+    @GetMapping("/summary")
+    public PageResult<ProcessInstanceSummary> getProcessInstancesSummary(
+            @RequestParam(required = false) String processDefinitionId,
+            @RequestParam(required = false) String activeNodeId,
+            @RequestParam(required = false) String tenantId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return queryRepository.createProcessInstanceQuery()
+                .processDefinitionId(processDefinitionId)
+                .activeNodeId(activeNodeId)
+                .tenantId(tenantId)
+                .page(page)
+                .size(size)
+                .listSummary();
     }
 }

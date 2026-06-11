@@ -30,6 +30,7 @@ import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.InMemoryKikwiEngineRepository;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
+import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
@@ -201,6 +202,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
 
     @Override
     public ExternalTaskQuery createExternalTaskQuery() {
+        return null;
+    }
+
+    @Override
+    public ProcessInstanceQuery createProcessInstanceQuery() {
         return null;
     }
 

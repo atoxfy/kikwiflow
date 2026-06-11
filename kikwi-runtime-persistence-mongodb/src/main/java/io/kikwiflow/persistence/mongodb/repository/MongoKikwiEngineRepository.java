@@ -30,6 +30,7 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.InsertOneModel;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReplaceOneModel;
 import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.ReturnDocument;
@@ -39,18 +40,23 @@ import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.UpdateResult;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessInstanceSummary;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
+import io.kikwiflow.model.shared.PageResult;
 import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.api.data. UnitOfWork;
 import io.kikwiflow.persistence.api.exception.OptimisticLockingFailureException;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
+import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.persistence.mongodb.mapper.ExecutableTaskMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ExternalTaskMapper;
 import io.kikwiflow.persistence.mongodb.mapper.IncidentMapper;
+import io.kikwiflow.persistence.mongodb.mapper.InstantMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessInstanceMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper;
@@ -601,10 +607,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 new IndexOptions().name("status_duedate_idx")
         );
 
-        getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION).createIndex(
-                Indexes.ascending("activeNodes"),
-                new IndexOptions().name("active_nodes_idx")
-        );
+
 
         // indice de tarefas externas por process instance id
         MongoCollection<Document> externalTaskCollection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
@@ -699,6 +702,103 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
         return Optional.ofNullable(doc)
                 .map(ProcessDefinitionMapper::fromDocument);
+    }
+
+
+
+    @Override
+    public ProcessInstanceQuery createProcessInstanceQuery() {
+        return new MongoProcessInstanceQuery();
+    }
+
+    private class MongoProcessInstanceQuery implements ProcessInstanceQuery {
+        private final List<Bson> filters = new ArrayList<>();
+        private int page = 0;
+        private int size = 20;
+
+        @Override
+        public ProcessInstanceQuery processDefinitionId(String processDefinitionId) {
+            if (processDefinitionId != null && !processDefinitionId.isBlank()) {
+                filters.add(Filters.eq("processDefinitionId", processDefinitionId));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery activeNodeId(String activeNodeId) {
+            if (activeNodeId != null && !activeNodeId.isBlank()) {
+                filters.add(Filters.gt("activeNodes." + activeNodeId, 0));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery tenantId(String tenantId) {
+            if (tenantId != null && !tenantId.isBlank()) {
+                filters.add(Filters.eq("tenantId", tenantId));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery page(int page) {
+            this.page = Math.max(0, page);
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery size(int size) {
+            this.size = size > 0 ? size : 20;
+            return this;
+        }
+
+        @Override
+        public PageResult<ProcessInstanceSummary> listSummary() {
+            MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
+            Bson finalFilter = filters.isEmpty() ? new Document() : Filters.and(filters);
+
+            long totalElements = collection.countDocuments(finalFilter);
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+
+            Bson projection = Projections.include(
+                    "_id",
+                    "businessKey",
+                    "status",
+                    "processDefinitionId",
+                    "startedAt",
+                    "endedAt",
+                    "activeNodes"
+            );
+
+            List<ProcessInstanceSummary> content = new ArrayList<>();
+
+            collection.find(finalFilter)
+                    .projection(projection)
+                    .sort(Sorts.descending("startedAt"))
+                    .skip(page * size)
+                    .limit(size)
+                    .forEach(doc -> {
+                        Map<String, Integer> activeNodesMap = new java.util.HashMap<>();
+                        Document activeNodesDoc = doc.get("activeNodes", Document.class);
+                        if (activeNodesDoc != null) {
+                            activeNodesDoc.forEach((k, v) -> {
+                                if (v instanceof Integer) activeNodesMap.put(k, (Integer) v);
+                            });
+                        }
+
+                        content.add(new ProcessInstanceSummary(
+                                doc.getString("_id"),
+                                doc.getString("businessKey"),
+                                ProcessInstanceStatus.valueOf(doc.getString("status")),
+                                doc.getString("processDefinitionId"),
+                                InstantMapper.mapToInstant("startedAt", doc),
+                                InstantMapper.mapToInstant("endedAt", doc),
+                                activeNodesMap
+                        ));
+                    });
+
+            return new PageResult<>(content, totalElements, totalPages, page, size);
+        }
     }
 
 
