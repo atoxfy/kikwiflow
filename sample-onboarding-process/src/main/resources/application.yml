@@ -1,12 +1,23 @@
 server:
   port: ${SERVER_PORT:8081}
 spring:
+  application:
+    name: onboarding-service
+  threads:
+    virtual:
+      enabled: true
   data:
     mongodb:
-      uri: your-mongodb-host
+      uri: mongodb+srv://kikwiflow:{PASS}@onboarding-sample.9um3zkc.mongodb.net/?appName=onboarding-sample
       database: kikwiflow_db
       auto-index-creation: true
 kikwiflow:
+  execution:
+    task-acquisition-interval-millis: 5000
+    task-acquisition-max-tasks: 12
+    max-concurrent-tasks: 200
+    shutdown-grace-period-seconds: 30
+    lock-timeout-millis: 1200
   rest:
    # base-path: "engine/teste"
     cors:
