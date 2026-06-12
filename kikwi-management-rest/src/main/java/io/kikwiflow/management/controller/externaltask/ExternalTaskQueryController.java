@@ -98,7 +98,7 @@ public class ExternalTaskQueryController implements ExternalTaskQueryRestApi {
         }
 
         if(processInstanceId != null){
-            throw new NotImplementedException("");
+            query.processInstanceId(processInstanceId);
         }
 
         if(processInstanceIdIn != null){

@@ -25,6 +25,7 @@ import io.kikwiflow.management.controller.processinstance.ProcessInstanceCommand
 import io.kikwiflow.management.controller.processinstance.ProcessInstanceQueryController;
 import io.kikwiflow.management.controller.stats.StatsQueryController;
 import io.kikwiflow.management.controller.stats.StatsSSEQueryController;
+import io.kikwiflow.management.exception.KikwiflowExceptionHandler;
 import io.kikwiflow.management.service.StatsService;
 import io.kikwiflow.parser.jackson.KikwiflowJacksonModule;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
@@ -49,7 +50,6 @@ import java.util.concurrent.Executors;
 @EnableConfigurationProperties({KikwiflowPulseProperties.class, KikwiflowRestProperties.class})
 @Import({
         KikwiflowWebMvcAutoConfiguration.class,
-        //KikwiflowJacksonAutoConfiguration.class,
         ProcessDefinitionQueryController.class,
         ProcessInstanceQueryController.class,
         ExternalTaskQueryController.class,
@@ -67,6 +67,13 @@ public class KikwiRestAutoConfiguration {
     @ConditionalOnMissingBean(KikwiflowJacksonModule.class)
     public KikwiflowJacksonModule kikwiflowJacksonModule() {
         return new KikwiflowJacksonModule();
+    }
+
+
+    @Bean
+    @ConditionalOnMissingBean(KikwiflowExceptionHandler.class)
+    public KikwiflowExceptionHandler kikwiflowExceptionHandler() {
+        return new KikwiflowExceptionHandler();
     }
 
     @Bean(name = "kikwiflowRestExecutor")

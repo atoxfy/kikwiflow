@@ -17,12 +17,13 @@
 
 package io.kikwiflow.management.exception;
 
+import io.kikwiflow.management.annotation.KikwiRestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(basePackages = "io.kikwiflow.management.rest.controller")
+@RestControllerAdvice(annotations = KikwiRestController.class)
 public class KikwiflowExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
