@@ -17,12 +17,9 @@
 
 package io.kikwiflow.sample.onboarding.process.executors;
 
-import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.api.TaskHandler;
 import io.kikwiflow.model.execution.ProcessVariable;
-import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
-import org.apache.coyote.BadRequestException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -42,7 +39,7 @@ public class EnrichCustomerProfileTaskHandler implements TaskHandler {
         String varName = "TESTE001";
         String varValue = "TESTE001-EXECUTADO";
 
-        ProcessVariable pv = new ProcessVariable(varName, ProcessVariableVisibility.PUBLIC, null, false, varValue);
+        ProcessVariable pv = new ProcessVariable(varName,null, null, false, varValue);
         execution.setVariable(varName,  pv );
     }
 }

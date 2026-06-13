@@ -17,10 +17,10 @@
 package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.execution.ProcessVariable;
-import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
 import org.bson.Document;
 
-import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class ProcessVariableMapper {
 
@@ -28,21 +28,38 @@ public final class ProcessVariableMapper {
 
     public static Document toDocument(ProcessVariable variable) {
         if (variable == null) return null;
-        return new Document("name", variable.name())
-                .append("visibility", variable.visibility().name())
-                .append("roles", variable.roles())
+         Document doc = new Document("name", variable.name())
                 .append("value", variable.value())
                 .append("_class", variable.value() != null ? variable.value().getClass().getName() : null);
+
+        if (variable.readRoles() != null && !variable.readRoles().isEmpty()) {
+            doc.append("readRoles", variable.readRoles());
+        }
+        if (variable.writeRoles() != null && !variable.writeRoles().isEmpty()) {
+            doc.append("writeRoles", variable.writeRoles());
+        }
+
+        return doc;
     }
 
     public static ProcessVariable fromDocumentToVariable(Document doc) {
         if (doc == null) return null;
 
+        Set<String> readRoles = new HashSet<>();
+        Set<String> writeRoles = new HashSet<>();
+
+        if (doc.containsKey("readRoles")) {
+            readRoles.addAll(doc.getList("readRoles", String.class));
+        }
+        if (doc.containsKey("writeRoles")) {
+            writeRoles.addAll(doc.getList("writeRoles", String.class));
+        }
+
         return new ProcessVariable(
                 doc.getString("name"),
-                ProcessVariableVisibility.valueOf(doc.getString("visibility")),
-                doc.getList("roles", String.class, Collections.emptyList()),
-                false,
+                readRoles,
+                writeRoles,
+                doc.getBoolean("isTransient", false),
                 doc.get("value")
         );
     }
