@@ -32,7 +32,6 @@ public class KikwiflowExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-
     @ExceptionHandler(NotImplementedException.class)
     public ResponseEntity<ErrorResponse> handleNotImplemented(NotImplementedException ex) {
         var error = new ErrorResponse("NOT_IMPLEMENTED", ex.getMessage());
@@ -44,7 +43,6 @@ public class KikwiflowExceptionHandler {
         var error = new ErrorResponse("CONFLICT", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
-
 
     public record ErrorResponse(String code, String message) {}
 }
