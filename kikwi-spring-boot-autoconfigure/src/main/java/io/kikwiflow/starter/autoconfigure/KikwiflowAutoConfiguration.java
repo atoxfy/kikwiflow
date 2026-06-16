@@ -19,10 +19,10 @@ package io.kikwiflow.starter.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.decision.api.AnswerProviderLocator;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.execution.ContinuationService;
-import io.kikwiflow.execution.DecisionRuleResolver;
-import io.kikwiflow.execution.DelegateResolver;
+import io.kikwiflow.execution.TaskHandlerResolver;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.TaskExecutor;
@@ -54,8 +54,8 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public DeployValidator deployValidator(DelegateResolver delegateResolver, DecisionRuleResolver decisionRuleResolver){
-        return new DeployValidator(delegateResolver, decisionRuleResolver);
+    public DeployValidator deployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderLocator answerProviderLocator){
+        return new DeployValidator(taskHandlerResolver, answerProviderLocator);
     }
 
     @Bean
@@ -92,14 +92,14 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public Navigator navigator(DecisionRuleResolver decisionRuleResolver) {
-        return new Navigator(decisionRuleResolver);
+    public Navigator navigator(AnswerProviderLocator answerProviderLocator) {
+        return new Navigator(answerProviderLocator);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public ProcessExecutionManager processExecutionManager(DelegateResolver delegateResolver, Navigator navigator, KikwiflowConfig config) {
-        return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(delegateResolver)), navigator, config);
+    public ProcessExecutionManager processExecutionManager(TaskHandlerResolver taskHandlerResolver, Navigator navigator, KikwiflowConfig config) {
+        return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(taskHandlerResolver)), navigator, config);
     }
 
     @Bean
@@ -135,14 +135,14 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public DelegateResolver delegateResolver(ApplicationContext applicationContext) {
+    public TaskHandlerResolver taskHandlerResolver(ApplicationContext applicationContext) {
         return new SpringTaskHandlerResolver(applicationContext);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public DecisionRuleResolver decisionRuleResolver(ApplicationContext applicationContext){
-        return new SpringDecisionRuleResolver(applicationContext);
+    public AnswerProviderLocator answerProviderLocator(ApplicationContext applicationContext){
+        return new SpringAnswerProviderLocator(applicationContext);
     }
 
     @Bean(initMethod = "start", destroyMethod = "stop")
@@ -150,8 +150,8 @@ public class KikwiflowAutoConfiguration {
     public KikwiflowEngine kikwiflowEngine(
             KikwiEngineRepository repository,
             KikwiflowConfig config,
-            DelegateResolver delegateResolver,
-            DecisionRuleResolver decisionRuleResolver,
+            TaskHandlerResolver taskHandlerResolver,
+            AnswerProviderLocator answerProviderLocator,
             ObjectProvider<List<ExecutionEventListener>> listenersProvider,
             ProcessDefinitionService processDefinitionService,
             Navigator navigator,

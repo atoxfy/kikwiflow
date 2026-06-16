@@ -20,6 +20,7 @@ import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefi
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
 import io.kikwiflow.model.stats.KKFMetrics;
 
 import java.util.Collections;
@@ -71,7 +72,10 @@ public class ProcessMapper {
                     g.defaultFlow(),
                     mapOutgoing(g.outgoing()),
                     g.extensionProperties(),
-                    mapLayout(g.layout())
+                    mapLayout(g.layout()),
+                    g.providerType(),
+                    g.providerBean(),
+                    g.providerVariable()
             );
         } else if (dto instanceof KKFExternalTaskDefinition) {
             KKFExternalTaskDefinition t = (KKFExternalTaskDefinition) dto;
@@ -113,9 +117,12 @@ public class ProcessMapper {
         if (dtos == null) return Collections.emptyList();
         return dtos.stream().map(dto -> new SequenceFlowDefinition(
                 dto.id(),
-                dto.condition(),
+                dto.name(),
+                dto.description(),
+                dto.expectedAnswer(),
                 dto.targetNodeId(),
-                dto.isDefault() != null ? dto.isDefault() : false,
+                dto.isDefault(),
+                dto.handlesNull(),
                 mapPositionHandlers(dto.positionHandlers())
         )).collect(Collectors.toList());
     }
@@ -125,9 +132,12 @@ public class ProcessMapper {
         if (dtos == null) return Collections.emptyList();
         return dtos.stream().map(dto -> new KKFSequenceFlowDefinition(
                 dto.id(),
-                dto.condition(),
+                dto.name(),
+                dto.description(),
+                dto.expectedAnswer(),
                 dto.targetNodeId(),
-                dto.isDefault() != null ? dto.isDefault() : false,
+                dto.isDefault(),
+                dto.handlesNull(),
                 mapPositionHandlersk(dto.positionHandlers())
         )).collect(Collectors.toList());
     }
@@ -142,7 +152,7 @@ public class ProcessMapper {
                                 kkfInterruptiveTimerEventDefinition.name(),
                                 kkfInterruptiveTimerEventDefinition.type(),
                                 kkfInterruptiveTimerEventDefinition.description(),
-                                kkfInterruptiveTimerEventDefinition.delegateExpression(),
+                                kkfInterruptiveTimerEventDefinition.executor(),
                                 kkfInterruptiveTimerEventDefinition.commitAfter(),
                                 kkfInterruptiveTimerEventDefinition.commitBefore(),
                                 mapOutgoing(kkfInterruptiveTimerEventDefinition.outgoing()),
@@ -260,7 +270,10 @@ public class ProcessMapper {
                     g.defaultFlow(),
                     mapOutgoingK(g.outgoing()),
                     g.extensionProperties(),
-                    ProcessMapper.mapLayout(g.layout())
+                    ProcessMapper.mapLayout(g.layout()),
+                    g.providerType(),
+                    g.providerBean(),
+                    g.providerVariable()
             );
         } else if (dto instanceof ExternalTaskDefinition t) {
             return new KKFExternalTaskDefinition(

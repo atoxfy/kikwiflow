@@ -16,15 +16,15 @@
  */
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.exception.DecisionRuleNotFoundException;
-import io.kikwiflow.execution.DecisionRuleResolver;
+import io.kikwiflow.decision.api.AnswerProvider;
+import io.kikwiflow.decision.api.AnswerProviderLocator;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.model.execution.ProcessVariable;
-import io.kikwiflow.rule.api.DecisionRule;
+import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,15 +33,13 @@ import java.util.Optional;
 
 public class Navigator {
 
+    private final AnswerProviderLocator answerProviderLocator;
 
-    private final DecisionRuleResolver decisionRuleResolver;
-
-    public Navigator(DecisionRuleResolver decisionRuleResolver) {
-        this.decisionRuleResolver = decisionRuleResolver;
+    public Navigator(AnswerProviderLocator answerProviderLocator) {
+        this.answerProviderLocator = answerProviderLocator;
     }
 
-
-    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync, String targetFlowId) {
+    public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync) {
         List<SequenceFlowDefinition> outgoingFlows = completedNode.outgoing();
 
         if (outgoingFlows.isEmpty()) {
@@ -49,69 +47,82 @@ public class Navigator {
         }
 
         List<FlowNodeDefinition> nextNodes = new ArrayList<>();
+        String recordedAnswer = null;
+        String recordedFlowId = null;
 
         if (completedNode instanceof ExclusiveGatewayDefinition gateway) {
-            Optional<SequenceFlowDefinition> chosenFlow;
 
-            if (targetFlowId != null && !targetFlowId.isBlank()) {
-                chosenFlow = outgoingFlows.stream()
-                        .filter(sf -> sf.targetNodeId().equals(targetFlowId))
-                        .findFirst();
+            recordedAnswer = resolveAnswer(gateway, variables);
+            SequenceFlowDefinition chosenFlow = findMatchingFlow(gateway, recordedAnswer);
+            recordedFlowId = chosenFlow.id();
 
-                if (chosenFlow.isEmpty()) {
-                    throw new IllegalArgumentException("Execution Error: Forced targetFlowId '" + targetFlowId +
-                            "' is not a valid outgoing path from gateway '" + gateway.id() + "'.");
-                }
-            } else {
-                chosenFlow = evaluateConditions(outgoingFlows, variables)
-                        .or(() -> evaluateDefaultFlow(gateway, outgoingFlows));
+            FlowNodeDefinition nextNode = processDefinition.flowNodes().get(chosenFlow.targetNodeId());
+            if (nextNode == null) {
+                throw new IllegalStateException("Architectural Error: Target node '" + chosenFlow.targetNodeId() +
+                        "' defined in sequence flow does not exist in the process definition.");
             }
 
-            if (chosenFlow.isPresent()) {
-                FlowNodeDefinition nextNode = processDefinition.flowNodes().get(chosenFlow.get().targetNodeId());
-                if (nextNode == null) {
-                    throw new IllegalStateException("Architectural Error: Target node '" + chosenFlow.get().targetNodeId() +
-                            "' defined in sequence flow does not exist in the process definition.");
-                }
-                nextNodes.add(nextNode);
-            } else {
-                throw new IllegalStateException("Execution Error: Exclusive gateway '" + gateway.id() +
-                        "' has no valid outgoing sequence flow for the given variables.");
-            }
+            nextNodes.add(nextNode);
 
         } else {
-            String targetNodeId = outgoingFlows.get(0).targetNodeId();
-            FlowNodeDefinition nextNode = processDefinition.flowNodes().get(targetNodeId);
-            if (nextNode == null) {
-                throw new IllegalStateException("Architectural Error: Next node '" + targetNodeId + "' not found.");
-            }
+            SequenceFlowDefinition defaultFlow = outgoingFlows.get(0);
+            recordedFlowId = defaultFlow.id();
+            FlowNodeDefinition nextNode = processDefinition.flowNodes().get(defaultFlow.targetNodeId());
             nextNodes.add(nextNode);
         }
 
         boolean isAsync = forceAsync || Boolean.TRUE.equals(nextNodes.get(0).commitBefore());
 
-        return new Continuation(nextNodes, isAsync);
+        return new Continuation(nextNodes, isAsync, recordedAnswer, recordedFlowId);
     }
 
-    // Métodos auxiliares para manter o método principal legível (Módulos Profundos)
-    private Optional<SequenceFlowDefinition> evaluateConditions(List<SequenceFlowDefinition> outgoingFlows, Map<String, ProcessVariable> variables) {
-        return outgoingFlows.stream()
-                .filter(flow -> flow.condition() != null && !flow.condition().isBlank())
-                .filter(flow -> {
-                    DecisionRule decisionRule = decisionRuleResolver.resolve(flow.condition())
-                            .orElseThrow(() -> new DecisionRuleNotFoundException("DecisionRule not found with key: " + flow.condition()));
-                    return decisionRule.evaluate(variables);
-                })
-                .findFirst();
-    }
+    private String resolveAnswer(ExclusiveGatewayDefinition gateway, Map<String, ProcessVariable> variables) {
+        if (gateway.providerType() == AnswerProviderType.VARIABLE) {
+            if (gateway.providerVariable() == null || gateway.providerVariable().isBlank()) {
+                throw new IllegalStateException("Architectural Error: Gateway '" + gateway.id() + "' está configurado como VARIABLE, mas 'providerVariable' é nulo ou vazio.");
+            }
 
-    private Optional<SequenceFlowDefinition> evaluateDefaultFlow(ExclusiveGatewayDefinition gateway, List<SequenceFlowDefinition> outgoingFlows) {
-        String defaultFlowId = gateway.defaultFlow();
-        if (defaultFlowId == null || defaultFlowId.isBlank()) {
-            return Optional.empty();
+            ProcessVariable variable = variables.get(gateway.providerVariable());
+            return variable != null && variable.value() != null ? variable.value().toString() : null;
         }
-        return outgoingFlows.stream()
-                .filter(sf -> sf.id().equals(defaultFlowId))
+
+        if (gateway.providerType() == AnswerProviderType.BEAN) {
+            if (gateway.providerBean() == null || gateway.providerBean().isBlank()) {
+                throw new IllegalStateException("Architectural Error: Gateway '" + gateway.id() + "' está configurado como BEAN, mas 'providerBean' é nulo ou vazio.");
+            }
+
+            AnswerProvider provider = answerProviderLocator.getProvider(gateway.providerBean());
+            if (provider == null) {
+                throw new IllegalStateException("Execution Error: Nenhum AnswerProvider encontrado para o bean '" + gateway.providerBean() + "'.");
+            }
+
+            return provider.resolve(new MapAnswerContextAdapter(gateway.id(), variables));
+        }
+
+        throw new IllegalStateException("Execution Error: Tipo de AnswerProvider não suportado ou nulo no gateway '" + gateway.id() + "'.");
+    }
+
+    private SequenceFlowDefinition findMatchingFlow(ExclusiveGatewayDefinition gateway, String answer) {
+        List<SequenceFlowDefinition> outgoingFlows = gateway.outgoing();
+
+        if (answer == null) {
+            return outgoingFlows.stream()
+                    .filter(SequenceFlowDefinition::handlesNull)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Execution Error: A resposta do gateway '" + gateway.id() + "' foi nula, mas não existe nenhuma aresta configurada com 'handlesNull'."));
+        }
+
+        Optional<SequenceFlowDefinition> matchedFlow = outgoingFlows.stream()
+                .filter(sf -> answer.equals(sf.expectedAnswer()))
                 .findFirst();
+
+        if (matchedFlow.isPresent()) {
+            return matchedFlow.get();
+        }
+
+        return outgoingFlows.stream()
+                .filter(SequenceFlowDefinition::isDefault)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Execution Error: Nenhuma aresta corresponde à resposta '" + answer + "' no gateway '" + gateway.id() + "' e nenhuma aresta 'isDefault' foi configurada."));
     }
 }

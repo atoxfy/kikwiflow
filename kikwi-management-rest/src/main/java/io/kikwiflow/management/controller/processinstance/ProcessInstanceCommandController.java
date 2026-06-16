@@ -41,7 +41,6 @@ public class ProcessInstanceCommandController implements ProcessInstanceOperatio
     public ProcessInstance start(ProcessInstanceStartRequest processInstanceStartRequest) {
         return engine.startProcess()
                 .byKey(processInstanceStartRequest.processDefinitionKey())
-                .targetFlowNodeId(processInstanceStartRequest.targetFlowNodeId())
                 .from(processInstanceStartRequest.origin())
                 .onTenant(processInstanceStartRequest.tenant())
                 .withBusinessKey(processInstanceStartRequest.businessKey())

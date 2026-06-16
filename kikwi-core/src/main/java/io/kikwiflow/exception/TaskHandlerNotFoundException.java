@@ -14,19 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.kikwiflow.exception;
 
-package io.kikwiflow.execution.dto;
-
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-
-import java.util.List;
-
-public record Continuation(List<FlowNodeDefinition> nextNodes,
-                           boolean isAsynchronous,
-                           String resolvedAnswer,
-                           String chosenFlowId) {
-
-    public Continuation(List<FlowNodeDefinition> nextNodes, boolean isAsynchronous) {
-        this(nextNodes, isAsynchronous, null, null);
+public class TaskHandlerNotFoundException extends RuntimeException {
+    public TaskHandlerNotFoundException(String message) {
+        super(message);
     }
 }

@@ -18,6 +18,7 @@
 package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +32,12 @@ public record ExclusiveGatewayDefinition(String id,
                                          Boolean commitBefore,
                                          String defaultFlow,
                                          List<SequenceFlowDefinition> outgoing,
-                                         Map<String, String> extensionProperties, LayoutCoordinates layout) implements FlowNodeDefinition {
+                                         Map<String, String> extensionProperties,
+                                         LayoutCoordinates layout,
+                                         AnswerProviderType providerType,
+                                         String providerBean,
+                                         String providerVariable
+                                         ) implements FlowNodeDefinition {
 
     public static Builder builder() {
         return new Builder();
@@ -47,11 +53,29 @@ public record ExclusiveGatewayDefinition(String id,
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private Map<String, String> extensionProperties;
         private LayoutCoordinates layout;
+        private AnswerProviderType providerType;
+        private String providerBean;
+        private String providerVariable;
 
         private Builder() {}
 
         public Builder id(String id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder providerType(AnswerProviderType providerType) {
+            this.providerType = providerType;
+            return this;
+        }
+
+        public Builder providerVariable(String providerVariable) {
+            this.providerVariable = providerVariable;
+            return this;
+        }
+
+        public Builder providerBean(String providerBean) {
+            this.providerBean = providerBean;
             return this;
         }
 
@@ -99,7 +123,19 @@ public record ExclusiveGatewayDefinition(String id,
         }
 
         public ExclusiveGatewayDefinition build() {
-            return new ExclusiveGatewayDefinition(id, name, "EXCLUSIVE_GATEWAY", description, commitAfter, commitBefore, defaultFlow, outgoing, extensionProperties, layout);
+            return new ExclusiveGatewayDefinition(id,
+                    name,
+                    "EXCLUSIVE_GATEWAY",
+                    description,
+                    commitAfter,
+                    commitBefore,
+                    defaultFlow,
+                    outgoing,
+                    extensionProperties,
+                    layout,
+                    providerType,
+                    providerBean,
+                    providerVariable);
         }
     }
 }

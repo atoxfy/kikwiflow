@@ -26,9 +26,15 @@
         <version>0.1.53</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>kikwi-execution-api</artifactId>
-    <name>kikwiflow :: Execution API</name>
-    <description>Defines the API contract for executable task automation. This module contains the `TaskHandler` interface, allowing developers to implement custom business logic that can be invoked by the engine.</description>
+    <artifactId>kikwi-decision-api</artifactId>
+    <name>kikwiflow :: Rule API</name>
+    <description>Defines the API contract for business rule evaluation. This module contains the `DecisionRule` interface, enabling a secure, code-based 'Rule Directory' pattern for gateways, replacing unsafe expression languages.</description>
+
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>
@@ -36,4 +42,5 @@
               <version>${project.version}</version>
         </dependency>
     </dependencies>
+
 </project>

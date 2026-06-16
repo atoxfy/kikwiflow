@@ -113,7 +113,7 @@ public class KikwiflowEngine {
      * @throws ProcessInstanceNotFoundException se a instância de processo associada não for encontrada.
      * @throws SecurityException se o tenantId fornecido não corresponder ao tenantId da instância do processo.
      */
-    public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables, String targetFlowNodeId) {
+    public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables) {
         ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)//CRIAR UM FIND AND LOCK
             .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
 
@@ -135,13 +135,13 @@ public class KikwiflowEngine {
         }
 
         FlowNodeDefinition completedNode = processDefinition.flowNodes().get(taskToComplete.taskDefinitionId());
-        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false, targetFlowNodeId);
+        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false);
 
         ExecutionResult executionResult;
 
         if (continuation != null && !continuation.nextNodes().isEmpty()) {
             FlowNodeDefinition startPoint = continuation.nextNodes().get(0); 
-            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false, targetFlowNodeId);
+            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
         } else {
             executionResult = new ExecutionResult(new ExecutionOutcome(processInstanceExecution, Collections.emptyList()), null);
         }
@@ -165,8 +165,7 @@ public class KikwiflowEngine {
                     flowNodeDefinition,
                     processInstanceExecution,
                     processDefinition,
-                    true,
-                    null
+                    true
             );
 
             return this.continuationService.handleContinuation(executionResult, executableTask);
@@ -222,7 +221,6 @@ public class KikwiflowEngine {
         private BigDecimal businessValue;
         private String tenantId;
         private String origin;
-        private String targetFlowNodeId;
 
         private ProcessStarter(KikwiflowEngine engine) {
             this.engine = engine;
@@ -230,11 +228,6 @@ public class KikwiflowEngine {
 
         public ProcessStarter byKey(String key) {
             this.processDefinitionKey = key;
-            return this;
-        }
-
-        public ProcessStarter targetFlowNodeId(String targetFlowNodeId) {
-            this.targetFlowNodeId = targetFlowNodeId;
             return this;
         }
 
@@ -284,7 +277,7 @@ public class KikwiflowEngine {
             String defaultStartPointId  = processDefinition.defaultStartPoint();
             FlowNodeDefinition defaultStartPoint = processDefinition.flowNodes().get(defaultStartPointId);
             Objects.requireNonNull(defaultStartPoint, "Malformed process definition: unknown default start point. The default start point needs to be declared in flow nodes map");
-            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(defaultStartPoint, processInstanceExecution, processDefinition, false, targetFlowNodeId);
+            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(defaultStartPoint, processInstanceExecution, processDefinition, false);
             return engine.continuationService.handleContinuation(executionResult);
         }
     }

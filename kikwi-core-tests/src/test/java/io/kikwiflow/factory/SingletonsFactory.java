@@ -17,20 +17,8 @@
 
 package io.kikwiflow.factory;
 
-import io.kikwiflow.config.KikwiflowConfig;
-import io.kikwiflow.execution.ContinuationService;
-import io.kikwiflow.execution.DecisionRuleResolver;
-import io.kikwiflow.execution.DelegateResolver;
-import io.kikwiflow.execution.FlowNodeExecutor;
-import io.kikwiflow.execution.ProcessExecutionManager;
-import io.kikwiflow.execution.TaskExecutor;
-import io.kikwiflow.navigation.Navigator;
-import io.kikwiflow.navigation.ProcessDefinitionService;
-import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
-import io.kikwiflow.validation.DeployValidator;
-
 public class SingletonsFactory {
-
+/*
 
     public static ProcessDefinitionService processDefinitionService(KikwiEngineRepository repository, DeployValidator deployValidator) {
         return  new ProcessDefinitionService(null, repository, deployValidator);
@@ -50,5 +38,5 @@ public class SingletonsFactory {
 
     public static ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config) {
         return new ContinuationService(repository, config);
-    }
+    }*/
 }

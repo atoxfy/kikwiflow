@@ -24,8 +24,11 @@ import java.util.List;
 
 public record KKFSequenceFlowDefinition(
         String id,
-        String condition,
+        String name,
+        String description,
+        String expectedAnswer,
         String targetNodeId,
         Boolean isDefault,
+        Boolean handlesNull,
         List<KKFLayoutCoordinates> positionHandlers) {
 }

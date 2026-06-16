@@ -108,9 +108,15 @@ public final class ProcessDefinitionMapper {
                 }
             }
             case ExclusiveGatewayDefinition gt-> {
-                if(gt.defaultFlow() != null){
-                    doc.append("defaultFlow", gt.defaultFlow());
+                if (gt.providerType() != null) {
+                    doc.append("providerType", gt.providerType().name());
                 }
+                doc.append("providerBean", gt.providerBean());
+                doc.append("providerVariable", gt.providerVariable());
+
+               /* if(gt.defaultFlow() != null){
+                    doc.append("defaultFlow", gt.defaultFlow());
+                }*/
             }
             case ExternalTaskDefinition mt -> {
                 if (mt.boundaryEvents() != null) {
@@ -136,10 +142,13 @@ public final class ProcessDefinitionMapper {
             return null;
         }
 
-        Document sequenceFlow =  new Document("id", flow.id())
+        Document sequenceFlow = new Document("id", flow.id())
+                .append("name", flow.name())
+                .append("description", flow.description())
                 .append("targetNodeId", flow.targetNodeId())
-                .append("condition", flow.condition())
-                .append("isDefault", flow.isDefault());
+                .append("expectedAnswer", flow.expectedAnswer())
+                .append("isDefault", flow.isDefault())
+                .append("handlesNull", flow.handlesNull());
 
         if (flow.positionHandlers() != null) {
             sequenceFlow.append("positionHandlers", flow.positionHandlers()
@@ -273,7 +282,9 @@ public final class ProcessDefinitionMapper {
                 .description(doc.getString("description"))
                 .commitBefore(doc.getBoolean("commitBefore"))
                 .commitAfter(doc.getBoolean("commitAfter"))
-                .defaultFlow(doc.getString("defaultFlow"))
+                .providerType(doc.getString("providerType") != null ? io.kikwiflow.model.execution.enumerated.AnswerProviderType.valueOf(doc.getString("providerType")) : null)
+                .providerBean(doc.getString("providerBean"))
+                .providerVariable(doc.getString("providerVariable"))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
@@ -324,9 +335,12 @@ public final class ProcessDefinitionMapper {
 
         return new SequenceFlowDefinition(
                 flowDoc.getString("id"),
-                flowDoc.getString("condition"),
+                flowDoc.getString("name"),
+                flowDoc.getString("description"),
+                flowDoc.getString("expectedAnswer"),
                 flowDoc.getString("targetNodeId"),
                 flowDoc.getBoolean("isDefault", false),
+                flowDoc.getBoolean("handlesNull", false),
                 positionHandlers
         );
     }

@@ -19,6 +19,7 @@ package io.kikwiflow.management.dtos.elements;
 
 
 import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
+import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
 
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,9 @@ public record KKFExclusiveGatewayDefinition(String id,
                                             String defaultFlow,
                                             List<KKFSequenceFlowDefinition> outgoing,
                                             Map<String, String> extensionProperties,
-                                            KKFLayoutCoordinates layout) implements KKFFlowNodeDefinition {
+                                            KKFLayoutCoordinates layout,
+                                            AnswerProviderType providerType,
+                                            String providerBean,
+                                            String providerVariable) implements KKFFlowNodeDefinition {
 
 }

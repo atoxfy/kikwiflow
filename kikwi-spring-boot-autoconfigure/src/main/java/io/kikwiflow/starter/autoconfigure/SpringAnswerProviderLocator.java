@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -14,29 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.kikwiflow.starter.autoconfigure;
 
-import io.kikwiflow.execution.TaskHandlerResolver;
-import io.kikwiflow.execution.api.TaskHandler;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import io.kikwiflow.decision.api.AnswerProvider;
+import io.kikwiflow.decision.api.AnswerProviderLocator;
 import org.springframework.context.ApplicationContext;
 
-import java.util.Optional;
-
-public class SpringTaskHandlerResolver implements TaskHandlerResolver {
+public class SpringAnswerProviderLocator implements AnswerProviderLocator {
 
     private final ApplicationContext applicationContext;
 
-    public SpringTaskHandlerResolver(ApplicationContext applicationContext) {
+    public SpringAnswerProviderLocator(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
 
     @Override
-    public Optional<TaskHandler> resolve(String beanName) {
-        try {
-            return Optional.of(applicationContext.getBean(beanName, TaskHandler.class));
-        } catch (NoSuchBeanDefinitionException e) {
-            return Optional.empty();
-        }
+    public AnswerProvider getProvider(String name) {
+        return applicationContext.getBean(name, AnswerProvider.class);
     }
 }

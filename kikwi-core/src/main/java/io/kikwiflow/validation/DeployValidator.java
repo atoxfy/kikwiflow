@@ -16,27 +16,29 @@
  */
 package io.kikwiflow.validation;
 
-import io.kikwiflow.exception.DecisionRuleNotFoundException;
+import io.kikwiflow.decision.api.AnswerProvider;
+import io.kikwiflow.decision.api.AnswerProviderLocator;
 import io.kikwiflow.exception.InvalidProcessDefinitionException;
-import io.kikwiflow.exception.JavaDelegateNotFoundException;
-import io.kikwiflow.execution.DecisionRuleResolver;
-import io.kikwiflow.execution.DelegateResolver;
+import io.kikwiflow.exception.TaskHandlerNotFoundException;
+import io.kikwiflow.execution.TaskHandlerResolver;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
+import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
 
 /**
  * Validates a ProcessDefinition at deploy-time to ensure all its required
- * dependencies (e.g., Spring beans for delegates and rules) are available.
+ * dependencies (e.g., Spring beans for task handlers and rules) are available.
  */
 public class DeployValidator {
 
-    private final DelegateResolver delegateResolver;
-    private final DecisionRuleResolver decisionRuleResolver;
+    private final TaskHandlerResolver taskHandlerResolver;
+    private final AnswerProviderLocator answerProviderLocator;
 
-    public DeployValidator(DelegateResolver delegateResolver, DecisionRuleResolver decisionRuleResolver) {
-        this.delegateResolver = delegateResolver;
-        this.decisionRuleResolver = decisionRuleResolver;
+    public DeployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderLocator answerProviderLocator) {
+        this.taskHandlerResolver = taskHandlerResolver;
+        this.answerProviderLocator = answerProviderLocator;
     }
 
     public void validate(ProcessDefinition definition) {
@@ -45,28 +47,42 @@ public class DeployValidator {
                 String executor = serviceTask.executor();
                 if (executor != null && !executor.isBlank()) {
                     try {
-                        delegateResolver.resolve(executor)
-                                .orElseThrow(() -> new JavaDelegateNotFoundException(""));
+                        taskHandlerResolver.resolve(executor)
+                                .orElseThrow(() -> new TaskHandlerNotFoundException(""));
                     } catch (Exception e) {
                         throw new InvalidProcessDefinitionException(
-                            String.format("Validation failed for Service Task '%s' (id: %s): Delegate bean '%s' not found in application context.",
+                            String.format("Validation failed for Service Task '%s' (id: %s): Task Handler bean '%s' not found in application context.",
                                 serviceTask.name(), serviceTask.id(), executor), e);
                     }
                 }
             } else if (node instanceof ExclusiveGatewayDefinition gateway) {
-                gateway.outgoing().forEach(flow -> {
-                    String ruleKey = flow.condition();
-                    if (ruleKey != null && !ruleKey.isBlank()) {
-                        try {
-                            decisionRuleResolver.resolve(ruleKey)
-                                .orElseThrow(() -> new DecisionRuleNotFoundException(""));
-                        } catch (Exception e) {
-                            throw new InvalidProcessDefinitionException(
-                                String.format("Validation failed for Gateway '%s' (id: %s): DecisionRule bean '%s' not found for sequence flow '%s'.",
-                                    gateway.name(), gateway.id(), ruleKey, flow.id()), e);
-                        }
+                // Validação do Provedor de Resposta
+                if (gateway.providerType() == AnswerProviderType.BEAN) {
+                    String beanName = gateway.providerBean();
+                    if (beanName == null || beanName.isBlank()) {
+                        throw new InvalidProcessDefinitionException(String.format("Validation failed for Gateway '%s': Configured as BEAN but 'providerBean' is empty.", gateway.id()));
                     }
-                });
+                    try {
+                        AnswerProvider provider = answerProviderLocator.getProvider(beanName);
+                        if (provider == null) {
+                            throw new InvalidProcessDefinitionException(String.format("AnswerProvider bean '%s' not found.", beanName));
+                        }
+                    } catch (Exception e) {
+                        throw new InvalidProcessDefinitionException(String.format("AnswerProvider bean '%s' not found or could not be instantiated.", beanName), e);
+                    }
+                } else if (gateway.providerType() == AnswerProviderType.VARIABLE) {
+                    if (gateway.providerVariable() == null || gateway.providerVariable().isBlank()) {
+                        throw new InvalidProcessDefinitionException(String.format("Validation failed for Gateway '%s': Configured as VARIABLE but 'providerVariable' is empty.", gateway.id()));
+                    }
+                } else {
+                    throw new InvalidProcessDefinitionException(String.format("Validation failed for Gateway '%s': 'providerType' is missing.", gateway.id()));
+                }
+
+                // Validação Estrutural das Arestas (Sequence Flows)
+                long defaultFlowsCount = gateway.outgoing().stream().filter(SequenceFlowDefinition::isDefault).count();
+                if (defaultFlowsCount > 1) {
+                    throw new InvalidProcessDefinitionException(String.format("Validation failed for Gateway '%s': Multiple sequence flows are marked as default.", gateway.id()));
+                }
             }
         });
     }

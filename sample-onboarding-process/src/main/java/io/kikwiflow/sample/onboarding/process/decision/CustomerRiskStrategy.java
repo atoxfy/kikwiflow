@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,18 +15,23 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.execution.dto;
+package io.kikwiflow.sample.onboarding.process.decision;
 
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.decision.api.AnswerContext;
+import io.kikwiflow.decision.api.AnswerProvider;
+import io.kikwiflow.sample.onboarding.process.VariableScope;
+import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.util.Objects;
 
-public record Continuation(List<FlowNodeDefinition> nextNodes,
-                           boolean isAsynchronous,
-                           String resolvedAnswer,
-                           String chosenFlowId) {
+@Component
+public class CustomerRiskStrategy implements AnswerProvider {
 
-    public Continuation(List<FlowNodeDefinition> nextNodes, boolean isAsynchronous) {
-        this(nextNodes, isAsynchronous, null, null);
+    @Override
+    public String resolve(AnswerContext context) {
+        return context.getVariableValue(VariableScope.RISK_SCORE)
+                .filter(Objects::nonNull)
+                .map(riskScore -> (Double) riskScore < 50 ? "FRAUDE" : "APROVADO")
+                .orElse(null);
     }
 }

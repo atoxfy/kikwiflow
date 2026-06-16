@@ -23,8 +23,11 @@ import java.util.List;
 
 public record SequenceFlowDefinition(
         String id,
-        String condition,
+        String name,
+        String description,
+        String expectedAnswer,
         String targetNodeId,
-        Boolean isDefault,
+        boolean isDefault,
+        boolean handlesNull,
         List<LayoutCoordinates> positionHandlers) {
 }

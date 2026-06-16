@@ -14,29 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.starter.autoconfigure;
+package io.kikwiflow.execution;
 
-import io.kikwiflow.execution.TaskHandlerResolver;
+
 import io.kikwiflow.execution.api.TaskHandler;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.context.ApplicationContext;
 
 import java.util.Optional;
 
-public class SpringTaskHandlerResolver implements TaskHandlerResolver {
 
-    private final ApplicationContext applicationContext;
-
-    public SpringTaskHandlerResolver(ApplicationContext applicationContext) {
-        this.applicationContext = applicationContext;
-    }
-
-    @Override
-    public Optional<TaskHandler> resolve(String beanName) {
-        try {
-            return Optional.of(applicationContext.getBean(beanName, TaskHandler.class));
-        } catch (NoSuchBeanDefinitionException e) {
-            return Optional.empty();
-        }
-    }
+public interface TaskHandlerResolver {
+    Optional<TaskHandler> resolve(String beanName);
 }

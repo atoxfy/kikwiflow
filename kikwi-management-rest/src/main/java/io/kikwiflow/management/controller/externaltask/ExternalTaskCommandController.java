@@ -49,7 +49,6 @@ public class ExternalTaskCommandController implements ExternalTaskOperationsRest
     public ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest) {
         return engine.completeExternalTask(id,
                 completeExternalTaskRequest.tenant(),
-                completeExternalTaskRequest.variables(),
-                completeExternalTaskRequest.targetFlowNodeId());
+                completeExternalTaskRequest.variables());
     }
 }

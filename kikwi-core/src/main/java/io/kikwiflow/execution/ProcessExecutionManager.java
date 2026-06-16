@@ -22,8 +22,10 @@ import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.event.FlowNodeExecuted;
+import io.kikwiflow.model.event.GatewayAnswerResolved;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.FlowNodeExecutionSnapshot;
 import io.kikwiflow.model.execution.enumerated.NodeExecutionStatus;
@@ -49,46 +51,28 @@ import java.util.List;
  *     <li>O fim do fluxo do processo (nenhum nó de saída).</li>
  * </ul>
  */
+
 public class ProcessExecutionManager {
 
     private final FlowNodeExecutor flowNodeExecutor;
     private final Navigator navigator;
     private final KikwiflowConfig kikwiflowConfig;
 
-    /**
-     * Constrói uma nova instância do gestor de execução.
-     *
-     * @param flowNodeExecutor O executor responsável pela lógica de um único nó.
-     * @param navigator O componente que determina o próximo passo no fluxo.
-     * @param kikwiflowConfig A configuração do motor, usada para verificar se funcionalidades como estatísticas estão ativadas.
-     */
     public ProcessExecutionManager(FlowNodeExecutor flowNodeExecutor, Navigator navigator, KikwiflowConfig kikwiflowConfig) {
         this.flowNodeExecutor = flowNodeExecutor;
         this.navigator = navigator;
         this.kikwiflowConfig = kikwiflowConfig;
     }
 
-    /**
-     * Executa um segmento de fluxo de processo a partir de um ponto de partida.
-     * <p>
-     * Este método invoca o {@link FlowNodeExecutor} para executar o fluxo de forma síncrona
-     * até que um ponto de paragem (wait state, commit boundary, ou fim do processo) seja encontrado.
-     *
-     * @param startPoint O nó a partir do qual a execução deve começar.
-     * @param processInstance A instância de processo em execução (mutável durante a execução).
-     * @param processDefinition A definição do processo correspondente.
-     * @return O {@link ExecutionResult} que contém o resultado da execução síncrona.
-     */
-    public ExecutionResult executeFlow(FlowNodeDefinition startPoint, ProcessInstanceExecution processInstance, ProcessDefinition processDefinition, boolean isResumingFromAsyncBefore, String targetFlowNodeId) {
+    public ExecutionResult executeFlow(FlowNodeDefinition startPoint, ProcessInstanceExecution processInstance, ProcessDefinition processDefinition, boolean isResumingFromAsyncBefore) {
         FlowNodeDefinition currentNode = startPoint;
         List<OutboxEventEntity> criticalEvents = new ArrayList<>();
         boolean isFirstNodeInLoop = true;
 
-        while (currentNode != null){
+        while (currentNode != null) {
 
             final boolean shouldStopForCommitBefore = isCommitBefore(currentNode) && !(isFirstNodeInLoop && isResumingFromAsyncBefore);
-
-            if(isWaitState(currentNode) || shouldStopForCommitBefore){
+            if (isWaitState(currentNode) || shouldStopForCommitBefore) {
                 return new ExecutionResult(
                         new ExecutionOutcome(processInstance, criticalEvents),
                         new Continuation(List.of(currentNode), true)
@@ -96,69 +80,78 @@ public class ProcessExecutionManager {
             }
 
             Instant startedAt = Instant.now();
-            NodeExecutionStatus status;
+            NodeExecutionStatus status = NodeExecutionStatus.SUCCESS;
+            Continuation continuation = null;
+            Exception caughtException = null;
 
             try {
+
                 flowNodeExecutor.execute(processInstance, processDefinition, currentNode);
-                status = NodeExecutionStatus.SUCCESS;
+                boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());
+                continuation = navigator.determineNextContinuation(currentNode, processDefinition, processInstance.getVariables(), isCommitAfter);
+
             } catch (Exception e) {
                 status = NodeExecutionStatus.ERROR;
-                // TODO: error handling, maybe create a failed event and stop.
-                throw e;
+                caughtException = e;
             }
 
             if (kikwiflowConfig.isStatsEnabled() || kikwiflowConfig.isOutboxEventsEnabled()) {
                 final FlowNodeExecutionSnapshot snapshot = FlowNodeExecutionSnapshot.builder()
-                    .flowNodeDefinition(currentNode)
-                    .processDefinitionSnapshot(processDefinition)
-                    .processInstanceSnapshot(ProcessInstanceMapper.mapToRecord(processInstance))
-                    .startedAt(startedAt)
-                    .finishedAt(Instant.now())
-                    .nodeExecutionStatus(status)
-                    .build();
+                        .flowNodeDefinition(currentNode)
+                        .processDefinitionSnapshot(processDefinition)
+                        .processInstanceSnapshot(ProcessInstanceMapper.mapToRecord(processInstance))
+                        .startedAt(startedAt)
+                        .finishedAt(Instant.now())
+                        .nodeExecutionStatus(status)
+                        .build();
 
                 FlowNodeExecuted flowNodeExecuted = FlowNodeExecuted.builder()
-                    .flowNodeDefinitionId(snapshot.flowNodeDefinition().id())
-                    .processInstanceId(snapshot.processInstance().id())
-                    .processDefinitionId(snapshot.processDefinition().id())
-                    .nodeExecutionStatus(snapshot.nodeExecutionStatus())
-                    .startedAt(snapshot.startedAt())
-                    .finishedAt(snapshot.finishedAt())
-                    .build();
+                        .flowNodeDefinitionId(snapshot.flowNodeDefinition().id())
+                        .processInstanceId(snapshot.processInstance().id())
+                        .processDefinitionId(snapshot.processDefinition().id())
+                        .nodeExecutionStatus(snapshot.nodeExecutionStatus())
+                        .startedAt(snapshot.startedAt())
+                        .finishedAt(snapshot.finishedAt())
+                        .build();
 
                 criticalEvents.add(new OutboxEventEntity("FLOW_NODE_EXECUTED", flowNodeExecuted));
+
+                if (currentNode instanceof ExclusiveGatewayDefinition && continuation != null) {
+                    GatewayAnswerResolved answerEvent = new GatewayAnswerResolved(
+                            processInstance.getId(),
+                            processDefinition.id(),
+                            currentNode.id(),
+                            ((ExclusiveGatewayDefinition) currentNode).providerType(),
+                            ((ExclusiveGatewayDefinition) currentNode).providerBean(),
+                            ((ExclusiveGatewayDefinition) currentNode).providerVariable(),
+                            continuation.resolvedAnswer(),
+                            continuation.chosenFlowId(),
+                            Instant.now()
+                    );
+
+                    criticalEvents.add(new OutboxEventEntity("GATEWAY_ANSWER_RESOLVED", answerEvent));
+                }
             }
 
-            boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());
-            Continuation continuation = navigator.determineNextContinuation(currentNode, processDefinition, processInstance.getVariables(), isCommitAfter, targetFlowNodeId);
-            isFirstNodeInLoop = false;
+            if (caughtException != null) {
+                throw new RuntimeException("Execution Error: Falha na execução ou roteamento do nó [" + currentNode.id() + "]", caughtException);
+            }
 
+            isFirstNodeInLoop = false;
             if (continuation == null || continuation.isAsynchronous()) {
                 return new ExecutionResult(new ExecutionOutcome(processInstance, criticalEvents), continuation);
             } else {
-                // TODO: Handle parallel gateways in the future
                 currentNode = continuation.nextNodes().get(0);
             }
         }
+
         return new ExecutionResult(new ExecutionOutcome(processInstance, criticalEvents), null);
     }
 
-    /**
-     * Verifica se um nó é um "estado de espera" (wait state).
-     * Um estado de espera interrompe a execução síncrona do motor, aguardando um gatilho externo.
-     *
-     * @param flowNodeDefinition O nó a ser verificado.
-     * @return {@code true} se o nó implementa a interface {@link WaitState}.
-     */
     private boolean isWaitState(FlowNodeDefinition flowNodeDefinition) {
         return flowNodeDefinition instanceof WaitState;
     }
 
-    /**
-     * Verifica se um nó está configurado para forçar um commit transacional *antes* da sua execução.
-     * @param flowNodeDefinition O nó a ser verificado.
-     * @return {@code true} se o atributo `commitBefore` for verdadeiro, {@code false} caso contrário.
-     */
     private boolean isCommitBefore(FlowNodeDefinition flowNodeDefinition) {
         return Boolean.TRUE.equals(flowNodeDefinition.commitBefore());
     }

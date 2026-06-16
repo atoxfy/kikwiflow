@@ -20,26 +20,36 @@ package io.kikwiflow.sample.onboarding.process.executors;
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.api.TaskHandler;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.sample.onboarding.directory.CustomerDirectory;
+import io.kikwiflow.sample.onboarding.process.VariableScope;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Component
 public class EnrichCustomerProfileTaskHandler implements TaskHandler {
 
     private static Logger logger = LogManager.getLogger(EnrichCustomerProfileTaskHandler.class);
 
+    private final CustomerDirectory customerDirectory;
+
+    public EnrichCustomerProfileTaskHandler(CustomerDirectory customerDirectory) {
+        this.customerDirectory = customerDirectory;
+    }
+
     @Override
     public void handle(ExecutionContext execution) {
-
         String threadName = Thread.currentThread().getName();
         logger.info("[{}] EnrichCustomerProfileTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
+        VariableScope variableScope = VariableScope.ofContext(execution);
+        String taxId = variableScope.getTaxId();
+        customerDirectory.findByTaxId(taxId)
+                        .ifPresent(customer -> {
+                            variableScope.setName(customer.name());
+                            variableScope.setBirthDate(customer.birthDate());
+                        });
 
-        logger.info("EnrichCustomerProfileTaskHandler - handle {} ", execution.getProcessInstanceId());
-        String varName = "TESTE001";
-        String varValue = "TESTE001-EXECUTADO";
-
-        ProcessVariable pv = new ProcessVariable(varName,null, null, false, varValue);
-        execution.setVariable(varName,  pv );
     }
 }

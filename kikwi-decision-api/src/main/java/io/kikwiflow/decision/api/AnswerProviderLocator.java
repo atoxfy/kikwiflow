@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,18 +15,11 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.execution.dto;
+package io.kikwiflow.decision.api;
 
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-
-import java.util.List;
-
-public record Continuation(List<FlowNodeDefinition> nextNodes,
-                           boolean isAsynchronous,
-                           String resolvedAnswer,
-                           String chosenFlowId) {
-
-    public Continuation(List<FlowNodeDefinition> nextNodes, boolean isAsynchronous) {
-        this(nextNodes, isAsynchronous, null, null);
-    }
+/**
+ * Porta (Port) para a Engine buscar provedores de decisão de forma agnóstica.
+ */
+public interface AnswerProviderLocator {
+    AnswerProvider getProvider(String name);
 }

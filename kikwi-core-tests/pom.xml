@@ -76,7 +76,7 @@
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-rule-api</artifactId>
+            <artifactId>kikwi-decision-api</artifactId>
               <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

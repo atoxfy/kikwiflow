@@ -21,6 +21,8 @@ import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.api.TaskHandler;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.sample.onboarding.directory.CustomerDirectory;
+import io.kikwiflow.sample.onboarding.process.VariableScope;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -36,8 +38,12 @@ public class CalculateCustomerRiskTaskHandler implements TaskHandler {
         String threadName = Thread.currentThread().getName();
         logger.info("[{}] CalculateCustomerRiskTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
 
-        logger.info("[{}] CalculateCustomerRiskTaskHandler - Valor da variável: {}", threadName,
-                Optional.of(execution.getVariable("TESTE001")).map(ProcessVariable::value).orElse(null));
-
+        VariableScope variableScope = VariableScope.ofContext(execution);
+        String taxId = variableScope.getTaxId();
+        if(taxId.equals(CustomerDirectory.APPROVED_CUSTOMER_TAX_ID)){
+            variableScope.setRiskScore(100.00);
+        }else if(taxId.equals(CustomerDirectory.FRAUD_CUSTOMER_TAX_ID)){
+            variableScope.setRiskScore(1.00);
+        }
     }
 }

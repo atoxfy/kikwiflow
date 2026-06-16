@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,18 +15,26 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.execution.dto;
+package io.kikwiflow.decision.api;
 
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import java.util.Map;
+import java.util.Optional;
 
-import java.util.List;
+/**
+ * Contexto de leitura injetado nos AnswerProviders.
+ * Garante a imutabilidade dos dados durante o processo de decisão.
+ */
+public interface AnswerContext {
 
-public record Continuation(List<FlowNodeDefinition> nextNodes,
-                           boolean isAsynchronous,
-                           String resolvedAnswer,
-                           String chosenFlowId) {
+    String getProcessInstanceId();
 
-    public Continuation(List<FlowNodeDefinition> nextNodes, boolean isAsynchronous) {
-        this(nextNodes, isAsynchronous, null, null);
-    }
+    /**
+     * Retorna o valor de uma variável de processo.
+     */
+    Optional<Object> getVariableValue(String name);
+
+    /**
+     * Retorna um mapa imutável com todas as variáveis do escopo atual.
+     */
+    Map<String, Object> getVariables();
 }

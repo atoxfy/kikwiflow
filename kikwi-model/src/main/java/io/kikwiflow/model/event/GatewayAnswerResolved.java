@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.execution.dto;
+package io.kikwiflow.model.event;
 
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
 
-import java.util.List;
+import java.time.Instant;
 
-public record Continuation(List<FlowNodeDefinition> nextNodes,
-                           boolean isAsynchronous,
-                           String resolvedAnswer,
-                           String chosenFlowId) {
-
-    public Continuation(List<FlowNodeDefinition> nextNodes, boolean isAsynchronous) {
-        this(nextNodes, isAsynchronous, null, null);
-    }
-}
+public record GatewayAnswerResolved(
+        String processInstanceId,
+        String processDefinitionId,
+        String gatewayNodeId,
+        AnswerProviderType answerProviderType,
+        String providerBean,
+        String providerVariable,
+        String resolvedAnswer,
+        String chosenFlowId,
+        Instant evaluatedAt
+) implements CriticalEvent{}
