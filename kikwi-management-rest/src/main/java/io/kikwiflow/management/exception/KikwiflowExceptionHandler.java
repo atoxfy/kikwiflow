@@ -39,6 +39,12 @@ public class KikwiflowExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(error);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
+        var error = new ErrorResponse("CONFLICT", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
 
     public record ErrorResponse(String code, String message) {}
 }
