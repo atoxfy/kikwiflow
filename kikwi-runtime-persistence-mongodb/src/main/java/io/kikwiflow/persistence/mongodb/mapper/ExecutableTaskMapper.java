@@ -35,7 +35,7 @@ public final class ExecutableTaskMapper {
                 .append("name", task.name())
                 .append("description", task.description())
                 .append("processDefinitionId", task.processDefinitionId())
-                .append("createdAt", task.createdAt())
+                .append("createdAt", task.createdAt() != null ? java.util.Date.from(task.createdAt()) : null)
                 .append("executions", task.executions())
                 .append("retries", task.retries())
                 .append("processInstanceId", task.processInstanceId())
@@ -43,7 +43,7 @@ public final class ExecutableTaskMapper {
                 .append("status", task.status() != null ? task.status().name() : null)
                 .append("executorId", task.executorId())
                 .append("acquiredAt", task.acquiredAt())
-                .append("dueDate", task.dueDate())
+                .append("dueDate", task.dueDate() != null ? java.util.Date.from(task.dueDate()) : null)
                 .append("attachedToRefId", task.attachedToRefId())
                 .append("boundaryEvents", task.boundaryEvents());
 

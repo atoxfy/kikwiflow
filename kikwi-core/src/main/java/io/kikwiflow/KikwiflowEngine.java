@@ -158,6 +158,27 @@ public class KikwiflowEngine {
 
         ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
         FlowNodeDefinition flowNodeDefinition = processDefinition.flowNodes().get(executableTask.taskDefinitionId());
+
+        if (flowNodeDefinition == null) {
+            flowNodeDefinition = processDefinition.flowNodes().values().stream()
+                    .map(node -> {
+                        if (node instanceof io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition st) {
+                            return st.boundaryEvents();
+                        } else if (node instanceof io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition et) {
+                            return et.boundaryEvents();
+                        }
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .flatMap(List::stream)
+                    .filter(b -> b.id().equals(executableTask.taskDefinitionId()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        if (flowNodeDefinition == null) {
+            throw new TaskNotFoundException("Definição de nó não encontrada na ProcessDefinition para a tarefa: " + executableTask.taskDefinitionId());
+        }
         ExecutionResult executionResult;
 
         try {

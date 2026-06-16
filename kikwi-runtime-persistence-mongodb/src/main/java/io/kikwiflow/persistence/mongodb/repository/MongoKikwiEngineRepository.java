@@ -322,18 +322,22 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
         Instant lockExpirationThreshold = now.minusMillis(lockTimeoutMillis);
 
+        java.util.Date nowDate = java.util.Date.from(now);
+        java.util.Date thresholdDate = java.util.Date.from(lockExpirationThreshold);
+        java.util.Date acquiredAtDate = java.util.Date.from(Instant.now());
+        System.out.println("findAndLockDueTasks " + nowDate.toInstant() );
         for (int i = 0; i < limit; i++) {
             Bson pendingFilter = and(
                     eq("status", ExecutableTaskStatus.PENDING.name()),
                     or(
                             eq("dueDate", null),
-                            lte("dueDate", now)
+                            lte("dueDate", nowDate)
                     )
             );
 
             Bson stuckLockedFilter = and(
                     eq("status", ExecutableTaskStatus.LOCKED.name()),
-                    lte("acquiredAt", lockExpirationThreshold)
+                    lte("acquiredAt", thresholdDate)
             );
 
             Bson finalFilter = or(pendingFilter, stuckLockedFilter);
@@ -341,7 +345,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
             Bson update = Updates.combine(
                     Updates.set("status", ExecutableTaskStatus.LOCKED.name()),
                     Updates.set("executorId", workerId),
-                    Updates.set("acquiredAt", Instant.now())
+                    Updates.set("acquiredAt", acquiredAtDate)
             );
 
             FindOneAndUpdateOptions options = new FindOneAndUpdateOptions()
@@ -356,6 +360,8 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
             lockedTasks.add(ExecutableTaskMapper.fromDocument(lockedDoc));
         }
+
+        System.out.println("findAndLockDueTasks " + lockedTasks.size());
 
         return lockedTasks;
     }
