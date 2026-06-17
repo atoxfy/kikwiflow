@@ -17,7 +17,7 @@
 
 package io.kikwiflow.history.repository;
 
-import io.kikwiflow.model.event.FlowNodeExecuted;
+import io.kikwiflow.model.event.FlowNodeFinished;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,14 +27,14 @@ import java.util.Objects;
 
 public class FlowNodeExecutionSnapshotInMemoryRepository implements FlowNodeExecutionSnapshotRepository {
 
-    private Map<String, List<FlowNodeExecuted>> coveredElements = new HashMap<String, List<FlowNodeExecuted>>();
+    private Map<String, List<FlowNodeFinished>> coveredElements = new HashMap<String, List<FlowNodeFinished>>();
 
 
     @Override
-    public void save(FlowNodeExecuted flowNodeExecutionSnapshot) {
+    public void save(FlowNodeFinished flowNodeExecutionSnapshot) {
         String processInstanceId = flowNodeExecutionSnapshot.getProcessInstanceId();
 
-        List<FlowNodeExecuted> processInstanceIdElements = coveredElements.get(processInstanceId);
+        List<FlowNodeFinished> processInstanceIdElements = coveredElements.get(processInstanceId);
         if(Objects.isNull(processInstanceIdElements)){
             processInstanceIdElements = new ArrayList<>();
         }

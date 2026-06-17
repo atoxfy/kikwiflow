@@ -17,10 +17,13 @@
 package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.execution.enumerated.ExternalTaskStatus;
+import io.kikwiflow.model.execution.node.AttachedEventReference;
+import io.kikwiflow.model.execution.node.AttachedTaskType;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import org.bson.Document;
 
 import java.util.Collections;
+import java.util.List;
 
 
 public final class ExternalTaskMapper {
@@ -30,7 +33,7 @@ public final class ExternalTaskMapper {
     public static Document toDocument(ExternalTask task) {
         if (task == null) return null;
 
-        return new Document("_id", task.id())
+        Document doc = new Document("_id", task.id())
                 .append("name", task.name())
                 .append("description", task.description())
                 .append("taskDefinitionId", task.taskDefinitionId())
@@ -41,7 +44,20 @@ public final class ExternalTaskMapper {
                 .append("topicName", task.topicName())
                 .append("assignee", task.assignee())
                 .append("tenantId", task.tenantId())
-                .append("boundaryEvents", task.boundaryEvents());
+                .append("attachedToRefId", task.attachedToRefId())
+                .append("attachedToRefDefinitionId", task.attachedToRefDefinitionId())
+                .append("attachedToRefType", task.attachedToRefType() != null ? task.attachedToRefType().name() : null)
+                .append("boundaryEvents", task.boundaryEvents() != null ?
+                        task.boundaryEvents().stream()
+                                .map(AttachedEventReferenceMapper::toDocument)
+                                .toList() :
+                        Collections.emptyList());
+
+        if (task.attachedToRefDefinitionId() != null) {
+            doc.append("attachedToRefDefinitionId", task.attachedToRefDefinitionId());
+        }
+
+        return doc;
     }
 
     public static ExternalTask fromDocument(Document doc) {
@@ -49,6 +65,14 @@ public final class ExternalTaskMapper {
 
         String statusStr = doc.getString("status");
         ExternalTaskStatus status = statusStr != null ? ExternalTaskStatus.valueOf(statusStr) : null;
+
+        List<Document> boundaryDocs = doc.getList("boundaryEvents", Document.class, Collections.emptyList());
+        List<AttachedEventReference> boundaryEvents = boundaryDocs.stream()
+                .map(AttachedEventReferenceMapper::fromDocument)
+                .toList();
+
+        String attachedTypeStr = doc.getString("attachedToRefType");
+        AttachedTaskType attachedType = attachedTypeStr != null ? AttachedTaskType.valueOf(attachedTypeStr) : null;
 
         return ExternalTask.builder()
                 .id(doc.getString("_id"))
@@ -61,8 +85,10 @@ public final class ExternalTaskMapper {
                 .createdAt(InstantMapper.mapToInstant("createdAt", doc))
                 .topicName(doc.getString("topicName"))
                 .assignee(doc.getString("assignee"))
-                .tenantId(doc.getString("tenantId"))
-                .boundaryEvents(doc.getList("boundaryEvents", String.class, Collections.emptyList()))
+                .attachedToRefId(doc.getString("attachedToRefId"))
+                .attachedToRefDefinitionId(doc.getString("attachedToRefDefinitionId"))
+                .attachedToRefType(attachedType)
+                .boundaryEvents(boundaryEvents)
                 .build();
     }
 }

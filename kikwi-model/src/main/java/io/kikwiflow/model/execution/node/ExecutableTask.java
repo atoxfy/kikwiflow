@@ -38,7 +38,8 @@ public record ExecutableTask (String id,
                                Instant dueDate,
                                String attachedToRefId,
                                AttachedTaskType attachedToRefType,
-                               List<String> boundaryEvents){
+                               String attachedToRefDefinitionId,
+                               List<AttachedEventReference> boundaryEvents){
 
     public static Builder builder() {
         return new Builder();
@@ -62,6 +63,7 @@ public record ExecutableTask (String id,
                 .acquiredAt(this.acquiredAt)
                 .attachedToRefId(this.attachedToRefId)
                 .attachedToRefType(this.attachedToRefType)
+                .attachedToRefDefinitionId(this.attachedToRefDefinitionId)
                 .boundaryEvents(this.boundaryEvents);
     }
 
@@ -82,12 +84,14 @@ public record ExecutableTask (String id,
         private Instant dueDate;
         private String attachedToRefId;
         private AttachedTaskType attachedToRefType;
-        private List<String> boundaryEvents;
-
+        private List<AttachedEventReference> boundaryEvents;
+        private String attachedToRefDefinitionId;
 
         private Builder() {}
 
         public Builder id(String id) { this.id = id; return this; }
+        public Builder attachedToRefDefinitionId(String attachedToRefDefinitionId) { this.attachedToRefDefinitionId = attachedToRefDefinitionId; return this; }
+
         public Builder taskDefinitionId(String taskDefinitionId) { this.taskDefinitionId = taskDefinitionId; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder description(String description) { this.description = description; return this; }
@@ -102,7 +106,7 @@ public record ExecutableTask (String id,
         public Builder acquiredAt(Instant acquiredAt) { this.acquiredAt = acquiredAt; return this; }
         public Builder attachedToRefId(String attachedToRefId) { this.attachedToRefId = attachedToRefId; return this; }
         public Builder attachedToRefType(AttachedTaskType attachedToRefType) { this.attachedToRefType = attachedToRefType; return this; }
-        public Builder boundaryEvents(List<String> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
+        public Builder boundaryEvents(List<AttachedEventReference> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
         public Builder dueDate(Instant dueDate) { this.dueDate = dueDate; return this; }
 
         public ExecutableTask build() {
@@ -123,9 +127,9 @@ public record ExecutableTask (String id,
                 this.dueDate,
                 this.attachedToRefId,
                 this.attachedToRefType,
+                this.attachedToRefDefinitionId,
                 this.boundaryEvents
             );
         }
     }
-
 }

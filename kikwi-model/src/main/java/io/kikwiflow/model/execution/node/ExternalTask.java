@@ -38,7 +38,10 @@ public record ExternalTask (
          String topicName,
          String assignee,
          String tenantId,
-         List<String> boundaryEvents){
+         List<AttachedEventReference> boundaryEvents,
+         AttachedTaskType attachedToRefType,
+         String attachedToRefId,
+         String attachedToRefDefinitionId){
 
     public static Builder builder() {
         return new Builder();
@@ -56,11 +59,17 @@ public record ExternalTask (
         private String topicName;
         private String assignee;
         private String tenantId;
-        private List<String> boundaryEvents;
+        private List<AttachedEventReference> boundaryEvents;
+        private AttachedTaskType attachedToRefType;
+        private String attachedToRefId;
+        private String attachedToRefDefinitionId;
 
         private Builder() {}
 
         public Builder id(String id) { this.id = id; return this; }
+        public Builder attachedToRefType(AttachedTaskType attachedToRefType) { this.attachedToRefType = attachedToRefType; return this; }
+        public Builder attachedToRefDefinitionId(String attachedToRefDefinitionId) { this.attachedToRefDefinitionId = attachedToRefDefinitionId; return this; }
+        public Builder attachedToRefId(String attachedToRefId) { this.attachedToRefId = attachedToRefId; return this; }
         public Builder tenantId(String tenantId) { this.tenantId = tenantId; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder description(String description) { this.description = description; return this; }
@@ -71,7 +80,7 @@ public record ExternalTask (
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder topicName(String topicName) { this.topicName = topicName; return this; }
         public Builder assignee(String assignee) { this.assignee = assignee; return this; }
-        public Builder boundaryEvents(List<String> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
+        public Builder boundaryEvents(List<AttachedEventReference> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
 
         public ExternalTask build() {
             return new ExternalTask(
@@ -86,7 +95,10 @@ public record ExternalTask (
                 this.topicName,
                 this.assignee,
                 this.tenantId,
-                this.boundaryEvents
+                this.boundaryEvents,
+                this.attachedToRefType,
+                this.attachedToRefId,
+                this.attachedToRefDefinitionId
             );
         }
     }

@@ -38,4 +38,4 @@ public record UnitOfWork(
         List<OutboxEventEntity> events,
         List<Incident> incidentsToCreate,
         List<String> incidentsToResolve,
-        List<String> completedNodeDefinitions) {}
+        List<String> finishedNodeDefinitions) {}

@@ -17,11 +17,13 @@
 package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
+import io.kikwiflow.model.execution.node.AttachedEventReference;
 import io.kikwiflow.model.execution.node.AttachedTaskType;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import org.bson.Document;
 
 import java.util.Collections;
+import java.util.List;
 
 public final class ExecutableTaskMapper {
 
@@ -45,10 +47,15 @@ public final class ExecutableTaskMapper {
                 .append("acquiredAt", task.acquiredAt())
                 .append("dueDate", task.dueDate() != null ? java.util.Date.from(task.dueDate()) : null)
                 .append("attachedToRefId", task.attachedToRefId())
-                .append("boundaryEvents", task.boundaryEvents());
+                .append("attachedToRefType", task.attachedToRefType() != null ? task.attachedToRefType().name() : null)
+                .append("boundaryEvents", task.boundaryEvents() != null ?
+                        task.boundaryEvents().stream()
+                                .map(AttachedEventReferenceMapper::toDocument)
+                                .toList() :
+                        Collections.emptyList());
 
-        if (task.attachedToRefType() != null) {
-            doc.append("attachedToRefType", task.attachedToRefType().name());
+        if (task.attachedToRefDefinitionId() != null) {
+            doc.append("attachedToRefDefinitionId", task.attachedToRefDefinitionId());
         }
 
         return doc;
@@ -62,6 +69,10 @@ public final class ExecutableTaskMapper {
 
         String attachedTypeStr = doc.getString("attachedToRefType");
         AttachedTaskType attachedType = attachedTypeStr != null ? AttachedTaskType.valueOf(attachedTypeStr) : null;
+        List<Document> boundaryDocs = doc.getList("boundaryEvents", Document.class, Collections.emptyList());
+        List<AttachedEventReference> boundaryEvents = boundaryDocs.stream()
+                .map(AttachedEventReferenceMapper::fromDocument)
+                .toList();
 
         return ExecutableTask.builder()
                 .id(doc.getString("_id"))
@@ -80,7 +91,8 @@ public final class ExecutableTaskMapper {
                 .dueDate(InstantMapper.mapToInstant("dueDate", doc))
                 .attachedToRefId(doc.getString("attachedToRefId"))
                 .attachedToRefType(attachedType)
-                .boundaryEvents(doc.getList("boundaryEvents", String.class, Collections.emptyList()))
+                .attachedToRefDefinitionId(doc.getString("attachedToRefDefinitionId"))
+                .boundaryEvents(boundaryEvents)
                 .build();
     }
 }

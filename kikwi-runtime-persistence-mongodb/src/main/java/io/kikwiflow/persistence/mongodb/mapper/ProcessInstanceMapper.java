@@ -47,11 +47,6 @@ public final class ProcessInstanceMapper {
                 .append("origin", instance.origin())
                 .append("version", instance.version());
 
-        if (instance.activeNodes() != null && !instance.activeNodes().isEmpty()) {
-            doc.append("activeNodes", new Document(instance.activeNodes()));
-        } else {
-            doc.append("activeNodes", new Document());
-        }
 
         if (instance.businessValue() != null) {
             doc.append("businessValue", new Decimal128(instance.businessValue()));

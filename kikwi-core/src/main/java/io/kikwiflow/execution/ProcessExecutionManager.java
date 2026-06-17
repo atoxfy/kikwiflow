@@ -24,7 +24,7 @@ import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.event.FlowNodeExecuted;
+import io.kikwiflow.model.event.FlowNodeFinished;
 import io.kikwiflow.model.event.GatewayAnswerResolved;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.FlowNodeExecutionSnapshot;
@@ -105,8 +105,9 @@ public class ProcessExecutionManager {
                         .nodeExecutionStatus(status)
                         .build();
 
-                FlowNodeExecuted flowNodeExecuted = FlowNodeExecuted.builder()
+                FlowNodeFinished flowNodeFinished = FlowNodeFinished.builder()
                         .flowNodeDefinitionId(snapshot.flowNodeDefinition().id())
+                        .flowNodeType(snapshot.flowNodeDefinition().type())
                         .processInstanceId(snapshot.processInstance().id())
                         .processDefinitionId(snapshot.processDefinition().id())
                         .nodeExecutionStatus(snapshot.nodeExecutionStatus())
@@ -114,7 +115,7 @@ public class ProcessExecutionManager {
                         .finishedAt(snapshot.finishedAt())
                         .build();
 
-                criticalEvents.add(new OutboxEventEntity("FLOW_NODE_EXECUTED", flowNodeExecuted));
+                criticalEvents.add(new OutboxEventEntity("FLOW_NODE_FINISHED", flowNodeFinished));
 
                 if (currentNode instanceof ExclusiveGatewayDefinition && continuation != null) {
                     GatewayAnswerResolved answerEvent = new GatewayAnswerResolved(

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,10 +15,13 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.history.repository;
+package io.kikwiflow.model.execution.node;
 
-import io.kikwiflow.model.event.FlowNodeFinished;
-
-public interface FlowNodeExecutionSnapshotRepository {
-    public void save(FlowNodeFinished flowNodeExecutionSnapshot);
-}
+/**
+ * Representa a referência de um evento anexado a um nó (como um Boundary Event).
+ * Mantém a coesão entre a instância em execução e a sua definição original.
+ */
+public record AttachedEventReference(
+        String instanceId,
+        String definitionId
+) {}

@@ -199,6 +199,26 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
                 if (unitOfWork.instanceToCreate() != null) {
                     Document instanceDoc = ProcessInstanceMapper.toDocument(unitOfWork.instanceToCreate());
+                    Document initialActiveNodes = new Document();
+
+                    if (unitOfWork.executableTasksToCreate() != null) {
+                        for (ExecutableTask t : unitOfWork.executableTasksToCreate()) {
+                            String definitionId = t.taskDefinitionId();
+                            initialActiveNodes.put(definitionId, initialActiveNodes.getInteger(definitionId, 0) + 1);
+                        }
+                    }
+
+                    if (unitOfWork.externalTasksToCreate() != null) {
+                        for (ExternalTask t : unitOfWork.externalTasksToCreate()) {
+                            String definitionId = t.taskDefinitionId();
+                            initialActiveNodes.put(definitionId, initialActiveNodes.getInteger(definitionId, 0) + 1);
+                        }
+                    }
+
+                    if (!initialActiveNodes.isEmpty()) {
+                        instanceDoc.put("activeNodes", initialActiveNodes);
+                    }
+
                     processInstances.insertOne(clientSession, instanceDoc);
                 }
 
@@ -211,8 +231,8 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
                     List<Bson> updates = new ArrayList<>();
                     updates.add(Updates.inc("version", 1));
-                    if (unitOfWork.completedNodeDefinitions() != null) {
-                        for (String nodeId : unitOfWork.completedNodeDefinitions()) {
+                    if (unitOfWork.finishedNodeDefinitions() != null) {
+                        for (String nodeId : unitOfWork.finishedNodeDefinitions()) {
                             updates.add(Updates.inc("activeNodes." + nodeId, -1));
                         }
                     }

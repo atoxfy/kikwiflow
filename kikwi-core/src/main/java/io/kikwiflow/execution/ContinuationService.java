@@ -22,14 +22,17 @@ import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
+import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
-import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
-import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
+import io.kikwiflow.model.event.FlowNodeFinished;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.enumerated.NodeExecutionStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.model.execution.node.AttachedEventReference;
 import io.kikwiflow.model.execution.node.AttachedTaskType;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
@@ -65,6 +68,7 @@ public class ContinuationService {
         return this.handleContinuation(executionResult, null, null);
     }
 
+
     /**
      * Orquestra a persistência do estado final de uma execução síncrona.
      * Este método constrói e comita a {@link UnitOfWork}.
@@ -95,6 +99,7 @@ public class ContinuationService {
 
         List<OutboxEventEntity> events = new ArrayList<>(executionOutcome.events());
         if(kikwiflowConfig.isOutboxEventsEnabled() && ProcessInstanceStatus.COMPLETED.equals(processInstance.getStatus())){
+
             ProcessInstanceFinished processInstanceFinished = ProcessInstanceFinished.builder()
                     .processDefinitionId(processInstance.getProcessDefinitionId())
                     .businessKey(processInstance.getBusinessKey())
@@ -111,38 +116,72 @@ public class ContinuationService {
         ProcessInstance processInstanceToSave = ProcessInstanceMapper.mapToRecord(processInstance);
         List<String> executableTasksToDelete = new ArrayList<>();
         List<String> externalTasksToDelete = new ArrayList<>();
-        List<String> completedNodeDefinitions = new ArrayList<>();
+        List<String> finishedNodeDefinitions = new ArrayList<>();
 
         if (completedExecutableTask != null) {
             executableTasksToDelete.add(completedExecutableTask.id());
-            completedNodeDefinitions.add(completedExecutableTask.taskDefinitionId());
-            String nodeId = completedExecutableTask.taskDefinitionId();
-            processInstance.getActiveNodes().merge(nodeId, -1, Integer::sum);
+            finishedNodeDefinitions.add(completedExecutableTask.taskDefinitionId());
 
-            if(Objects.nonNull(completedExecutableTask.boundaryEvents())){
-                executableTasksToDelete.addAll(completedExecutableTask.boundaryEvents());
-                //completedNodeDefinitions.addAll(completedExecutableTask.boundaryEvents()); //Ver se nao precisamos de um novo status
-            }
-
-
-            if(Objects.nonNull(completedExecutableTask.attachedToRefId())){
-                if(completedExecutableTask.attachedToRefType().equals(AttachedTaskType.EXECUTABLE_TASK)){
+            if (completedExecutableTask.attachedToRefId() != null) {
+                if (completedExecutableTask.attachedToRefType().equals(AttachedTaskType.EXECUTABLE_TASK)) {
                     executableTasksToDelete.add(completedExecutableTask.attachedToRefId());
-
-                }else{
+                } else {
                     externalTasksToDelete.add(completedExecutableTask.attachedToRefId());
                 }
+
+                finishedNodeDefinitions.add(completedExecutableTask.attachedToRefDefinitionId());
+
+                FlowNodeFinished interruptedEvent = FlowNodeFinished.builder()
+                        .flowNodeDefinitionId(completedExecutableTask.attachedToRefDefinitionId())
+                        .processInstanceId(processInstance.getId())
+                        .processDefinitionId(processInstance.getProcessDefinitionId())
+                        .interruptedByNodeDefinitionId(completedExecutableTask.taskDefinitionId())
+                        .finishedAt(Instant.now())
+                        .nodeExecutionStatus(NodeExecutionStatus.INTERRUPTED)
+                        .build();
+
+                events.add(new OutboxEventEntity("FLOW_NODE_FINISHED", interruptedEvent));
+            }
+
+            if (completedExecutableTask.boundaryEvents() != null) {
+                completedExecutableTask.boundaryEvents().forEach(eventRef -> {
+                    executableTasksToDelete.add(eventRef.instanceId());
+                });
             }
         }
 
         if (completedExternalTask != null) {
             externalTasksToDelete.add(completedExternalTask.id());
-            String nodeId = completedExternalTask.taskDefinitionId();
-            processInstance.getActiveNodes().merge(nodeId, -1, Integer::sum);
+            finishedNodeDefinitions.add(completedExternalTask.taskDefinitionId());
 
-            if(Objects.nonNull(completedExternalTask.boundaryEvents())){
-                executableTasksToDelete.addAll(completedExternalTask.boundaryEvents());
-                completedNodeDefinitions.add(completedExternalTask.taskDefinitionId());
+            if (completedExternalTask.attachedToRefId() != null) {
+                if (completedExternalTask.attachedToRefType().equals(AttachedTaskType.EXECUTABLE_TASK)) {
+                    executableTasksToDelete.add(completedExternalTask.attachedToRefId());
+                } else {
+                    externalTasksToDelete.add(completedExternalTask.attachedToRefId());
+                }
+
+                finishedNodeDefinitions.add(completedExternalTask.attachedToRefDefinitionId());
+
+                if(kikwiflowConfig.isOutboxEventsEnabled()){
+                    FlowNodeFinished interruptedEvent = FlowNodeFinished.builder()
+                            .flowNodeDefinitionId(completedExternalTask.attachedToRefDefinitionId())
+                            .processInstanceId(processInstance.getId())
+                            .processDefinitionId(processInstance.getProcessDefinitionId())
+                            .interruptedByNodeDefinitionId(completedExternalTask.taskDefinitionId())
+                            .finishedAt(Instant.now())
+                            .nodeExecutionStatus(NodeExecutionStatus.INTERRUPTED)
+                            .build();
+
+                    events.add(new OutboxEventEntity("FLOW_NODE_FINISHED", interruptedEvent));
+                }
+            }
+
+            if (completedExternalTask.boundaryEvents() != null) {
+                completedExternalTask.boundaryEvents().forEach(eventRef -> {
+                    executableTasksToDelete.add(eventRef.instanceId());
+                    finishedNodeDefinitions.add(eventRef.definitionId());
+                });
             }
         }
 
@@ -178,7 +217,7 @@ public class ContinuationService {
                 events,
                 null,
                 null,
-                completedNodeDefinitions
+                finishedNodeDefinitions
         );
 
         kikwiEngineRepository.commitWork(updatedUnitOfWork);
@@ -189,7 +228,7 @@ public class ContinuationService {
         return continuation != null && continuation.isAsynchronous();
     }
 
-    private ExecutableTask getExecutableTaskFrom(String mainTaskId, String processInstanceId, String taskDefinitionId, String processDefinitionId, AttachedTaskType mainTaskType, String duration){
+    private ExecutableTask getExecutableTaskFrom(String mainTaskId, String processInstanceId, String taskDefinitionId, String processDefinitionId, AttachedTaskType mainTaskType, String duration, String flowNodeDefinitionId){
         return  ExecutableTask.builder()
                 .id(UUID.randomUUID().toString())
                 .processDefinitionId(processDefinitionId)
@@ -198,6 +237,7 @@ public class ContinuationService {
                 .dueDate(parseDuration(duration))
                 .attachedToRefId(mainTaskId)
                 .attachedToRefType(mainTaskType)
+                .attachedToRefDefinitionId(flowNodeDefinitionId)
                 .build();
     }
 
@@ -210,12 +250,10 @@ public class ContinuationService {
         String processInstanceId = processInstanceExecution.getId();
         String processDefinitionId = processInstanceExecution.getProcessDefinitionId();
 
-        processInstanceExecution.getActiveNodes().merge(flowNodeDefinitionId, 1, Integer::sum);
-
         if(flowNodeDefinition instanceof ExternalTaskDefinition mt){
 
             String externalTaskNodeId = UUID.randomUUID().toString();
-            List<String> boundaryEvents = new ArrayList<>();
+            List<AttachedEventReference> boundaryEvents = new ArrayList<>();
             if(Objects.nonNull(mt.boundaryEvents())
                     && !mt.boundaryEvents().isEmpty()){
                 mt.boundaryEvents()
@@ -225,9 +263,10 @@ public class ContinuationService {
                                     boundaryEventDefinition.id(),
                                     processDefinitionId,
                                     AttachedTaskType.EXTERNAL_TASK,
-                                    ((InterruptiveTimerEventDefinition)boundaryEventDefinition).duration());
+                                    ((InterruptiveTimerEventDefinition)boundaryEventDefinition).duration(),
+                                    flowNodeDefinitionId);
 
-                            boundaryEvents.add(boundaryEvent.id());
+                            boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id()));
                             nextExecutableTasks.add(boundaryEvent);
                         });
             }
@@ -247,7 +286,7 @@ public class ContinuationService {
 
         }else if (flowNodeDefinition instanceof ExecutableTaskDefinition st){
             String executableTaskNodeId = UUID.randomUUID().toString();
-            List<String> boundaryEvents = new ArrayList<>();
+            List<AttachedEventReference> boundaryEvents = new ArrayList<>();
 
             if( Objects.nonNull(st.boundaryEvents())
                     && !st.boundaryEvents().isEmpty()){
@@ -259,10 +298,11 @@ public class ContinuationService {
                                     boundaryEventDefinition.id(),
                                     processDefinitionId,
                                     AttachedTaskType.EXECUTABLE_TASK,
-                                    ((InterruptiveTimerEventDefinition)boundaryEventDefinition).duration());
+                                    ((InterruptiveTimerEventDefinition)boundaryEventDefinition).duration(),
+                                    flowNodeDefinitionId);
 
                             nextExecutableTasks.add(boundaryEvent);
-                            boundaryEvents.add(boundaryEvent.id());
+                            boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id()));
                         });
             }
 

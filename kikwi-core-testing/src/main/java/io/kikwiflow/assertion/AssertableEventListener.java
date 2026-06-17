@@ -20,7 +20,7 @@ package io.kikwiflow.assertion;
 import io.kikwiflow.history.repository.FlowNodeExecutionSnapshotInMemoryRepository;
 import io.kikwiflow.history.repository.ProcessInstanceInMemorySnapshotRepository;
 import io.kikwiflow.model.event.CriticalEvent;
-import io.kikwiflow.model.event.FlowNodeExecuted;
+import io.kikwiflow.model.event.FlowNodeFinished;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
 
@@ -45,8 +45,8 @@ public class AssertableEventListener {
         while ((outboxEvent = outboxEventQueue.poll()) != null) {
 
             CriticalEvent event = outboxEvent.getPayload();
-            if(event instanceof FlowNodeExecuted flowNodeExecuted){
-                flowNodeExecutionSnapshotRepository.save(flowNodeExecuted);
+            if(event instanceof FlowNodeFinished flowNodeFinished){
+                flowNodeExecutionSnapshotRepository.save(flowNodeFinished);
             } else if (event instanceof ProcessInstanceFinished processInstanceFinished) {
                 processInstanceSnapshotRepository.save(processInstanceFinished);
             }

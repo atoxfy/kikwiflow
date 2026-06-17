@@ -22,12 +22,14 @@ import io.kikwiflow.model.execution.enumerated.NodeExecutionStatus;
 
 import java.time.Instant;
 
-public class FlowNodeExecuted implements CriticalEvent {
+public class FlowNodeFinished implements CriticalEvent {
 
     private String flowNodeDefinitionId;
     private String processDefinitionId;
     private String processInstanceId;
+    private String flowNodeType;
     private Instant startedAt;
+    private String interruptedByNodeDefinitionId;
     private Instant finishedAt;
     private NodeExecutionStatus nodeExecutionStatus;
 
@@ -37,6 +39,22 @@ public class FlowNodeExecuted implements CriticalEvent {
 
     public void setFlowNodeDefinitionId(String flowNodeDefinitionId) {
         this.flowNodeDefinitionId = flowNodeDefinitionId;
+    }
+
+    public String getFlowNodeType() {
+        return flowNodeType;
+    }
+
+    public String getInterruptedByNodeDefinitionId() {
+        return interruptedByNodeDefinitionId;
+    }
+
+    public void setInterruptedByNodeDefinitionId(String interruptedByNodeDefinitionId) {
+        this.interruptedByNodeDefinitionId = interruptedByNodeDefinitionId;
+    }
+
+    public void setFlowNodeType(String flowNodeType) {
+        this.flowNodeType = flowNodeType;
     }
 
     public String getProcessDefinitionId() {
@@ -89,12 +107,24 @@ public class FlowNodeExecuted implements CriticalEvent {
         private String processInstanceId;
         private Instant startedAt;
         private Instant finishedAt;
+        private String flowNodeType;
         private NodeExecutionStatus nodeExecutionStatus;
+        private String interruptedByNodeDefinitionId;
 
         private Builder() {}
 
         public Builder flowNodeDefinitionId(String flowNodeDefinitionId) {
             this.flowNodeDefinitionId = flowNodeDefinitionId;
+            return this;
+        }
+
+        public Builder interruptedByNodeDefinitionId(String interruptedByNodeDefinitionId) {
+            this.interruptedByNodeDefinitionId = interruptedByNodeDefinitionId;
+            return this;
+        }
+
+        public Builder flowNodeType(String flowNodeType) {
+            this.flowNodeType = flowNodeType;
             return this;
         }
 
@@ -123,14 +153,16 @@ public class FlowNodeExecuted implements CriticalEvent {
             return this;
         }
 
-        public FlowNodeExecuted build() {
-            FlowNodeExecuted event = new FlowNodeExecuted();
+        public FlowNodeFinished build() {
+            FlowNodeFinished event = new FlowNodeFinished();
             event.setFlowNodeDefinitionId(this.flowNodeDefinitionId);
             event.setProcessDefinitionId(this.processDefinitionId);
             event.setProcessInstanceId(this.processInstanceId);
             event.setStartedAt(this.startedAt);
             event.setFinishedAt(this.finishedAt);
             event.setNodeExecutionStatus(this.nodeExecutionStatus);
+            event.setFlowNodeType(this.flowNodeType);
+            event.setInterruptedByNodeDefinitionId(this.interruptedByNodeDefinitionId);
             return event;
         }
     }
