@@ -1,0 +1,159 @@
+{
+  "key": "customer-invite-activation",
+  "name": "Ativação Convite",
+  "description": "",
+  "extensionProperties": {},
+  "flowNodes": {
+    "0d4d562e-b6fe-4209-91b2-5370943f9113": {
+      "id": "0d4d562e-b6fe-4209-91b2-5370943f9113",
+      "name": "Iniciar ativação de conta",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-717482bb-3c2a-4c16-8935-a7e8626e46e1",
+          "name": "",
+          "targetNodeId": "send-customer-invite",
+          "isDefault": false,
+          "extensionProperties": {}
+        }
+      ],
+      "layout": {
+        "x": 194,
+        "y": 306
+      },
+      "extensionProperties": {}
+    },
+    "send-customer-invite": {
+      "id": "send-customer-invite",
+      "name": "Enviar e-mail de convite",
+      "backoffStrategy": "R3/1S",
+      "type": "EXECUTABLE_TASK",
+      "executor": "sendCustomerInvite",
+      "commitBefore": true,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-5b6f4251-de0b-42b0-a3d6-157c57a9e36b",
+          "name": "",
+          "targetNodeId": "wait-customer-registry",
+          "extensionProperties": {}
+        }
+      ],
+      "layout": {
+        "x": 276,
+        "y": 292
+      },
+      "extensionProperties": {}
+    },
+    "wait-customer-registry": {
+      "id": "wait-customer-registry",
+      "name": "Aguardar Cadastro",
+      "sla": "PT2M",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-0d2e605d-1bc2-4baf-87d2-a43ad57b461f",
+          "name": "",
+          "targetNodeId": "68bbf4c0-9363-4ba8-9a7f-93599157002a",
+          "isDefault": false,
+          "extensionProperties": {}
+        }
+      ],
+      "boundaryEvents": [
+        {
+          "id": "interruptive-timer-EXTERNAL_72040E2C",
+          "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+          "duration": "PT2M",
+          "attachedToRef": "wait-customer-registry",
+          "outgoing": [
+            {
+              "id": "flow-ffe85950-5861-401c-92d8-36c7b4ddce6e",
+              "name": "",
+              "targetNodeId": "49d427d9-9f67-4a52-ab93-c65191ad2db5",
+              "isDefault": false,
+              "extensionProperties": {}
+            }
+          ]
+        }
+      ],
+      "layout": {
+        "x": 606,
+        "y": 292
+      },
+      "extensionProperties": {}
+    },
+    "account-activated": {
+      "id": "account-activated",
+      "name": "Conta ativada",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "layout": {
+        "x": 1296,
+        "y": 304
+      },
+      "extensionProperties": {}
+    },
+    "invite-expired": {
+      "id": "invite-expired",
+      "name": "Contato Realizado",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "layout": {
+        "x": 1330,
+        "y": 540
+      },
+      "extensionProperties": {}
+    },
+    "68bbf4c0-9363-4ba8-9a7f-93599157002a": {
+      "id": "68bbf4c0-9363-4ba8-9a7f-93599157002a",
+      "name": "Realizar ativação",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-f4672579-ec11-4da9-9e49-3df98de4b112",
+          "name": "",
+          "targetNodeId": "account-activated",
+          "isDefault": false,
+          "extensionProperties": {}
+        }
+      ],
+      "layout": {
+        "x": 956,
+        "y": 292
+      },
+      "extensionProperties": {}
+    },
+    "49d427d9-9f67-4a52-ab93-c65191ad2db5": {
+      "id": "49d427d9-9f67-4a52-ab93-c65191ad2db5",
+      "name": "Entrar em contato",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-c9ecd4b5-1adf-4529-82b5-b81c1de51854",
+          "name": "",
+          "targetNodeId": "invite-expired",
+          "isDefault": false,
+          "extensionProperties": {}
+        }
+      ],
+      "layout": {
+        "x": 952,
+        "y": 528
+      },
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "0d4d562e-b6fe-4209-91b2-5370943f9113"
+}
