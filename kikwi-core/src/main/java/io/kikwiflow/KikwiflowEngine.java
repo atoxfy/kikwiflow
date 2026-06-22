@@ -114,8 +114,8 @@ public class KikwiflowEngine {
      * @throws SecurityException se o tenantId fornecido não corresponder ao tenantId da instância do processo.
      */
     public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables) {
-        ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)//CRIAR UM FIND AND LOCK
-            .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
+        ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)
+                .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
 
         if (!Objects.equals(taskToComplete.tenantId(), tenantId)) {
             throw new SecurityException(
@@ -124,10 +124,10 @@ public class KikwiflowEngine {
         }
 
         ProcessInstance processInstanceRecord = kikwiEngineRepository.findProcessInstanceById(taskToComplete.processInstanceId())
-            .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found with id: " + taskToComplete.processInstanceId()));
+                .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found with id: " + taskToComplete.processInstanceId()));
 
         ProcessDefinition processDefinition = processDefinitionService.getById(processInstanceRecord.processDefinitionId())
-            .orElseThrow(); 
+                .orElseThrow();
 
         ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
         if (variables != null) {
@@ -140,8 +140,16 @@ public class KikwiflowEngine {
         ExecutionResult executionResult;
 
         if (continuation != null && !continuation.nextNodes().isEmpty()) {
-            FlowNodeDefinition startPoint = continuation.nextNodes().get(0); 
-            executionResult = processExecutionManager.executeFlow(startPoint, processInstanceExecution, processDefinition, false);
+            FlowNodeDefinition startPoint = continuation.nextNodes().get(0);
+
+            executionResult = processExecutionManager.executeFlow(
+                    startPoint,
+                    taskToComplete.branchId(),
+                    taskToComplete.joinTaskId(),
+                    processInstanceExecution,
+                    processDefinition,
+                    false
+            );
         } else {
             executionResult = new ExecutionResult(new ExecutionOutcome(processInstanceExecution, Collections.emptyList()), null);
         }
@@ -179,11 +187,14 @@ public class KikwiflowEngine {
         if (flowNodeDefinition == null) {
             throw new TaskNotFoundException("Definição de nó não encontrada na ProcessDefinition para a tarefa: " + executableTask.taskDefinitionId());
         }
+
         ExecutionResult executionResult;
 
         try {
             executionResult = processExecutionManager.executeFlow(
                     flowNodeDefinition,
+                    executableTask.branchId(),
+                    executableTask.joinTaskId(),
                     processInstanceExecution,
                     processDefinition,
                     true
@@ -298,7 +309,13 @@ public class KikwiflowEngine {
             String defaultStartPointId  = processDefinition.defaultStartPoint();
             FlowNodeDefinition defaultStartPoint = processDefinition.flowNodes().get(defaultStartPointId);
             Objects.requireNonNull(defaultStartPoint, "Malformed process definition: unknown default start point. The default start point needs to be declared in flow nodes map");
-            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(defaultStartPoint, processInstanceExecution, processDefinition, false);
+            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(
+                    defaultStartPoint,
+                    null,
+                    null,
+                    processInstanceExecution,
+                    processDefinition,
+                    false);
             return engine.continuationService.handleContinuation(executionResult);
         }
     }

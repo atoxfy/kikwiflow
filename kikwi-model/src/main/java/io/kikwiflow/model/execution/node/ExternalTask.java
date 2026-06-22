@@ -41,7 +41,10 @@ public record ExternalTask (
          List<AttachedEventReference> boundaryEvents,
          AttachedTaskType attachedToRefType,
          String attachedToRefId,
-         String attachedToRefDefinitionId){
+         String attachedToRefDefinitionId,
+         String joinTaskId,
+         List<String> pendingBranchIds,
+         String branchId){
 
     public static Builder builder() {
         return new Builder();
@@ -63,10 +66,16 @@ public record ExternalTask (
         private AttachedTaskType attachedToRefType;
         private String attachedToRefId;
         private String attachedToRefDefinitionId;
+        private String joinTaskId;
+        private List<String> pendingBranchIds;
+        private String branchId;
 
         private Builder() {}
 
         public Builder id(String id) { this.id = id; return this; }
+        public Builder joinTaskId(String joinTaskId) { this.joinTaskId = joinTaskId; return this; }
+        public Builder branchId(String branchId) { this.branchId = branchId; return this; }
+        public Builder pendingBranchIds(List<String> attachedToRefType) { this.pendingBranchIds = pendingBranchIds; return this; }
         public Builder attachedToRefType(AttachedTaskType attachedToRefType) { this.attachedToRefType = attachedToRefType; return this; }
         public Builder attachedToRefDefinitionId(String attachedToRefDefinitionId) { this.attachedToRefDefinitionId = attachedToRefDefinitionId; return this; }
         public Builder attachedToRefId(String attachedToRefId) { this.attachedToRefId = attachedToRefId; return this; }
@@ -98,7 +107,10 @@ public record ExternalTask (
                 this.boundaryEvents,
                 this.attachedToRefType,
                 this.attachedToRefId,
-                this.attachedToRefDefinitionId
+                this.attachedToRefDefinitionId,
+                this.joinTaskId,
+                this.pendingBranchIds,
+                this.branchId
             );
         }
     }

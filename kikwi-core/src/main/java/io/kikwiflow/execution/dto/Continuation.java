@@ -21,12 +21,21 @@ import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 
 import java.util.List;
 
-public record Continuation(List<FlowNodeDefinition> nextNodes,
-                           boolean isAsynchronous,
-                           String resolvedAnswer,
-                           String chosenFlowId) {
-
+/**
+ * Carrega a decisão de roteamento do Navigator e seus respectivos metadados de escopo.
+ */
+public record Continuation(
+        List<FlowNodeDefinition> nextNodes,
+        boolean isAsynchronous,
+        String resolvedAnswer,
+        String chosenFlowId,
+        FlowNodeDefinition targetJoinNode
+) {
     public Continuation(List<FlowNodeDefinition> nextNodes, boolean isAsynchronous) {
-        this(nextNodes, isAsynchronous, null, null);
+        this(nextNodes, isAsynchronous, null, null, null);
+    }
+
+    public Continuation(List<FlowNodeDefinition> nextNodes, boolean isAsynchronous, String resolvedAnswer, String chosenFlowId) {
+        this(nextNodes, isAsynchronous, resolvedAnswer, chosenFlowId, null);
     }
 }

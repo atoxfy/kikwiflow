@@ -40,12 +40,13 @@ public final class ProcessDefinitionMapper {
                 ExecutableTaskDefinition.class.getName(), ProcessDefinitionMapper::fromDocToServiceTask,
                 ExternalTaskDefinition.class.getName(), ProcessDefinitionMapper::fromDocToManualTask,
                 ExclusiveGatewayDefinition.class.getName(), ProcessDefinitionMapper::fromDocToExclusiveGateway,
+                JoinGatewayDefinition.class.getName(), ProcessDefinitionMapper::fromDocToJoinGateway,
+                ParallelGatewayDefinition.class.getName(), ProcessDefinitionMapper::fromDocToParallelGateway,
                 InterruptiveTimerEventDefinition.class.getName(), ProcessDefinitionMapper::fromDocToInterruptiveTimerEvent
         );
     }
 
-    private ProcessDefinitionMapper() {
-    }
+    private ProcessDefinitionMapper() {}
 
     public static Document toDocument(ProcessDefinition definition) {
         if (definition == null) {
@@ -111,12 +112,18 @@ public final class ProcessDefinitionMapper {
                 if (gt.providerType() != null) {
                     doc.append("providerType", gt.providerType().name());
                 }
+
                 doc.append("providerBean", gt.providerBean());
                 doc.append("providerVariable", gt.providerVariable());
 
-               /* if(gt.defaultFlow() != null){
-                    doc.append("defaultFlow", gt.defaultFlow());
-                }*/
+            }
+            case ParallelGatewayDefinition gt-> {
+                doc.append("targetJoinId", gt.targetJoinId());
+
+            }
+            case JoinGatewayDefinition gt -> {
+                doc.append("sourceSplitId", gt.sourceSplitId());
+
             }
             case ExternalTaskDefinition mt -> {
                 if (mt.boundaryEvents() != null) {
@@ -271,6 +278,34 @@ public final class ProcessDefinitionMapper {
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .boundaryEvents(fromDocToBoundaryEventsList(doc))
+                .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
+                .build();
+    }
+
+    private static JoinGatewayDefinition fromDocToJoinGateway(Document doc) {
+        return JoinGatewayDefinition.builder()
+                .id(doc.getString("id"))
+                .name(doc.getString("name"))
+                .description(doc.getString("description"))
+                .commitBefore(doc.getBoolean("commitBefore"))
+                .commitAfter(doc.getBoolean("commitAfter"))
+                .sourceSplitId(doc.getString("sourceSplitId"))
+                .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
+                .outgoing(fromDocToOutgoingList(doc))
+                .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
+                .build();
+    }
+
+    private static ParallelGatewayDefinition fromDocToParallelGateway(Document doc) {
+        return ParallelGatewayDefinition.builder()
+                .id(doc.getString("id"))
+                .name(doc.getString("name"))
+                .description(doc.getString("description"))
+                .commitBefore(doc.getBoolean("commitBefore"))
+                .commitAfter(doc.getBoolean("commitAfter"))
+                .targetJoinId(doc.getString("targetJoinId"))
+                .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
+                .outgoing(fromDocToOutgoingList(doc))
                 .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
                 .build();
     }

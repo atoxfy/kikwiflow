@@ -16,11 +16,14 @@
  */
 package io.kikwiflow.execution;
 
+import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,6 +51,30 @@ public class ProcessInstanceExecution {
     private String origin;
     private int version;
     private Map<String, Integer> activeNodes;
+    private final List<BranchPullIntention> branchPullIntentions = new ArrayList<>();
+
+    /**
+     * Registra temporariamente em memória que uma branch foi concluída e precisa
+     * ser removida do Join Task correspondente durante o commit transacional.
+     */
+    public void registerBranchConclusion(String joinTaskId, String branchId) {
+        this.branchPullIntentions.add(new BranchPullIntention(joinTaskId, branchId));
+    }
+
+    /**
+     * Retorna as intenções acumuladas para a camada de serviço transacional.
+     */
+    public List<BranchPullIntention> getBranchPullIntentions() {
+        return List.copyOf(this.branchPullIntentions);
+    }
+
+    /**
+     * Limpa o acumulador após o envio para o UnitOfWork.
+     */
+    public void clearBranchPullIntentions() {
+        this.branchPullIntentions.clear();
+    }
+
 
     public int getVersion() {
         return version;

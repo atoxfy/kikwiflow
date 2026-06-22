@@ -36,12 +36,14 @@ import java.util.Map;
         @JsonSubTypes.Type(value = KKFStartEventDefinition.class, name = "DEFAULT_START_EVENT"),
         @JsonSubTypes.Type(value = KKFEndEventDefinition.class, name = "DEFAULT_END_EVENT"),
         @JsonSubTypes.Type(value = KKFExclusiveGatewayDefinition.class, name = "EXCLUSIVE_GATEWAY"),
+        @JsonSubTypes.Type(value = KKFParallelGatewayDefinition.class, name = "PARALLEL_GATEWAY"),
+        @JsonSubTypes.Type(value = KKFJoinGatewayDefinition.class, name = "JOIN_GATEWAY"),
         @JsonSubTypes.Type(value = KKFExternalTaskDefinition.class, name = "EXTERNAL_TASK"),
         @JsonSubTypes.Type(value = KKFExecutableTaskDefinition.class, name = "EXECUTABLE_TASK"),
         @JsonSubTypes.Type(value = KKFInterruptiveTimerEventDefinition.class, name = "INTERRUPTIVE_TIMER"),
         @JsonSubTypes.Type(value = KKFInterruptiveTimerEventDefinition.class, name = "NON_INTERRUPTIVE_TIMER")
 })
-public sealed interface KKFFlowNodeDefinition permits KKFStartEventDefinition, KKFExternalTaskDefinition, KKFExecutableTaskDefinition, KKFEndEventDefinition, KKFExclusiveGatewayDefinition, KKFInterruptiveTimerEventDefinition, KKFBoundaryEventDefinition {
+public sealed interface KKFFlowNodeDefinition permits KKFStartEventDefinition, KKFExternalTaskDefinition, KKFExecutableTaskDefinition, KKFEndEventDefinition, KKFExclusiveGatewayDefinition, KKFInterruptiveTimerEventDefinition, KKFJoinGatewayDefinition, KKFParallelGatewayDefinition, KKFBoundaryEventDefinition {
     String id();
     String name();
     String type();

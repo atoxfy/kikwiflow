@@ -7,6 +7,8 @@ import io.kikwiflow.management.dtos.elements.KKFExecutableTaskDefinition;
 import io.kikwiflow.management.dtos.elements.KKFExternalTaskDefinition;
 import io.kikwiflow.management.dtos.elements.KKFFlowNodeDefinition;
 import io.kikwiflow.management.dtos.elements.KKFInterruptiveTimerEventDefinition;
+import io.kikwiflow.management.dtos.elements.KKFJoinGatewayDefinition;
+import io.kikwiflow.management.dtos.elements.KKFParallelGatewayDefinition;
 import io.kikwiflow.management.dtos.elements.KKFSequenceFlowDefinition;
 import io.kikwiflow.management.dtos.elements.KKFStartEventDefinition;
 import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
@@ -17,6 +19,8 @@ import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
+import io.kikwiflow.model.definition.process.elements.JoinGatewayDefinition;
+import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
@@ -275,7 +279,36 @@ public class ProcessMapper {
                     g.providerBean(),
                     g.providerVariable()
             );
-        } else if (dto instanceof ExternalTaskDefinition t) {
+
+        }else if (dto instanceof  ParallelGatewayDefinition g) {
+                return new KKFParallelGatewayDefinition(
+                        g.id(),
+                        g.name(),
+                        g.type(),
+                        g.description(),
+                        g.commitAfter(),
+                        g.commitBefore(),
+                        g.targetJoinId(),
+                        mapOutgoingK(g.outgoing()),
+                        g.extensionProperties(),
+                        ProcessMapper.mapLayout(g.layout())
+                );
+
+        } else if (dto instanceof  JoinGatewayDefinition g) {
+            return new KKFJoinGatewayDefinition(
+                    g.id(),
+                    g.name(),
+                    g.type(),
+                    g.description(),
+                    g.commitAfter(),
+                    g.commitBefore(),
+                    mapOutgoingK(g.outgoing()),
+                    g.extensionProperties(),
+                    g.sourceSplitId(),
+                    ProcessMapper.mapLayout(g.layout())
+            );
+
+        }else if (dto instanceof ExternalTaskDefinition t) {
             return new KKFExternalTaskDefinition(
                     t.id(),
                     t.name(),

@@ -18,6 +18,7 @@
 package io.kikwiflow.model.execution.node;
 
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
 
 import java.time.Instant;
 import java.util.List;
@@ -39,7 +40,11 @@ public record ExecutableTask (String id,
                                String attachedToRefId,
                                AttachedTaskType attachedToRefType,
                                String attachedToRefDefinitionId,
-                               List<AttachedEventReference> boundaryEvents){
+                               List<AttachedEventReference> boundaryEvents,
+                               ExecutableTaskType type,
+                               String joinTaskId,
+                               List<String> pendingBranchIds,
+                               String branchId){
 
     public static Builder builder() {
         return new Builder();
@@ -64,6 +69,10 @@ public record ExecutableTask (String id,
                 .attachedToRefId(this.attachedToRefId)
                 .attachedToRefType(this.attachedToRefType)
                 .attachedToRefDefinitionId(this.attachedToRefDefinitionId)
+                .branchId(this.branchId)
+                .type(this.type)
+                .pendingBranchIds(this.pendingBranchIds)
+                .joinTaskId(this.joinTaskId)
                 .boundaryEvents(this.boundaryEvents);
     }
 
@@ -86,12 +95,20 @@ public record ExecutableTask (String id,
         private AttachedTaskType attachedToRefType;
         private List<AttachedEventReference> boundaryEvents;
         private String attachedToRefDefinitionId;
+        private ExecutableTaskType type;
+        private List<String> pendingBranchIds;
+        private String branchId;
+        private String joinTaskId;
 
         private Builder() {}
 
         public Builder id(String id) { this.id = id; return this; }
-        public Builder attachedToRefDefinitionId(String attachedToRefDefinitionId) { this.attachedToRefDefinitionId = attachedToRefDefinitionId; return this; }
 
+        public Builder joinTaskId(String joinTaskId) { this.joinTaskId = joinTaskId; return this; }
+        public Builder pendingBranchIds(List<String> pendingBranchIds) { this.pendingBranchIds = pendingBranchIds; return this; }
+        public Builder branchId(String branchId) { this.branchId = branchId; return this; }
+        public Builder type(ExecutableTaskType type) { this.type = type; return this; }
+        public Builder attachedToRefDefinitionId(String attachedToRefDefinitionId) { this.attachedToRefDefinitionId = attachedToRefDefinitionId; return this; }
         public Builder taskDefinitionId(String taskDefinitionId) { this.taskDefinitionId = taskDefinitionId; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder description(String description) { this.description = description; return this; }
@@ -128,7 +145,11 @@ public record ExecutableTask (String id,
                 this.attachedToRefId,
                 this.attachedToRefType,
                 this.attachedToRefDefinitionId,
-                this.boundaryEvents
+                this.boundaryEvents,
+                this.type,
+                this.joinTaskId,
+                this.pendingBranchIds,
+                this.branchId
             );
         }
     }

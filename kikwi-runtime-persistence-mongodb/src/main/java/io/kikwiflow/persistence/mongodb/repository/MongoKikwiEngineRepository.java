@@ -39,6 +39,7 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.UpdateResult;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessInstanceSummary;
 import io.kikwiflow.model.execution.ProcessVariable;
@@ -231,6 +232,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
                     List<Bson> updates = new ArrayList<>();
                     updates.add(Updates.inc("version", 1));
+
                     if (unitOfWork.finishedNodeDefinitions() != null) {
                         for (String nodeId : unitOfWork.finishedNodeDefinitions()) {
                             updates.add(Updates.inc("activeNodes." + nodeId, -1));
@@ -260,24 +262,21 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     }
 
                     if (instance.variables() != null) {
-                        Document variablesDoc = new Document();
-                        instance.variables().forEach((key, variable) ->
-                                variablesDoc.put(MongoKeyEncoder.encode(key), ProcessVariableMapper.toDocument(variable))
-                        );
-                        updates.add(Updates.set("variables", variablesDoc));
+                        instance.variables().forEach((key, variable) -> {
+                            String fieldPath = "variables." + MongoKeyEncoder.encode(key);
+                            updates.add(Updates.set(fieldPath, ProcessVariableMapper.toDocument(variable)));
+                        });
                     }
 
-                    Bson filter = and(
-                            eq("_id", instance.id()),
-                            eq("version", instance.version())
-                    );
+                    Bson filter = eq("_id", instance.id());
 
                     UpdateResult result = processInstances.updateOne(clientSession, filter, Updates.combine(updates));
 
-                    if (result.getModifiedCount() == 0) {
-                        throw new OptimisticLockingFailureException("The instance " + instance.id() + " is locked by another transaction");
+                    if (result.getMatchedCount() == 0) {
+                        throw new OptimisticLockingFailureException("The instance " + instance.id() + " was not found for update.");
                     }
                 }
+
 
                 if (unitOfWork.incidentsToCreate() != null && !unitOfWork.incidentsToCreate().isEmpty()) {
                     List<InsertOneModel<Document>> writes = new ArrayList<>();
@@ -287,9 +286,6 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     incidents.bulkWrite(clientSession, writes);
                 }
 
-                if(unitOfWork.events() != null){
-                    //TODO
-                }
 
                 List<WriteModel<Document>> externalTaskWrites = new ArrayList<>();
                 if (unitOfWork.externalTasksToCreate() != null && !unitOfWork.externalTasksToCreate().isEmpty()) {
@@ -327,8 +323,29 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     executableTasks.bulkWrite(clientSession, executableTaskWrites);
                 }
 
+                if (unitOfWork.branchPullIntentions() != null && !unitOfWork.branchPullIntentions().isEmpty()) {
+                    for (BranchPullIntention intention : unitOfWork.branchPullIntentions()) {
+                        org.bson.conversions.Bson filter = com.mongodb.client.model.Filters.eq("_id", intention.joinTaskId());
 
-                // TODO: Lidar com a persistência de Outbox Events
+                        List<org.bson.conversions.Bson> updatePipeline = List.of(
+                                new Document("$set", new Document("pendingBranchIds",
+                                        new Document("$filter", new Document("input", "$pendingBranchIds")
+                                                .append("as", "b")
+                                                .append("cond", new Document("$ne", List.of("$$b", intention.branchId())))))),
+
+                                new Document("$set", new Document("status",
+                                        new Document("$cond", new Document("if", new Document("$eq", List.of(new Document("$size", "$pendingBranchIds"), 0)))
+                                                .append("then", "PENDING")
+                                                .append("else", "$status"))))
+                        );
+
+                        executableTasks.updateOne(clientSession, filter, updatePipeline);
+                    }
+                }
+
+                if(unitOfWork.events() != null){
+                    // TODO: Lidar com a persistência de Outbox Events
+                }
 
                 return "Transaction committed";
             });
@@ -345,7 +362,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         java.util.Date nowDate = java.util.Date.from(now);
         java.util.Date thresholdDate = java.util.Date.from(lockExpirationThreshold);
         java.util.Date acquiredAtDate = java.util.Date.from(Instant.now());
-        System.out.println("findAndLockDueTasks " + nowDate.toInstant() );
+
         for (int i = 0; i < limit; i++) {
             Bson pendingFilter = and(
                     eq("status", ExecutableTaskStatus.PENDING.name()),
@@ -380,8 +397,6 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
             lockedTasks.add(ExecutableTaskMapper.fromDocument(lockedDoc));
         }
-
-        System.out.println("findAndLockDueTasks " + lockedTasks.size());
 
         return lockedTasks;
     }

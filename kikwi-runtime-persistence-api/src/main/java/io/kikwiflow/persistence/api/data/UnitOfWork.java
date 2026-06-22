@@ -19,6 +19,7 @@ package io.kikwiflow.persistence.api.data;
 
 
 import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
@@ -38,4 +39,5 @@ public record UnitOfWork(
         List<OutboxEventEntity> events,
         List<Incident> incidentsToCreate,
         List<String> incidentsToResolve,
-        List<String> finishedNodeDefinitions) {}
+        List<String> finishedNodeDefinitions,
+        List<BranchPullIntention> branchPullIntentions) {}

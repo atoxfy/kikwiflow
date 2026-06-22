@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.execution.enumerated;
+package io.kikwiflow.model.execution;
 
-public enum ExecutableTaskStatus {
-    PENDING,
-    EXECUTING,
-    LOCKED,
-    AWAITING_BRANCHES,
-    ERROR
-}
+/**
+ * Representa a intenção atômica de concluir uma ramificação paralela.
+ */
+public record BranchPullIntention(
+        String joinTaskId,
+        String branchId
+) {}

@@ -97,6 +97,7 @@ public class FailureHandler {
                 null,
                 incidentsToCreate,
                 null,
+                null,
                 null
         );
 

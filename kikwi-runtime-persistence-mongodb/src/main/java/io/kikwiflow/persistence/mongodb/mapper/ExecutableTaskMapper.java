@@ -17,6 +17,7 @@
 package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
 import io.kikwiflow.model.execution.node.AttachedEventReference;
 import io.kikwiflow.model.execution.node.AttachedTaskType;
 import io.kikwiflow.model.execution.node.ExecutableTask;
@@ -36,6 +37,7 @@ public final class ExecutableTaskMapper {
                 .append("taskDefinitionId", task.taskDefinitionId())
                 .append("name", task.name())
                 .append("description", task.description())
+                .append("type", task.type())
                 .append("processDefinitionId", task.processDefinitionId())
                 .append("createdAt", task.createdAt() != null ? java.util.Date.from(task.createdAt()) : null)
                 .append("executions", task.executions())
@@ -47,6 +49,9 @@ public final class ExecutableTaskMapper {
                 .append("acquiredAt", task.acquiredAt())
                 .append("dueDate", task.dueDate() != null ? java.util.Date.from(task.dueDate()) : null)
                 .append("attachedToRefId", task.attachedToRefId())
+                .append("joinTaskId", task.joinTaskId())
+                .append("branchId", task.branchId())
+                .append("pendingBranchIds", task.pendingBranchIds() != null ? task.pendingBranchIds() : null)
                 .append("attachedToRefType", task.attachedToRefType() != null ? task.attachedToRefType().name() : null)
                 .append("boundaryEvents", task.boundaryEvents() != null ?
                         task.boundaryEvents().stream()
@@ -74,6 +79,9 @@ public final class ExecutableTaskMapper {
                 .map(AttachedEventReferenceMapper::fromDocument)
                 .toList();
 
+        List<String>  pendingBranches = doc.getList("pendingBranchIds", String.class, Collections.emptyList());
+
+
         return ExecutableTask.builder()
                 .id(doc.getString("_id"))
                 .taskDefinitionId(doc.getString("taskDefinitionId"))
@@ -86,6 +94,10 @@ public final class ExecutableTaskMapper {
                 .processInstanceId(doc.getString("processInstanceId"))
                 .error(doc.getString("error"))
                 .status(status)
+                .type(ExecutableTaskType.valueOf(doc.getString("type")))
+                .pendingBranchIds(pendingBranches)
+                .branchId(doc.getString("branchId"))
+                .joinTaskId(doc.getString("joinTaskId"))
                 .executorId(doc.getString("executorId"))
                 .acquiredAt(InstantMapper.mapToInstant("acquiredAt", doc))
                 .dueDate(InstantMapper.mapToInstant("dueDate", doc))

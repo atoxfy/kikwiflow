@@ -44,6 +44,9 @@ public final class ExternalTaskMapper {
                 .append("topicName", task.topicName())
                 .append("assignee", task.assignee())
                 .append("tenantId", task.tenantId())
+                .append("joinTaskId", task.joinTaskId())
+                .append("branchId", task.branchId())
+                .append("pendingBranchIds", task.pendingBranchIds() != null ? task.pendingBranchIds() : null)
                 .append("attachedToRefId", task.attachedToRefId())
                 .append("attachedToRefDefinitionId", task.attachedToRefDefinitionId())
                 .append("attachedToRefType", task.attachedToRefType() != null ? task.attachedToRefType().name() : null)
@@ -71,6 +74,8 @@ public final class ExternalTaskMapper {
                 .map(AttachedEventReferenceMapper::fromDocument)
                 .toList();
 
+        List<String>  pendingBranches = doc.getList("pendingBranchIds", String.class, Collections.emptyList());
+
         String attachedTypeStr = doc.getString("attachedToRefType");
         AttachedTaskType attachedType = attachedTypeStr != null ? AttachedTaskType.valueOf(attachedTypeStr) : null;
 
@@ -82,6 +87,9 @@ public final class ExternalTaskMapper {
                 .processInstanceId(doc.getString("processInstanceId"))
                 .processDefinitionId(doc.getString("processDefinitionId"))
                 .status(status)
+                .pendingBranchIds(pendingBranches)
+                .branchId(doc.getString("branchId"))
+                .joinTaskId(doc.getString("joinTaskId"))
                 .createdAt(InstantMapper.mapToInstant("createdAt", doc))
                 .topicName(doc.getString("topicName"))
                 .assignee(doc.getString("assignee"))

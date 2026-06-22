@@ -18,27 +18,13 @@ package io.kikwiflow.execution;
 
 import io.kikwiflow.api.DefaultExecutionContext;
 import io.kikwiflow.execution.api.ExecutionContext;
+import io.kikwiflow.execution.api.TaskHandler;
+import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.node.Executable;
 
 
-/**
- * O coração da execução do motor Kikwiflow.
- * <p>
- * Esta classe é responsável por conduzir uma instância de processo através do seu fluxo,
- * executando os nós ({@link FlowNodeDefinition}) de forma sequencial. A sua principal
- * função é operar num loop que avança no processo até encontrar um "ponto de paragem".
- * <p>
- * Um ponto de paragem pode ser:
- * <ul>
- *     <li>Um <strong>estado de espera (Wait State)</strong>, como uma {@link io.kikwiflow.model.execution.node.HumanTask}.</li>
- *     <li>Um nó que exige um commit transacional antes da sua execução (commit-before).</li>
- *     <li>O fim do processo (nenhum nó seguinte).</li>
- * </ul>
- * O resultado da sua execução é um {@link ExecutionResult}, que encapsula o estado
- * final da instância e o plano de continuação.
- */
 public class FlowNodeExecutor {
 
     private final TaskExecutor taskExecutor;

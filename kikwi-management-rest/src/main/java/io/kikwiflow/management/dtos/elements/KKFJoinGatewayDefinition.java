@@ -15,21 +15,23 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.definition.process.elements;
+package io.kikwiflow.management.dtos.elements;
 
-import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+
+import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
 
 import java.util.List;
 import java.util.Map;
 
-public sealed interface FlowNodeDefinition permits StartEventDefinition, ExternalTaskDefinition, ExecutableTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition, ParallelGatewayDefinition, JoinGatewayDefinition {
-    String id();
-    String name();
-    String type();
-    String description();
-    Boolean commitAfter();
-    Boolean commitBefore();
-    List<SequenceFlowDefinition> outgoing();
-    Map<String, String> extensionProperties();
-    LayoutCoordinates layout();
+public record KKFJoinGatewayDefinition(String id,
+                                       String name,
+                                       String type,
+                                       String description,
+                                       Boolean commitAfter,
+                                       Boolean commitBefore,
+                                       List<KKFSequenceFlowDefinition> outgoing,
+                                       Map<String, String> extensionProperties,
+                                       String sourceSplitId,
+                                       KKFLayoutCoordinates layout) implements KKFFlowNodeDefinition {
+
 }

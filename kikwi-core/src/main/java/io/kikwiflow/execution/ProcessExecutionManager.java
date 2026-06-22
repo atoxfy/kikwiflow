@@ -1,12 +1,12 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
+ * distributed with this work for information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
  * Version 2.0; you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,29 +34,31 @@ import io.kikwiflow.navigation.Navigator;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 /**
- * Orquestra a execução síncrona de um fluxo de processo.
+ * Orquestra a execução de um fluxo de processo baseado em uma Agenda de Contexto Isolado.
  * <p>
- * Esta classe contém o loop de execução principal do motor. A sua responsabilidade é
- * receber um ponto de partida e conduzir a instância do processo através dos nós
- * sequenciais, utilizando o {@link Navigator} para determinar o próximo passo e o
- * {@link FlowNodeExecutor} para executar a lógica de cada nó.
- * <p>
- * A execução continua até que uma das seguintes condições de paragem seja encontrada:
- * <ul>
- *     <li>Um nó que é um estado de espera ({@link WaitState}).</li>
- *     <li>Um nó que exige um commit transacional antes da sua execução (commit-before).</li>
- *     <li>O fim do fluxo do processo (nenhum nó de saída).</li>
- * </ul>
+ * Substitui o loop linear por uma fila de {@link ExecutionFrame}s, permitindo a propagação
+ * nativa de escopos de ramificação (branchId) e alvos de confluência (joinTaskId) sem gerar
+ * condições de corrida em memória ou travas complexas de concorrência.
  */
-
 public class ProcessExecutionManager {
 
     private final FlowNodeExecutor flowNodeExecutor;
     private final Navigator navigator;
     private final KikwiflowConfig kikwiflowConfig;
+
+    /**
+     * Encapsula o contexto móvel e imutável de uma linha de execução (Branch).
+     */
+    public record ExecutionFrame(
+            FlowNodeDefinition node,
+            String branchId,
+            String joinTaskId
+    ) {}
 
     public ProcessExecutionManager(FlowNodeExecutor flowNodeExecutor, Navigator navigator, KikwiflowConfig kikwiflowConfig) {
         this.flowNodeExecutor = flowNodeExecutor;
@@ -64,19 +66,53 @@ public class ProcessExecutionManager {
         this.kikwiflowConfig = kikwiflowConfig;
     }
 
-    public ExecutionResult executeFlow(FlowNodeDefinition startPoint, ProcessInstanceExecution processInstance, ProcessDefinition processDefinition, boolean isResumingFromAsyncBefore) {
-        FlowNodeDefinition currentNode = startPoint;
+    /**
+     * Executa a agenda de nós em memória até atingir uma fronteira transacional,
+     * um WaitState ou uma divisão paralela (Split).
+     */
+    public ExecutionResult executeFlow(
+            FlowNodeDefinition startPoint,
+            String initialBranchId,
+            String initialJoinTaskId,
+            ProcessInstanceExecution processInstance,
+            ProcessDefinition processDefinition,
+            boolean isResumingFromAsyncBefore) {
+
+        Queue<ExecutionFrame> agenda = new LinkedList<>();
+        agenda.add(new ExecutionFrame(startPoint, initialBranchId, initialJoinTaskId));
+
         List<OutboxEventEntity> criticalEvents = new ArrayList<>();
         boolean isFirstNodeInLoop = true;
+        boolean branchConcluded = false;
 
-        while (currentNode != null) {
+
+        while (!agenda.isEmpty()) {
+            ExecutionFrame currentFrame = agenda.poll();
+            FlowNodeDefinition currentNode = currentFrame.node();
+            String currentBranchId = currentFrame.branchId();
+            String currentJoinTaskId = currentFrame.joinTaskId();
+
 
             final boolean shouldStopForCommitBefore = isCommitBefore(currentNode) && !(isFirstNodeInLoop && isResumingFromAsyncBefore);
+
             if (isWaitState(currentNode) || shouldStopForCommitBefore) {
                 return new ExecutionResult(
                         new ExecutionOutcome(processInstance, criticalEvents),
                         new Continuation(List.of(currentNode), true)
                 );
+            }
+
+            boolean isLegitimateJoinResumption = "JOIN_GATEWAY".equals(currentNode.type()) && isFirstNodeInLoop && isResumingFromAsyncBefore;
+
+            if (("DEFAULT_END_EVENT".equals(currentNode.type()) || "JOIN_GATEWAY".equals(currentNode.type()))
+                    && !isLegitimateJoinResumption
+                    && currentBranchId != null) {
+
+                if (currentJoinTaskId != null) {
+                    processInstance.registerBranchConclusion(currentJoinTaskId, currentBranchId);
+                }
+                branchConcluded = true;
+                continue;
             }
 
             Instant startedAt = Instant.now();
@@ -85,9 +121,9 @@ public class ProcessExecutionManager {
             Exception caughtException = null;
 
             try {
-
                 flowNodeExecutor.execute(processInstance, processDefinition, currentNode);
                 boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());
+
                 continuation = navigator.determineNextContinuation(currentNode, processDefinition, processInstance.getVariables(), isCommitAfter);
 
             } catch (Exception e) {
@@ -129,7 +165,6 @@ public class ProcessExecutionManager {
                             continuation.chosenFlowId(),
                             Instant.now()
                     );
-
                     criticalEvents.add(new OutboxEventEntity("GATEWAY_ANSWER_RESOLVED", answerEvent));
                 }
             }
@@ -139,11 +174,21 @@ public class ProcessExecutionManager {
             }
 
             isFirstNodeInLoop = false;
+
             if (continuation == null || continuation.isAsynchronous()) {
                 return new ExecutionResult(new ExecutionOutcome(processInstance, criticalEvents), continuation);
             } else {
-                currentNode = continuation.nextNodes().get(0);
+                for (FlowNodeDefinition nextNode : continuation.nextNodes()) {
+                    agenda.add(new ExecutionFrame(nextNode, currentBranchId, currentJoinTaskId));
+                }
             }
+        }
+
+        if (branchConcluded && agenda.isEmpty()) {
+            return new ExecutionResult(
+                    new ExecutionOutcome(processInstance, criticalEvents),
+                    new io.kikwiflow.execution.dto.Continuation(List.of(), true)
+            );
         }
 
         return new ExecutionResult(new ExecutionOutcome(processInstance, criticalEvents), null);

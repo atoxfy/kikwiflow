@@ -24,6 +24,8 @@ import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
+import io.kikwiflow.model.definition.process.elements.JoinGatewayDefinition;
+import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 
 @JsonTypeInfo(
@@ -36,6 +38,8 @@ import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
         @JsonSubTypes.Type(value = StartEventDefinition.class, name = "DEFAULT_START_EVENT"),
         @JsonSubTypes.Type(value = EndEventDefinition.class, name = "DEFAULT_END_EVENT"),
         @JsonSubTypes.Type(value = ExecutableTaskDefinition.class, name = "EXECUTABLE_TASK"),
+        @JsonSubTypes.Type(value = ParallelGatewayDefinition.class, name = "PARALLEL_GATEWAY"),
+        @JsonSubTypes.Type(value = JoinGatewayDefinition.class, name = "JOIN_GATEWAY"),
         @JsonSubTypes.Type(value = ExternalTaskDefinition.class, name = "EXTERNAL_TASK"),
         @JsonSubTypes.Type(value = ExclusiveGatewayDefinition.class, name = "EXCLUSIVE_GATEWAY"),
         @JsonSubTypes.Type(value = InterruptiveTimerEventDefinition.class, name = "BOUNDARY_INTERRUPTIVE_TIMER")
