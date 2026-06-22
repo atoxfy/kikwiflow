@@ -16,11 +16,9 @@
  */
 package io.kikwiflow.execution;
 
-
 import io.kikwiflow.execution.api.TaskHandler;
 
 import java.util.Optional;
-
 
 public interface TaskHandlerResolver {
     Optional<TaskHandler> resolve(String beanName);
