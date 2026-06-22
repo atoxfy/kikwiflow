@@ -269,7 +269,7 @@ public class ContinuationService {
                                 AttachedTaskType.EXTERNAL_TASK,
                                 it.duration(),
                                 flowNodeDefinitionId,
-                                ExecutableTaskType.INTERRUPTIVE_TIMER);
+                                ExecutableTaskType.INTERRUPTIVE_TIMER, branchId, joinTaskId);
 
                         boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id()));
                         nextExecutableTasks.add(boundaryEvent);
@@ -309,7 +309,7 @@ public class ContinuationService {
                             AttachedTaskType.EXECUTABLE_TASK,
                             it.duration(),
                             flowNodeDefinitionId,
-                            ExecutableTaskType.INTERRUPTIVE_TIMER);
+                            ExecutableTaskType.INTERRUPTIVE_TIMER, branchId, joinTaskId);
 
                         nextExecutableTasks.add(boundaryEvent);
                         boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id()));
@@ -338,7 +338,7 @@ public class ContinuationService {
         }
     }
 
-    private ExecutableTask getExecutableTaskFrom(String mainTaskId, String processInstanceId, String taskDefinitionId, String processDefinitionId, AttachedTaskType mainTaskType, String duration, String flowNodeDefinitionId, ExecutableTaskType taskType){
+    private ExecutableTask getExecutableTaskFrom(String mainTaskId, String processInstanceId, String taskDefinitionId, String processDefinitionId, AttachedTaskType mainTaskType, String duration, String flowNodeDefinitionId, ExecutableTaskType taskType, String branchId, String joinTaskId){
         return ExecutableTask.builder()
                 .id(UUID.randomUUID().toString())
                 .type(taskType)
@@ -349,6 +349,8 @@ public class ContinuationService {
                 .attachedToRefId(mainTaskId)
                 .attachedToRefType(mainTaskType)
                 .attachedToRefDefinitionId(flowNodeDefinitionId)
+                .branchId(branchId)
+                .joinTaskId(joinTaskId)
                 .build();
     }
 
