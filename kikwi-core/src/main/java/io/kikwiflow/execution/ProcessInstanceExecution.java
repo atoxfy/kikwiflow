@@ -19,6 +19,8 @@ package io.kikwiflow.execution;
 import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.persistence.api.data.VariableOpType;
+import io.kikwiflow.persistence.api.data.VariableOperation;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -52,6 +54,50 @@ public class ProcessInstanceExecution {
     private int version;
     private Map<String, Integer> activeNodes;
     private final List<BranchPullIntention> branchPullIntentions = new ArrayList<>();
+    private final Map<String, VariableOperation> variableOperations = new java.util.HashMap<>();
+
+    public Map<String, VariableOperation> getVariableOperations() {
+        return Map.copyOf(this.variableOperations);
+    }
+
+    /**
+     * Limpa o acumulador de operações de variáveis após o envio bem-sucedido para o UnitOfWork.
+     * Evita o vazamento de deltas antigos para os próximos passos transacionais do fluxo.
+     */
+    public void clearVariableOperations() {
+        this.variableOperations.clear();
+    }
+
+
+    public Map<String, ProcessVariable> getVariables() {
+        if (this.variables == null) return null;
+        return new java.util.HashMap<>(this.variables) {
+            @Override
+            public ProcessVariable put(String key, ProcessVariable value) {
+                variableOperations.put(key, new VariableOperation(value, VariableOpType.SET));
+                ProcessInstanceExecution.this.variables.put(key, value);
+                return super.put(key, value);
+            }
+
+            @Override
+            public void putAll(Map<? extends String, ? extends ProcessVariable> m) {
+                if (m != null) {
+                    m.forEach((k, v) -> variableOperations.put(k, new VariableOperation(v, VariableOpType.SET)));
+                    ProcessInstanceExecution.this.variables.putAll(m);
+                    super.putAll(m);
+                }
+            }
+
+            @Override
+            public ProcessVariable remove(Object key) {
+                if (key instanceof String k) {
+                    variableOperations.put(k, new VariableOperation(null, VariableOpType.UNSET));
+                    ProcessInstanceExecution.this.variables.remove(k);
+                }
+                return super.remove(key);
+            }
+        };
+    }
 
     /**
      * Registra temporariamente em memória que uma branch foi concluída e precisa
@@ -140,10 +186,6 @@ public class ProcessInstanceExecution {
         this.processDefinitionId = processDefinitionId;
     }
 
-    public Map<String, ProcessVariable> getVariables() {
-        return variables;
-    }
-
     public void setVariables(Map<String, ProcessVariable> variables) {
         this.variables = variables;
     }
@@ -184,4 +226,8 @@ public class ProcessInstanceExecution {
         if(variables == null) return;
         this.variables.putAll(variables);
     }
+
+
+
+
 }

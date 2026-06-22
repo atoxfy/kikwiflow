@@ -32,7 +32,9 @@ public class TaskHandler4 implements TaskHandler {
     public void handle(ExecutionContext execution) {
         String threadName = Thread.currentThread().getName();
         logger.info("[{}] TaskHandler4 - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
-        execution.setVariable("Task4", new ProcessVariable("task4", "task4"));
+        execution.setVariable("task4", new ProcessVariable("task4", "task4"));
+        execution.setVariable("name", new ProcessVariable("name", "John Doe"));
+
 
     }
 }

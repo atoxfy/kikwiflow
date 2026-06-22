@@ -24,6 +24,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+
 @Component
 public class TaskHandler5 implements TaskHandler {
     private static Logger logger = LogManager.getLogger(TaskHandler5.class);
@@ -32,7 +34,7 @@ public class TaskHandler5 implements TaskHandler {
     public void handle(ExecutionContext execution) {
         String threadName = Thread.currentThread().getName();
         logger.info("[{}] TaskHandler5 - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
-        execution.setVariable("Task5", new ProcessVariable("task5", "task5"));
-
+        execution.setVariable("task5", new ProcessVariable("task5", "task5"));
+        execution.setVariable("birthDate", new ProcessVariable("birthDate", LocalDate.of(1977, 03, 01)));
     }
 }

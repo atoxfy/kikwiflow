@@ -32,7 +32,9 @@ public class TaskHandler2 implements TaskHandler {
     public void handle(ExecutionContext execution) {
         String threadName = Thread.currentThread().getName();
         logger.info("[{}] TaskHandler2 - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
-        execution.setVariable("Task2", new ProcessVariable("task2", "task2"));
+        execution.setVariable("task2", new ProcessVariable("task2", "task2"));
+        execution.setVariable("taxId", new ProcessVariable("taxId", "02682278965"));
+
 
     }
 }

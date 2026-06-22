@@ -224,7 +224,11 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 }
 
                 if (unitOfWork.instanceToDelete() != null) {
-                    processInstances.deleteOne(eq("_id", unitOfWork.instanceToDelete().id()));
+                    String instanceId = unitOfWork.instanceToDelete().id();
+                    externalTasks.deleteMany(clientSession, eq("processInstanceId", instanceId));
+                    executableTasks.deleteMany(clientSession, eq("processInstanceId", instanceId));
+                    incidents.deleteMany(clientSession, eq("processInstanceId", instanceId));
+                    processInstances.deleteOne(clientSession, eq("_id", instanceId));
                 }
 
                 if (unitOfWork.instanceToUpdate() != null) {
@@ -262,11 +266,22 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     }
 
                     if (instance.variables() != null) {
-                        instance.variables().forEach((key, variable) -> {
-                            String fieldPath = "variables." + MongoKeyEncoder.encode(key);
-                            updates.add(Updates.set(fieldPath, ProcessVariableMapper.toDocument(variable)));
-                        });
+                        Map<String, io.kikwiflow.persistence.api.data.VariableOperation> variableOps = unitOfWork.variableOperations();
+
+                        if (variableOps != null && !variableOps.isEmpty()) {
+                            variableOps.forEach((key, operation) -> {
+                                String fieldPath = "variables." + io.kikwiflow.persistence.mongodb.util.MongoKeyEncoder.encode(key);
+
+                                if (operation.type() == io.kikwiflow.persistence.api.data.VariableOpType.SET) {
+                                    updates.add(Updates.set(fieldPath, io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper.toDocument(operation.value())));
+                                }
+                                else if (operation.type() == io.kikwiflow.persistence.api.data.VariableOpType.UNSET) {
+                                    updates.add(Updates.unset(fieldPath));
+                                }
+                            });
+                        }
                     }
+
 
                     Bson filter = eq("_id", instance.id());
 

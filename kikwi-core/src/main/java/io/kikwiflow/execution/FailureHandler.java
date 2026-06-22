@@ -84,7 +84,6 @@ public class FailureHandler {
             incidentsToCreate.add(incident);
         }
 
-        // Commita as atualizações em uma única transação atômica
         UnitOfWork uow = new UnitOfWork(
                 null,
                 null,
@@ -96,6 +95,7 @@ public class FailureHandler {
                 null,
                 null,
                 incidentsToCreate,
+                null,
                 null,
                 null,
                 null

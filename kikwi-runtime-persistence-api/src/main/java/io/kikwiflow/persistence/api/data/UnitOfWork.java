@@ -26,6 +26,7 @@ import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 
 import java.util.List;
+import java.util.Map;
 
 public record UnitOfWork(
         ProcessInstance instanceToCreate,
@@ -40,4 +41,6 @@ public record UnitOfWork(
         List<Incident> incidentsToCreate,
         List<String> incidentsToResolve,
         List<String> finishedNodeDefinitions,
-        List<BranchPullIntention> branchPullIntentions) {}
+        List<BranchPullIntention> branchPullIntentions,
+        Map<String, VariableOperation> variableOperations
+        ) {}

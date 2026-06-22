@@ -15,24 +15,11 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.sample.onboarding.process.executors.asyc;
+package io.kikwiflow.persistence.api.data;
 
-import io.kikwiflow.execution.api.ExecutionContext;
-import io.kikwiflow.execution.api.TaskHandler;
 import io.kikwiflow.model.execution.ProcessVariable;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
 
-@Component
-public class TaskHandler3 implements TaskHandler {
-    private static Logger logger = LogManager.getLogger(TaskHandler3.class);
-
-    @Override
-    public void handle(ExecutionContext execution) {
-        String threadName = Thread.currentThread().getName();
-        logger.info("[{}] TaskHandler3 - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
-        execution.setVariable("task3", new ProcessVariable("task3", "task3"));
-
-    }
-}
+public record VariableOperation(
+        ProcessVariable value,
+        VariableOpType type
+) {}

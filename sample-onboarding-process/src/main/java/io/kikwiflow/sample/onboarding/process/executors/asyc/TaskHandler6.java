@@ -32,7 +32,7 @@ public class TaskHandler6 implements TaskHandler {
     public void handle(ExecutionContext execution) {
         String threadName = Thread.currentThread().getName();
         logger.info("[{}] TaskHandler6 - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
-        execution.setVariable("Task6", new ProcessVariable("task6", "task6"));
+        execution.setVariable("task6", new ProcessVariable("task6", "task6"));
 
     }
 }

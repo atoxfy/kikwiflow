@@ -208,7 +208,7 @@ public class ContinuationService {
             }
             if (completedExternalTask.boundaryEvents() != null) {
                 completedExternalTask.boundaryEvents().forEach(eventRef -> {
-                    externalTasksToDelete.add(eventRef.instanceId());
+                    executableTasksToDelete.add(eventRef.instanceId());
                     finishedNodeDefinitions.add(eventRef.definitionId());
                 });
             }
@@ -236,12 +236,17 @@ public class ContinuationService {
         UnitOfWork updatedUnitOfWork = new UnitOfWork(
                 instanceToCreate, instanceToUpdate, instanceToDelete,
                 nextExecutableTasks, nextExternalTasks, executableTasksToDelete,
-                null, externalTasksToDelete, events, null, null, finishedNodeDefinitions,
-                intentions
+                null, externalTasksToDelete, events, null, null,
+                finishedNodeDefinitions,
+                intentions,
+                processInstanceExecution.getVariableOperations()
         );
 
-        processInstanceExecution.clearBranchPullIntentions();
         kikwiEngineRepository.commitWork(updatedUnitOfWork);
+
+        processInstanceExecution.clearBranchPullIntentions();
+        processInstanceExecution.clearVariableOperations();
+
         return processInstanceToSave;
     }
 
