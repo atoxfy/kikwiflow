@@ -130,6 +130,7 @@ public class KikwiflowEngine {
                 .orElseThrow();
 
         ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
+
         if (variables != null) {
             processInstanceExecution.getVariables().putAll(variables);
         }

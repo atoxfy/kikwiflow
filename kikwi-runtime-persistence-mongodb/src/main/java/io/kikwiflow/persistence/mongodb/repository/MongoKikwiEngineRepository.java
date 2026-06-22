@@ -237,23 +237,31 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     List<Bson> updates = new ArrayList<>();
                     updates.add(Updates.inc("version", 1));
 
+                    Map<String, Integer> nodeDeltas = new java.util.HashMap<>();
+
                     if (unitOfWork.finishedNodeDefinitions() != null) {
                         for (String nodeId : unitOfWork.finishedNodeDefinitions()) {
-                            updates.add(Updates.inc("activeNodes." + nodeId, -1));
+                            nodeDeltas.put(nodeId, nodeDeltas.getOrDefault(nodeId, 0) - 1);
                         }
                     }
 
                     if (unitOfWork.executableTasksToCreate() != null) {
                         for (ExecutableTask t : unitOfWork.executableTasksToCreate()) {
-                            updates.add(Updates.inc("activeNodes." + t.taskDefinitionId(), 1));
+                            nodeDeltas.put(t.taskDefinitionId(), nodeDeltas.getOrDefault(t.taskDefinitionId(), 0) + 1);
                         }
                     }
 
                     if (unitOfWork.externalTasksToCreate() != null) {
                         for (ExternalTask t : unitOfWork.externalTasksToCreate()) {
-                            updates.add(Updates.inc("activeNodes." + t.taskDefinitionId(), 1));
+                            nodeDeltas.put(t.taskDefinitionId(), nodeDeltas.getOrDefault(t.taskDefinitionId(), 0) + 1);
                         }
                     }
+
+                    nodeDeltas.forEach((nodeId, delta) -> {
+                        if (delta != 0) {
+                            updates.add(Updates.inc("activeNodes." + nodeId, delta));
+                        }
+                    });
 
                     if (instance.status() != null) {
                         updates.add(Updates.set("status", instance.status().name()));
