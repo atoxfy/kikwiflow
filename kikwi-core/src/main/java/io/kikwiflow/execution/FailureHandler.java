@@ -16,7 +16,8 @@
  */
 package io.kikwiflow.execution;
 
-import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.execution.api.RetryPolicyEvaluator;
+import io.kikwiflow.model.definition.process.elements.RetryPolicy;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.IncidentStatus;
@@ -27,42 +28,44 @@ import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 public class FailureHandler {
 
     private final KikwiEngineRepository repository;
+    private final RetryPolicyEvaluator policyEvaluator;
 
-    public FailureHandler(KikwiEngineRepository repository) {
+    public FailureHandler(KikwiEngineRepository repository, RetryPolicyEvaluator policyEvaluator) {
         this.repository = repository;
+        this.policyEvaluator = policyEvaluator;
     }
 
     public void handleFailure(ExecutableTask task, Exception exception) {
-        long retriesLeft = task.retries() - 1;
-
         List<ExecutableTask> tasksToUpdate = new ArrayList<>();
         List<Incident> incidentsToCreate = new ArrayList<>();
+        RetryPolicy retryPolicy = task.retryPolicy();
 
-        if (retriesLeft > 0) {
-            // Retentativa: Joga para o futuro e volta o status para PENDING
-            Instant nextRetry = Instant.now().plus(1, ChronoUnit.MINUTES);
+        // Executa a estratégia de tempo fortemente tipada configurada no nó
+        RetryPolicyEvaluator.RetryEvaluationResult evaluation = policyEvaluator.evaluate(task, exception, retryPolicy);
 
+        long currentExecutions = task.executions() != null ? task.executions() : 0L;
+        long nextExecutionCount = currentExecutions + 1;
+        if (!evaluation.shouldCreateIncident()) {
             ExecutableTask updatedTask = task.toBuilder()
-                    .retries(retriesLeft)
-                    .dueDate(nextRetry)
+                    .retries(evaluation.retriesLeft())
+                    .executions(nextExecutionCount)    // <-- ADICIONADO: Incrementa execuções
+                    .dueDate(evaluation.nextDueDate())
                     .status(ExecutableTaskStatus.PENDING)
                     .error(exception.getMessage())
-                    .executorId(null) // Libera o lock
+                    .executorId(null)
                     .build();
 
             tasksToUpdate.add(updatedTask);
         } else {
-            // Esgotaram os retries: A tarefa morre em ERROR e o Incidente nasce
             ExecutableTask failedTask = task.toBuilder()
                     .retries(0L)
+                    .executions(nextExecutionCount)    // <-- ADICIONADO
                     .status(ExecutableTaskStatus.ERROR)
                     .error(exception.getMessage())
                     .executorId(null)
@@ -79,44 +82,24 @@ public class FailureHandler {
                     task.processInstanceId(),
                     task.id(),
                     Instant.now(),
-                    IncidentStatus.OPEN
-            );
+                    IncidentStatus.OPEN,
+                    task.taskDefinitionId()
+
+                    );
+
             incidentsToCreate.add(incident);
         }
 
         UnitOfWork uow = new UnitOfWork(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                tasksToUpdate,
-                null,
-                null,
-                incidentsToCreate,
-                null,
-                null,
-                null,
-                null
+                null, null, null, null, null, null,
+                tasksToUpdate, null, null, incidentsToCreate,
+                null, null, null, null, null
         );
 
         repository.commitWork(uow);
     }
 
-    private void handleRetry(ExecutableTask task, Exception e, long retriesLeft) {
-        Instant nextRetry = Instant.now().plus(1, ChronoUnit.MINUTES);
-
-        /*repository.updateExecutableTaskRetries(
-                task.id(),
-                retriesLeft,
-                nextRetry,
-                e.getMessage(),
-                ExecutableTaskStatus.PENDING // Volta para PENDING para o Acquirer pegar depois
-        );*/
-    }
-
-    private String getStackTrace(Throwable t) {
+    public String getStackTrace(Throwable t) {
         StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
         return sw.toString(); // Limitar caracteres se necessário

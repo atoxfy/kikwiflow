@@ -27,7 +27,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 @KikwiRestController
 @RequestMapping("/pulse")
@@ -37,42 +40,82 @@ public class StatsSSEQueryController {
     private final ExecutorService sseExecutor;
     private final long updateIntervalMillis;
 
-    public StatsSSEQueryController(
-            StatsService statsService, @Qualifier("kikwiflowRestExecutor") ExecutorService sseExecutor,
-            long updateIntervalMillis) {
+    private final Map<String, Map<String, SseEmitter>> subscriptions = new ConcurrentHashMap<>();
+    private final Map<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
 
+    public StatsSSEQueryController(
+            StatsService statsService,
+            @Qualifier("kikwiflowRestExecutor") ExecutorService sseExecutor,
+            long updateIntervalMillis) {
         this.statsService = statsService;
         this.sseExecutor = sseExecutor;
         this.updateIntervalMillis = updateIntervalMillis;
     }
 
-
     @GetMapping(value = "/process-definition/{processDefinitionId}/snapshot/stream")
     public SseEmitter streamSnapshotSse(@PathVariable(value = "processDefinitionId") String processDefinitionId) {
-
         SseEmitter emitter = new SseEmitter(0L);
-        sseExecutor.submit(() -> {
-            boolean isConnected = true;
+        String emitterId = java.util.UUID.randomUUID().toString();
 
-            while (isConnected) {
-                try {
-                    KKFProcessStats snapshot = statsService.buildProcessSnapshot(processDefinitionId);
-                    emitter.send(snapshot);
-                    Thread.sleep(updateIntervalMillis);
+        subscriptions.computeIfAbsent(processDefinitionId, k -> new ConcurrentHashMap<>())
+                .put(emitterId, emitter);
 
-                } catch (IOException e) {
-                    isConnected = false;
-                    emitter.complete();
-                } catch (Exception e) {
-                    emitter.completeWithError(e);
-                    isConnected = false;
+        Runnable onDisconnect = () -> {
+            Map<String, SseEmitter> group = subscriptions.get(processDefinitionId);
+            if (group != null) {
+                group.remove(emitterId);
+                if (group.isEmpty()) {
+                    subscriptions.remove(processDefinitionId);
+                    cancelPolling(processDefinitionId);
                 }
             }
-        });
+        };
 
-        //TODO add logger
-        emitter.onCompletion(() -> System.out.println("SSE finished for " + processDefinitionId));
-        emitter.onTimeout(emitter::complete);
+        emitter.onCompletion(onDisconnect);
+        emitter.onTimeout(onDisconnect);
+        emitter.onError(e -> onDisconnect.run());
+
+        startPollingIfNeeded(processDefinitionId);
+
         return emitter;
+    }
+
+    private synchronized void startPollingIfNeeded(String processDefinitionId) {
+        if (!runningTasks.containsKey(processDefinitionId)) {
+            Future<?> task = sseExecutor.submit(() -> {
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        Map<String, SseEmitter> emitters = subscriptions.get(processDefinitionId);
+                        if (emitters == null || emitters.isEmpty()) {
+                            break;
+                        }
+
+                        KKFProcessStats snapshot = statsService.buildProcessSnapshot(processDefinitionId);
+                        emitters.forEach((id, emitter) -> {
+                            try {
+                                emitter.send(snapshot);
+                            } catch (IOException e) {
+                                emitter.complete();
+                            }
+                        });
+
+                        Thread.sleep(updateIntervalMillis);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    cancelPolling(processDefinitionId);
+                }
+            });
+
+            runningTasks.put(processDefinitionId, task);
+        }
+    }
+
+    private synchronized void cancelPolling(String processDefinitionId) {
+        Future<?> task = runningTasks.remove(processDefinitionId);
+        if (task != null && !task.isDone()) {
+            task.cancel(true);
+        }
     }
 }

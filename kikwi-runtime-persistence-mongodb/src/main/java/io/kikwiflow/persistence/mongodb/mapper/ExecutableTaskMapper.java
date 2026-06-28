@@ -16,6 +16,8 @@
  */
 package io.kikwiflow.persistence.mongodb.mapper;
 
+import io.kikwiflow.model.definition.process.elements.RetryPolicy;
+import io.kikwiflow.model.definition.process.elements.RetryStrategy;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
 import io.kikwiflow.model.execution.node.AttachedEventReference;
@@ -59,6 +61,15 @@ public final class ExecutableTaskMapper {
                                 .toList() :
                         Collections.emptyList());
 
+        if (task.retryPolicy() != null) {
+            doc.append("retryPolicy", new Document("strategy", task.retryPolicy().strategy().name())
+                    .append("maxRetries", task.retryPolicy().maxRetries())
+                    .append("initialInterval", task.retryPolicy().initialInterval())
+                    .append("multiplier", task.retryPolicy().multiplier())
+                    .append("maxInterval", task.retryPolicy().maxInterval())
+                    .append("intervals", task.retryPolicy().intervals()));
+        }
+
         if (task.attachedToRefDefinitionId() != null) {
             doc.append("attachedToRefDefinitionId", task.attachedToRefDefinitionId());
         }
@@ -81,9 +92,23 @@ public final class ExecutableTaskMapper {
 
         List<String>  pendingBranches = doc.getList("pendingBranchIds", String.class, Collections.emptyList());
 
+        Document policyDoc = doc.get("retryPolicy", Document.class);
+        RetryPolicy retryPolicy = null;
+        if (policyDoc != null) {
+            retryPolicy = new RetryPolicy(
+                    RetryStrategy.valueOf(policyDoc.getString("strategy")),
+                    policyDoc.getInteger("maxRetries"),
+                    policyDoc.getString("initialInterval"),
+                    policyDoc.getDouble("multiplier"),
+                    policyDoc.getString("maxInterval"),
+                    policyDoc.getList("intervals", String.class)
+            );
+        }
+
 
         return ExecutableTask.builder()
                 .id(doc.getString("_id"))
+                .retryPolicy(retryPolicy)
                 .taskDefinitionId(doc.getString("taskDefinitionId"))
                 .name(doc.getString("name"))
                 .description(doc.getString("description"))

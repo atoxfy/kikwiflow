@@ -18,6 +18,7 @@ package io.kikwiflow.persistence;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
@@ -79,6 +80,16 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
         this.processInstanceCollection.put(instanceToSave.id(), instanceToSave);
         return instanceToSave;
+    }
+
+    @Override
+    public List<Incident> findIncidentsByProcessInstanceId(String processInstanceId) {
+        return List.of();
+    }
+
+    @Override
+    public Optional<Incident> findIncidentById(String incidentId) {
+        return Optional.empty();
     }
 
     @Override
@@ -379,6 +390,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     @Override
     public Optional<ProcessDefinition> findLatestVersionByKey(String key) {
         return Optional.empty();
+    }
+
+    @Override
+    public List<ExecutableTask> findExecutableTasksByProcessInstanceId(String processInstanceId) {
+        return List.of();
     }
 
     @Override

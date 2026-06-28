@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,10 +15,25 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.event;
+package io.kikwiflow.execution.api;
+
+import io.kikwiflow.model.definition.process.elements.RetryPolicy;
+import io.kikwiflow.model.execution.node.ExecutableTask;
 
 import java.time.Instant;
 
-public interface LightweightEvent {
-    Instant getTimestamp();
+public interface RetryPolicyEvaluator {
+
+    /**
+     * Avalia o erro atual da tarefa e calcula o contexto do próximo passo de resiliência.
+     * Retorna a quantidade de retries restantes e o próximo dueDate.
+     */
+    RetryEvaluationResult evaluate(ExecutableTask task, Exception exception, RetryPolicy policy);
+
+    public record RetryEvaluationResult(
+            long retriesLeft,
+            Instant nextDueDate,
+            boolean shouldCreateIncident
+    ) {}
 }
+

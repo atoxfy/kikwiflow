@@ -102,6 +102,15 @@ public final class ProcessDefinitionMapper {
         switch (node) {
             case ExecutableTaskDefinition st -> {
                 doc.append("executor", st.executor());
+                if (st.retryPolicy() != null) {
+                    doc.append("retryPolicy", new Document("strategy", st.retryPolicy().strategy().name())
+                            .append("maxRetries", st.retryPolicy().maxRetries())
+                            .append("initialInterval", st.retryPolicy().initialInterval())
+                            .append("multiplier", st.retryPolicy().multiplier())
+                            .append("maxInterval", st.retryPolicy().maxInterval())
+                            .append("intervals", st.retryPolicy().intervals()));
+                }
+
                 if (st.boundaryEvents() != null) {
                     doc.append("boundaryEvents", st.boundaryEvents().stream()
                             .map(ProcessDefinitionMapper::toDocument)
@@ -261,6 +270,7 @@ public final class ProcessDefinitionMapper {
                 .commitBefore(doc.getBoolean("commitBefore"))
                 .commitAfter(doc.getBoolean("commitAfter"))
                 .executor(doc.getString("executor"))
+                .retryPolicy(fromDocToRetryPolicy(doc))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .boundaryEvents(fromDocToBoundaryEventsList(doc))
@@ -338,6 +348,22 @@ public final class ProcessDefinitionMapper {
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .build();
+    }
+
+    private static RetryPolicy fromDocToRetryPolicy(Document document){
+        Document policyDoc = document.get("retryPolicy", Document.class);
+        RetryPolicy retryPolicy = null;
+        if (policyDoc != null) {
+            retryPolicy = new RetryPolicy(
+                    RetryStrategy.valueOf(policyDoc.getString("strategy")),
+                    policyDoc.getInteger("maxRetries"),
+                    policyDoc.getString("initialInterval"),
+                    policyDoc.getDouble("multiplier"),
+                    policyDoc.getString("maxInterval"),
+                    policyDoc.getList("intervals", String.class)
+            );
+        }
+        return  retryPolicy;
     }
 
 

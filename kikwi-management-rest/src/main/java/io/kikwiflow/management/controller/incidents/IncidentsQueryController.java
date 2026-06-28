@@ -15,42 +15,40 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.spring.rest.api.query;
+package io.kikwiflow.management.controller.incidents;
 
 import io.kikwiflow.api.dto.CountResponse;
-import io.kikwiflow.api.query.ProcessInstanceQueryApi;
+import io.kikwiflow.management.annotation.KikwiRestController;
+import io.kikwiflow.management.exception.NotFoundException;
+import io.kikwiflow.management.exception.NotImplementedException;
 import io.kikwiflow.model.execution.Incident;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.node.ExternalTask;
+import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
+import io.kikwiflow.persistence.api.repository.QueryRepository;
+import io.kikwiflow.spring.rest.api.query.ExternalTaskQueryRestApi;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.List;
 
-@RequestMapping("/process-instances")
-public interface ProcessInstanceQueryRestApi extends ProcessInstanceQueryApi {
+@KikwiRestController
+@ConditionalOnBean(QueryRepository.class)
+@RequestMapping("/incidents")
+public class IncidentsQueryController {
 
-    @Override
-    @GetMapping("count")
-    @ResponseStatus(HttpStatus.OK)
-    CountResponse count(@RequestParam(value = "process-definition-id", required = false) String processDefinitionId);
+    private final QueryRepository queryRepository;
 
-    @Override
+    public IncidentsQueryController(QueryRepository queryRepository) {
+        this.queryRepository = queryRepository;
+    }
+
     @GetMapping("{id}")
     @ResponseStatus(HttpStatus.OK)
-    ProcessInstance findProcessInstanceById(@PathVariable(value = "id") String id);
-
-    @GetMapping("{id}/incidents")
-    @ResponseStatus(HttpStatus.OK)
-    List<Incident> getIncidents(@PathVariable(value = "id")  String id);
-
-    @Override
-    @GetMapping
-    @ResponseStatus(HttpStatus.OK)
-    List<ProcessInstance> findAll(@RequestParam(value = "ids", required = false) List<String> ids,
-                                  @RequestParam(value = "process-definition-id" , required = false) String processDefinitionId,
-                                  @RequestParam(value = "tenant-id", required = false) String tenantId);
+    public Incident getIncident(@PathVariable("id") String id){
+        return queryRepository.findIncidentById(id).orElseThrow(() -> new NotFoundException("Incidente não encontrado com o id"));
+    }
 }

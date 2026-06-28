@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,23 +15,21 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.execution;
-
-import io.kikwiflow.model.execution.enumerated.IncidentStatus;
+package io.kikwiflow.model.event.lightweight;
 
 import java.time.Instant;
 
-public record Incident(
-        String id,
-        String type,
-        String message,
-        String stackTrace,
-        String processDefinitionId,
+public record SyncContinuationFailed(
         String processInstanceId,
-        String executionId,
-        Instant createdAt,
-        IncidentStatus status,
-        String taskDefinitionId) {
+        String externalTaskId,
+        String failedNodeDefinitionId,
+        String errorMessage,
+        String stackTrace,
+        Instant occurredAt
+) implements LightweightEvent{
 
-
+    @Override
+    public Instant getTimestamp() {
+        return occurredAt;
+    }
 }

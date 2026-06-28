@@ -40,6 +40,7 @@ import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.UpdateResult;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.BranchPullIntention;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessInstanceSummary;
 import io.kikwiflow.model.execution.ProcessVariable;
@@ -190,6 +191,24 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public List<Incident> findIncidentsByProcessInstanceId(String processInstanceId) {
+        MongoCollection<Document> collection = getDatabase().getCollection(INCIDENTS_COLLECTION);
+        List<Incident> list = new ArrayList<>();
+
+        collection.find(eq("processInstanceId", processInstanceId))
+                .forEach(doc -> list.add(IncidentMapper.fromDocument(doc))); // Certifique-se de ter o fromDocument no seu mapper
+        return list;
+    }
+
+    @Override
+    public Optional<Incident> findIncidentById(String incidentId) {
+        MongoCollection<Document> collection = getDatabase().getCollection(INCIDENTS_COLLECTION);
+        Document doc = collection.find(eq("_id", incidentId)).first();
+        return Optional.ofNullable(doc).map(IncidentMapper::fromDocument);
+    }
+
+
+    @Override
     public void commitWork(UnitOfWork unitOfWork) {
         try (ClientSession clientSession = mongoClient.startSession()) {
             clientSession.withTransaction(() -> {
@@ -307,6 +326,15 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                             writes.add(new InsertOneModel<>(IncidentMapper.toDocument(inc)))
                     );
                     incidents.bulkWrite(clientSession, writes);
+                }
+
+                if (unitOfWork.incidentsToUpdate() != null && !unitOfWork.incidentsToUpdate().isEmpty()) {
+                    List<WriteModel<Document>> incidentUpdates = new ArrayList<>();
+                    unitOfWork.incidentsToUpdate().forEach(inc -> {
+                        Document incDoc = IncidentMapper.toDocument(inc);
+                        incidentUpdates.add(new ReplaceOneModel<>(eq("_id", inc.id()), incDoc));
+                    });
+                    incidents.bulkWrite(clientSession, incidentUpdates);
                 }
 
 
@@ -671,6 +699,15 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 new IndexOptions().name("status_duedate_idx")
         );
 
+        getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION).createIndex(
+                Indexes.ascending("processInstanceId"),
+                new IndexOptions().name("exec_task_proc_inst_idx")
+        );
+
+        getDatabase().getCollection(INCIDENTS_COLLECTION).createIndex(
+                Indexes.ascending("processInstanceId"),
+                new IndexOptions().name("inc_proc_inst_idx")
+        );
 
 
         // indice de tarefas externas por process instance id
@@ -704,9 +741,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         List<Bson> executablePipeline = Arrays.asList(
                 Aggregates.match(Filters.eq("processDefinitionId", processDefinitionId)),
                 Aggregates.group("$taskDefinitionId",
-                        Accumulators.sum("running", new Document("$cond", Arrays.asList(
-                                new Document("$in", Arrays.asList("$status", Arrays.asList("PENDING", "EXECUTING"))), 1, 0
-                        ))),
+                        Accumulators.sum("running", 1),
                         Accumulators.sum("failed", new Document("$cond", Arrays.asList(
                                 new Document("$eq", Arrays.asList("$status", "ERROR")), 1, 0
                         )))
@@ -726,9 +761,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         List<Bson> externalPipeline = Arrays.asList(
                 Aggregates.match(Filters.eq("processDefinitionId", processDefinitionId)),
                 Aggregates.group("$taskDefinitionId",
-                        Accumulators.sum("running", new Document("$cond", Arrays.asList(
-                                new Document("$eq", Arrays.asList("$status", "CREATED")), 1, 0
-                        )))
+                        Accumulators.sum("running", 1)
                 )
         );
 
@@ -768,6 +801,16 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 .map(ProcessDefinitionMapper::fromDocument);
     }
 
+    @Override
+    public List<ExecutableTask> findExecutableTasksByProcessInstanceId(String processInstanceId) {
+        MongoCollection<Document> collection = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
+        List<ExecutableTask> tasks = new ArrayList<>();
+        collection.find(eq("processInstanceId", processInstanceId))
+                .map(ExecutableTaskMapper::fromDocument)
+                .into(tasks);
+
+        return tasks;
+    }
 
 
     @Override

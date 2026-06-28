@@ -34,87 +34,6 @@ import java.util.stream.Collectors;
 public class ProcessMapper {
 
 
-    // Switch Expression do Java moderno para mapear os tipos
-    private static FlowNodeDefinition mapNode(KKFFlowNodeDefinition dto) {
-        if (dto == null) return null;
-
-        if(dto instanceof KKFStartEventDefinition) {
-            KKFStartEventDefinition s = (KKFStartEventDefinition) dto;
-            return new StartEventDefinition(
-                    s.id(),
-                    s.name(),
-                    s.description(),
-                    s.type(),
-                    s.commitAfter(),
-                    s.commitBefore(),
-                    mapOutgoing(s.outgoing()),
-                    s.extensionProperties(),
-                    mapLayout(s.layout())
-            );
-        } else if (dto instanceof KKFEndEventDefinition) {
-            KKFEndEventDefinition e = (KKFEndEventDefinition) dto;
-            return new EndEventDefinition(
-                    e.id(),
-                    e.name(),
-                    e.description(),
-                    e.type(),
-                    e.commitAfter(),
-                    e.commitBefore(),
-                    null,
-                    e.extensionProperties(),
-                    mapLayout(e.layout())
-            );
-        } else if (dto instanceof KKFExclusiveGatewayDefinition) {
-            KKFExclusiveGatewayDefinition g = (KKFExclusiveGatewayDefinition) dto;
-            return new ExclusiveGatewayDefinition(
-                    g.id(),
-                    g.name(),
-                    g.type(),
-                    g.description(),
-                    g.commitAfter(),
-                    g.commitBefore(),
-                    g.defaultFlow(),
-                    mapOutgoing(g.outgoing()),
-                    g.extensionProperties(),
-                    mapLayout(g.layout()),
-                    g.providerType(),
-                    g.providerBean(),
-                    g.providerVariable()
-            );
-        } else if (dto instanceof KKFExternalTaskDefinition) {
-            KKFExternalTaskDefinition t = (KKFExternalTaskDefinition) dto;
-            return new ExternalTaskDefinition(
-                    t.id(),
-                    t.name(),
-                    t.type(),
-                    t.description(),
-                    t.commitAfter(),
-                    t.commitBefore(),
-                    mapOutgoing(t.outgoing()),
-                    mapBoundaryEvents(t.boundaryEvents()),
-                    t.extensionProperties(),
-                    mapLayout(t.layout())
-            );
-        }else if (dto instanceof KKFExecutableTaskDefinition) {
-            KKFExecutableTaskDefinition exect = (KKFExecutableTaskDefinition) dto;
-            return new ExecutableTaskDefinition(
-                    exect.id(),
-                    exect.name(),
-                    exect.type(),
-                    exect.description(),
-                    exect.executor() ,
-                    exect.commitAfter(),
-                    exect.commitBefore(),
-                    mapOutgoing(exect.outgoing()),
-                    mapBoundaryEvents(exect.boundaryEvents()),
-                    exect.extensionProperties(),
-                    mapLayout(exect.layout())
-            );
-        }else {
-           throw new IllegalArgumentException("Tipo de nó não suportado no mapper: " + dto.getClass().getSimpleName());
-        }
-    }
-
 
     // Helper para converter Listas de Fluxo
     private static List<SequenceFlowDefinition> mapOutgoing(List<KKFSequenceFlowDefinition> dtos) {
@@ -336,7 +255,8 @@ public class ProcessMapper {
                     mapOutgoingK(exect.outgoing()),
                     mapBoundaryEventsK(exect.boundaryEvents()),
                     exect.extensionProperties(),
-                    mapLayout(exect.layout())
+                    mapLayout(exect.layout()),
+                    exect.retryPolicy()
             );
         }else {
             throw new IllegalArgumentException("Tipo de nó não suportado no mapper: " + dto.getClass().getSimpleName());

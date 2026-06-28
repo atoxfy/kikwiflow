@@ -19,8 +19,11 @@ package io.kikwiflow.management.controller.processinstance;
 
 import io.kikwiflow.api.dto.CountResponse;
 import io.kikwiflow.management.annotation.KikwiRestController;
+import io.kikwiflow.management.dtos.ProcessInstanceSnapshot;
 import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.management.exception.NotImplementedException;
+import io.kikwiflow.management.service.ProcessInstanceSnapshotService;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessInstanceSummary;
 import io.kikwiflow.model.shared.PageResult;
@@ -28,8 +31,8 @@ import io.kikwiflow.persistence.api.repository.QueryRepository;
 import io.kikwiflow.spring.rest.api.query.ProcessInstanceQueryRestApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -38,9 +41,16 @@ import java.util.List;
 public class ProcessInstanceQueryController implements ProcessInstanceQueryRestApi {
 
     private final QueryRepository queryRepository;
+    private final ProcessInstanceSnapshotService snapshotService;
 
-    public ProcessInstanceQueryController(QueryRepository queryRepository) {
+    public ProcessInstanceQueryController(QueryRepository queryRepository, ProcessInstanceSnapshotService snapshotService) {
         this.queryRepository = queryRepository;
+        this.snapshotService = snapshotService;
+    }
+
+    @GetMapping("/{id}/snapshot")
+    public ProcessInstanceSnapshot getProcessInstanceSnapshot(@PathVariable("id") String id) {
+        return snapshotService.getSnapshot(id);
     }
 
     @Override
@@ -58,6 +68,11 @@ public class ProcessInstanceQueryController implements ProcessInstanceQueryRestA
     public ProcessInstance findProcessInstanceById(String id) {
         return queryRepository.findProcessInstanceById(id)
                 .orElseThrow(() -> new NotFoundException("Process Instance Not Found"));
+    }
+
+    @Override
+    public List<Incident> getIncidents(String id) {
+        return queryRepository.findIncidentsByProcessInstanceId(id);
     }
 
     @Override

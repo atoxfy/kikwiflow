@@ -27,6 +27,7 @@ import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.execution.ProcessInstanceFactory;
 import io.kikwiflow.execution.TaskAcquirer;
+import io.kikwiflow.execution.api.RetryPolicyEvaluator;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
@@ -34,6 +35,7 @@ import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.event.lightweight.SyncContinuationFailed;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExecutableTask;
@@ -44,6 +46,7 @@ import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.util.KikwiflowBanner;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -66,7 +69,7 @@ public class KikwiflowEngine {
     private final ContinuationService continuationService;
     private final FailureHandler failureHandler;
 
-    public KikwiflowEngine(ProcessDefinitionService processDefinitionService, Navigator navigator, ProcessExecutionManager processExecutionManager, KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, List<ExecutionEventListener> executionEventListeners){
+    public KikwiflowEngine(ProcessDefinitionService processDefinitionService, Navigator navigator, ProcessExecutionManager processExecutionManager, KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, List<ExecutionEventListener> executionEventListeners, RetryPolicyEvaluator retryPolicyEvaluator){
         this.processDefinitionService = processDefinitionService;
         this.navigator = navigator;
         this.processExecutionManager = processExecutionManager;
@@ -78,7 +81,7 @@ public class KikwiflowEngine {
         this.eventListeners = executionEventListeners;
         this.taskAcquirer = new TaskAcquirer(this, kikwiEngineRepository, kikwiflowConfig );
         this.continuationService = new ContinuationService(kikwiEngineRepository, kikwiflowConfig);
-        this.failureHandler = new FailureHandler(kikwiEngineRepository);
+        this.failureHandler = new FailureHandler(kikwiEngineRepository, retryPolicyEvaluator);
     }
 
     public void start(){
@@ -100,6 +103,115 @@ public class KikwiflowEngine {
 
     public void unclaim(String externalTaskId){
         this.kikwiEngineRepository.unclaim(externalTaskId);
+    }
+
+    /**
+     * Retenta manualmente um incidente aberto, reativando a tarefa associada
+     * e marcando o incidente como RESOLVED de forma atômica e transacional.
+     */
+    public void retryIncident(String incidentId) {
+        io.kikwiflow.model.execution.Incident incident = kikwiEngineRepository.findIncidentById(incidentId)
+                .orElseThrow(() -> new io.kikwiflow.exception.TaskNotFoundException("Incident not found with id: " + incidentId));
+
+        if (incident.status() != io.kikwiflow.model.execution.enumerated.IncidentStatus.OPEN) {
+            throw new IllegalStateException("Only OPEN incidents can be retried.");
+        }
+
+        ExecutableTask failedTask = kikwiEngineRepository.findExecutableTaskById(incident.executionId())
+                .orElseThrow(() -> new io.kikwiflow.exception.TaskNotFoundException("Associated ExecutableTask not found: " + incident.executionId()));
+
+        ExecutableTask restoredTask = failedTask.toBuilder()
+                .status(io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus.PENDING)
+                .retries(3L)
+                .error(null)
+                .dueDate(Instant.now())
+                .executorId(null)
+                .build();
+
+        io.kikwiflow.model.execution.Incident resolvedIncident = new io.kikwiflow.model.execution.Incident(
+                incident.id(),
+                incident.type(),
+                incident.message(),
+                incident.stackTrace(),
+                incident.processDefinitionId(),
+                incident.processInstanceId(),
+                incident.executionId(),
+                incident.createdAt(),
+                io.kikwiflow.model.execution.enumerated.IncidentStatus.RESOLVED,
+                incident.taskDefinitionId()
+        );
+
+        io.kikwiflow.persistence.api.data.UnitOfWork uow = new io.kikwiflow.persistence.api.data.UnitOfWork(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                List.of(restoredTask),
+                null,
+                null,
+                null,
+                List.of(resolvedIncident),
+                null,
+                null,
+                null,
+                null
+        );
+
+        kikwiEngineRepository.commitWork(uow);
+    }
+
+    /**
+     * Permite a manipulação cirúrgica de uma tarefa em execução ou em falha.
+     * Ideal para suporte operacional (hot-fixing) sem afetar a definição do processo.
+     */
+    public void overrideTaskRetryContext(String executableTaskId,
+                                         Instant customDueDate,
+                                         Long newRetriesCount,
+                                         io.kikwiflow.model.definition.process.elements.RetryPolicy customRetryPolicy) {
+
+        ExecutableTask task = kikwiEngineRepository.findExecutableTaskById(executableTaskId)
+                .orElseThrow(() -> new io.kikwiflow.exception.TaskNotFoundException("Task not found: " + executableTaskId));
+
+        ExecutableTask.Builder builder = task.toBuilder();
+
+        if (customDueDate != null) {
+            builder.dueDate(customDueDate);
+        }
+
+        if (newRetriesCount != null) {
+            builder.retries(newRetriesCount);
+        }
+
+        if (customRetryPolicy != null) {
+            builder.retryPolicy(customRetryPolicy);
+        }
+
+        ExecutableTask overriddenTask = builder
+                .status(io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus.PENDING)
+                .error(null)
+                .executorId(null)
+                .build();
+
+        io.kikwiflow.persistence.api.data.UnitOfWork uow = new io.kikwiflow.persistence.api.data.UnitOfWork(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                java.util.List.of(overriddenTask),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        kikwiEngineRepository.commitWork(uow);
     }
 
     /**
@@ -132,7 +244,7 @@ public class KikwiflowEngine {
         ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
 
         if (variables != null) {
-            processInstanceExecution.getVariables().putAll(variables);
+            processInstanceExecution.addVariables(variables);
         }
 
         FlowNodeDefinition completedNode = processDefinition.flowNodes().get(taskToComplete.taskDefinitionId());
@@ -141,22 +253,43 @@ public class KikwiflowEngine {
         ExecutionResult executionResult;
 
         if (continuation != null && !continuation.nextNodes().isEmpty()) {
+
             FlowNodeDefinition startPoint = continuation.nextNodes().get(0);
 
-            executionResult = processExecutionManager.executeFlow(
-                    startPoint,
-                    taskToComplete.branchId(),
-                    taskToComplete.joinTaskId(),
-                    processInstanceExecution,
-                    processDefinition,
-                    false
-            );
+            try {
+                executionResult = processExecutionManager.executeFlow(
+                        startPoint,
+                        taskToComplete.branchId(),
+                        taskToComplete.joinTaskId(),
+                        processInstanceExecution,
+                        processDefinition,
+                        false
+                );
+            } catch (Exception ex) {
+
+                if(kikwiflowConfig.isStatsEnabled()){
+                    SyncContinuationFailed telemetryEvent = new SyncContinuationFailed(
+                            processInstanceExecution.getId(),
+                            taskToComplete.id(),
+                            startPoint.id(),
+                            ex.getMessage(),
+                            failureHandler.getStackTrace(ex),
+                            Instant.now()
+                    );
+
+                    this.asynchronousEventPublisher.publishEvent(telemetryEvent);
+                }
+
+                throw new RuntimeException("Kikwiflow Core: Falha síncrona no nó [" + startPoint.id() + "] após a conclusão da tarefa externa [" + taskToComplete.id() + "]. Transação abortada.", ex);
+            }
+
         } else {
             executionResult = new ExecutionResult(new ExecutionOutcome(processInstanceExecution, Collections.emptyList()), null);
         }
 
         return continuationService.handleContinuation(executionResult, taskToComplete);
     }
+
 
     public ProcessInstance executeFromTask(ExecutableTask executableTask){
         ProcessInstance processInstanceRecord = kikwiEngineRepository.findProcessInstanceById(executableTask.processInstanceId())
@@ -169,7 +302,9 @@ public class KikwiflowEngine {
         FlowNodeDefinition flowNodeDefinition = processDefinition.flowNodes().get(executableTask.taskDefinitionId());
 
         if (flowNodeDefinition == null) {
-            flowNodeDefinition = processDefinition.flowNodes().values().stream()
+            flowNodeDefinition = processDefinition.flowNodes()
+                    .values()
+                    .stream()
                     .map(node -> {
                         if (node instanceof io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition st) {
                             return st.boundaryEvents();
@@ -247,6 +382,7 @@ public class KikwiflowEngine {
      * Permite uma API fluente para definir os parâmetros de inicialização.
      */
     public class ProcessStarter {
+
         private final KikwiflowEngine engine;
         private String processDefinitionKey;
         private String businessKey;
@@ -317,6 +453,7 @@ public class KikwiflowEngine {
                     processInstanceExecution,
                     processDefinition,
                     false);
+
             return engine.continuationService.handleContinuation(executionResult);
         }
     }

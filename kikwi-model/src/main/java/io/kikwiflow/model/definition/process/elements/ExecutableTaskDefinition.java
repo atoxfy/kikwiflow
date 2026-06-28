@@ -34,7 +34,8 @@ public record ExecutableTaskDefinition(String id,
                                        List<SequenceFlowDefinition> outgoing,
                                        List<BoundaryEventDefinition> boundaryEvents,
                                        Map<String, String> extensionProperties,
-                                       LayoutCoordinates layout) implements FlowNodeDefinition, Executable {
+                                       LayoutCoordinates layout,
+                                       RetryPolicy retryPolicy) implements FlowNodeDefinition, Executable {
 
 
     public static Builder builder() {
@@ -52,6 +53,7 @@ public record ExecutableTaskDefinition(String id,
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private List<BoundaryEventDefinition> boundaryEvents = Collections.emptyList();
         private Map<String, String> extensionProperties;
+        private RetryPolicy retryPolicy;
 
         private Builder() {}
 
@@ -62,6 +64,11 @@ public record ExecutableTaskDefinition(String id,
 
         public Builder layout(LayoutCoordinates layout) {
             this.layout = layout;
+            return this;
+        }
+
+        public Builder retryPolicy(RetryPolicy retryPolicy) {
+            this.retryPolicy = retryPolicy;
             return this;
         }
 
@@ -111,7 +118,7 @@ public record ExecutableTaskDefinition(String id,
         }
 
         public ExecutableTaskDefinition build() {
-            return new ExecutableTaskDefinition(id, name, "EXECUTABLE_TASK", description, executor,  commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
+            return new ExecutableTaskDefinition(id, name, "EXECUTABLE_TASK", description, executor,  commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout, retryPolicy);
         }
     }
 }

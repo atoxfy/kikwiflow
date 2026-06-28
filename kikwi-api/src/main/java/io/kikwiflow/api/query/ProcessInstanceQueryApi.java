@@ -18,6 +18,7 @@
 package io.kikwiflow.api.query;
 
 import io.kikwiflow.api.dto.CountResponse;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 
 import java.util.List;
@@ -26,4 +27,5 @@ public interface ProcessInstanceQueryApi {
     CountResponse count(String processDefinitionId);
     ProcessInstance findProcessInstanceById(String processInstanceId);
     List<ProcessInstance> findAll(List<String> ids, String processDefinitionId, String tenantId);
+    List<Incident> getIncidents(String processInstanceId);
 }

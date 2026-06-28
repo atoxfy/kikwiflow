@@ -88,9 +88,11 @@ public class ContinuationService {
 
         String currentBranchId = null;
         String currentJoinTaskId = null;
+
         if (completedExternalTask != null) {
             currentBranchId = completedExternalTask.branchId();
             currentJoinTaskId = completedExternalTask.joinTaskId();
+
         } else if (completedExecutableTask != null) {
             currentBranchId = completedExecutableTask.branchId();
             currentJoinTaskId = completedExecutableTask.joinTaskId();
@@ -236,7 +238,7 @@ public class ContinuationService {
         UnitOfWork updatedUnitOfWork = new UnitOfWork(
                 instanceToCreate, instanceToUpdate, instanceToDelete,
                 nextExecutableTasks, nextExternalTasks, executableTasksToDelete,
-                null, externalTasksToDelete, events, null, null,
+                null, externalTasksToDelete, events, null, null, null,
                 finishedNodeDefinitions,
                 intentions,
                 processInstanceExecution.getVariableOperations()
@@ -256,6 +258,7 @@ public class ContinuationService {
                                               String joinTaskId,
                                               List<ExecutableTask> nextExecutableTasks,
                                               List<ExternalTask> nextExternalTasks) {
+
         String flowNodeDefinitionId = flowNodeDefinition.id();
         String processInstanceId = processInstanceExecution.getId();
         String processDefinitionId = processInstanceExecution.getProcessDefinitionId();
@@ -263,6 +266,7 @@ public class ContinuationService {
         if (flowNodeDefinition instanceof ExternalTaskDefinition mt) {
             String externalTaskNodeId = UUID.randomUUID().toString();
             List<AttachedEventReference> boundaryEvents = new ArrayList<>();
+
             if (Objects.nonNull(mt.boundaryEvents()) && !mt.boundaryEvents().isEmpty()) {
                 mt.boundaryEvents().forEach(boundaryEventDefinition -> {
 
@@ -314,7 +318,11 @@ public class ContinuationService {
                             AttachedTaskType.EXECUTABLE_TASK,
                             it.duration(),
                             flowNodeDefinitionId,
-                            ExecutableTaskType.INTERRUPTIVE_TIMER, branchId, joinTaskId);
+                            ExecutableTaskType.INTERRUPTIVE_TIMER,
+                            branchId,
+                            joinTaskId);
+
+
 
                         nextExecutableTasks.add(boundaryEvent);
                         boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id()));
@@ -324,6 +332,11 @@ public class ContinuationService {
                 });
             }
 
+            long initialRetries = kikwiflowConfig.getDefaultMaxRetries(); // Requer o getter que criamos na config
+            if (st.retryPolicy() != null) {
+                initialRetries = st.retryPolicy().maxRetries();
+            }
+
             ExecutableTask executableTask = ExecutableTask.builder()
                     .id(executableTaskNodeId)
                     .processDefinitionId(processDefinitionId)
@@ -331,8 +344,10 @@ public class ContinuationService {
                     .processInstanceId(processInstanceId)
                     .type(ExecutableTaskType.STANDARD)
                     .boundaryEvents(boundaryEvents)
+                    .retryPolicy(st.retryPolicy())
                     .branchId(branchId)
                     .joinTaskId(joinTaskId)
+                    .retries(initialRetries)
                     .build();
 
             nextExecutableTasks.add(executableTask);

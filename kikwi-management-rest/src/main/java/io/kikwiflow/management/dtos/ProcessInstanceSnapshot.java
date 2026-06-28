@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,33 +15,24 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.persistence.api.data;
+package io.kikwiflow.management.dtos;
 
-
-import io.kikwiflow.model.event.OutboxEventEntity;
-import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 
 import java.util.List;
-import java.util.Map;
 
-public record UnitOfWork(
-        ProcessInstance instanceToCreate,
-        ProcessInstance instanceToUpdate,
-        ProcessInstance instanceToDelete,
-        List<ExecutableTask> executableTasksToCreate,
-        List<ExternalTask> externalTasksToCreate,
-        List<String> executableTasksToDelete,
-        List<ExecutableTask> executableTasksToUpdate,
-        List<String> externalTasksToDelete,
-        List<OutboxEventEntity> events,
-        List<Incident> incidentsToCreate,
-        List<Incident> incidentsToUpdate,
-        List<String> incidentsToResolve,
-        List<String> finishedNodeDefinitions,
-        List<BranchPullIntention> branchPullIntentions,
-        Map<String, VariableOperation> variableOperations
-        ) {}
+/**
+ * Representa um retrato completo e imutável de uma instância no tempo.
+ * Projetado especificamente para reduzir roundtrips do frontend.
+ */
+public record ProcessInstanceSnapshot(
+        ProcessInstance instance,
+        List<ExecutableTask> executableTasks,
+        List<ExternalTask> externalTasks,
+        List<Incident> incidents
+) {
+
+}

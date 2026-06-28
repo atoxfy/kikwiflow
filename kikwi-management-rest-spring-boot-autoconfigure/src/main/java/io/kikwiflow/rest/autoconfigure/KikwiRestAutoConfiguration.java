@@ -19,6 +19,8 @@ package io.kikwiflow.rest.autoconfigure;
 
 import io.kikwiflow.management.controller.externaltask.ExternalTaskCommandController;
 import io.kikwiflow.management.controller.externaltask.ExternalTaskQueryController;
+import io.kikwiflow.management.controller.incidents.IncidentsCommandController;
+import io.kikwiflow.management.controller.incidents.IncidentsQueryController;
 import io.kikwiflow.management.controller.processdefinition.ProcessDefinitionCommandController;
 import io.kikwiflow.management.controller.processdefinition.ProcessDefinitionQueryController;
 import io.kikwiflow.management.controller.processinstance.ProcessInstanceCommandController;
@@ -26,6 +28,7 @@ import io.kikwiflow.management.controller.processinstance.ProcessInstanceQueryCo
 import io.kikwiflow.management.controller.stats.StatsQueryController;
 import io.kikwiflow.management.controller.stats.StatsSSEQueryController;
 import io.kikwiflow.management.exception.KikwiflowExceptionHandler;
+import io.kikwiflow.management.service.ProcessInstanceSnapshotService;
 import io.kikwiflow.management.service.StatsService;
 import io.kikwiflow.parser.jackson.KikwiflowJacksonModule;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
@@ -42,6 +45,7 @@ import org.springframework.context.annotation.Import;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 @AutoConfiguration(
         afterName = "io.kikwiflow.starter.autoconfigure.KikwiflowAutoConfiguration"
@@ -57,6 +61,8 @@ import java.util.concurrent.Executors;
 
         StatsService.class,
 
+        IncidentsQueryController.class,
+        IncidentsCommandController.class,
         ProcessDefinitionCommandController.class,
         ProcessInstanceCommandController.class,
         ExternalTaskCommandController.class
@@ -76,6 +82,21 @@ public class KikwiRestAutoConfiguration {
         return new KikwiflowExceptionHandler();
     }
 
+    @Bean(name = "kikwiflowQueryExecutor")
+    @ConditionalOnMissingBean(name = "kikwiflowQueryExecutor")
+    public ExecutorService kikwiflowQueryExecutor() {
+        // Mudança essencial: Agora as queries concorrentes do Snapshot também rodam em Threads Virtuais!
+        // Máxima performance de I/O sem alocar threads pesadas do SO.
+        return Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    @Bean
+    public ProcessInstanceSnapshotService processInstanceSnapshotService(
+            QueryRepository queryRepository,
+            @Qualifier("kikwiflowQueryExecutor") ExecutorService queryExecutor) {
+        return new ProcessInstanceSnapshotService(queryRepository, queryExecutor);
+    }
+
     @Bean(name = "kikwiflowRestExecutor")
     @ConditionalOnMissingBean(name = "kikwiflowRestExecutor")
     @ConditionalOnProperty(prefix = "kikwiflow.pulse.sse-endpoints", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -87,9 +108,9 @@ public class KikwiRestAutoConfiguration {
     @ConditionalOnProperty(prefix = "kikwiflow.pulse.sse-endpoints", name = "enabled", havingValue = "true", matchIfMissing = true)
     public StatsSSEQueryController statsSSEQueryController(
             StatsService statsService,
-            @Qualifier("kikwiflowRestExecutor") ExecutorService sseExecutor,
+            @Qualifier("kikwiflowRestExecutor") ExecutorService kikwiflowRestExecutor,
             KikwiflowPulseProperties properties) {
 
-        return new StatsSSEQueryController(statsService, sseExecutor, properties.interval());
+        return new StatsSSEQueryController(statsService, kikwiflowRestExecutor, properties.interval());
     }
 }

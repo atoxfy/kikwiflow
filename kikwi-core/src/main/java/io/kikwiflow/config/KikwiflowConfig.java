@@ -50,11 +50,28 @@ public class KikwiflowConfig {
     private int maxConcurrentTasks = 200;
     private int shutdownGracePeriodSeconds = 20;
     private long lockTimeoutMillis = 5000L;
-
+    private String defaultRetryInterval = "PT3M";
+    private int defaultMaxRetries = 3;
     private String instanceName;
 
 
     public KikwiflowConfig() {
+    }
+
+    public String getDefaultRetryInterval() {
+        return defaultRetryInterval;
+    }
+
+    public void setDefaultRetryInterval(String defaultRetryInterval) {
+        this.defaultRetryInterval = defaultRetryInterval;
+    }
+
+    public int getDefaultMaxRetries() {
+        return defaultMaxRetries;
+    }
+
+    public void setDefaultMaxRetries(int defaultMaxRetries) {
+        this.defaultMaxRetries = defaultMaxRetries;
     }
 
     public String getInstanceName() {

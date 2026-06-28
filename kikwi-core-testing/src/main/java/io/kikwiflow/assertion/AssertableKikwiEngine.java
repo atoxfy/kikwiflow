@@ -22,6 +22,7 @@ import io.kikwiflow.history.repository.ProcessInstanceInMemorySnapshotRepository
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.node.ExecutableTask;
@@ -63,6 +64,16 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public ProcessInstance saveProcessInstance(ProcessInstance instance) {
         return inMemoryKikwiEngineRepository.saveProcessInstance(instance);
+    }
+
+    @Override
+    public List<Incident> findIncidentsByProcessInstanceId(String processInstanceId) {
+        return List.of();
+    }
+
+    @Override
+    public Optional<Incident> findIncidentById(String incidentId) {
+        return Optional.empty();
     }
 
     @Override
@@ -223,6 +234,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public Optional<ProcessDefinition> findLatestVersionByKey(String key) {
         return Optional.empty();
+    }
+
+    @Override
+    public List<ExecutableTask> findExecutableTasksByProcessInstanceId(String processInstanceId) {
+        return List.of();
     }
 
     public void evaluateEvents(){

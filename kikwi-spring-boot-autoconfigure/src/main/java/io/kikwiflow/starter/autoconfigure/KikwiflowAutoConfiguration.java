@@ -27,6 +27,8 @@ import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.execution.api.ProcessDefinitionParser;
+import io.kikwiflow.execution.api.RetryPolicyEvaluator;
+import io.kikwiflow.execution.policy.DefaultRetryPolicyEvaluator;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.parser.jackson.JacksonProcessDefinitionParser;
@@ -145,6 +147,12 @@ public class KikwiflowAutoConfiguration {
         return new SpringAnswerProviderLocator(applicationContext);
     }
 
+    @Bean
+    @ConditionalOnMissingBean(RetryPolicyEvaluator.class)
+    public RetryPolicyEvaluator retryPolicyEvaluator(KikwiflowConfig kikwiflowConfig) {
+        return new DefaultRetryPolicyEvaluator(kikwiflowConfig);
+    }
+
     @Bean(initMethod = "start", destroyMethod = "stop")
     @ConditionalOnMissingBean
     public KikwiflowEngine kikwiflowEngine(
@@ -155,11 +163,11 @@ public class KikwiflowAutoConfiguration {
             ObjectProvider<List<ExecutionEventListener>> listenersProvider,
             ProcessDefinitionService processDefinitionService,
             Navigator navigator,
-            ProcessExecutionManager processExecutionManager) {
+            ProcessExecutionManager processExecutionManager, RetryPolicyEvaluator retryPolicyEvaluator) {
 
         List<ExecutionEventListener> listeners = listenersProvider.getIfAvailable(Collections::emptyList);
 
         return new KikwiflowEngine(processDefinitionService, navigator,
-                processExecutionManager, repository, config, listeners);
+                processExecutionManager, repository, config, listeners, retryPolicyEvaluator);
     }
 }

@@ -17,6 +17,7 @@
 
 package io.kikwiflow.model.execution.node;
 
+import io.kikwiflow.model.definition.process.elements.RetryPolicy;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
 
@@ -44,7 +45,8 @@ public record ExecutableTask (String id,
                                ExecutableTaskType type,
                                String joinTaskId,
                                List<String> pendingBranchIds,
-                               String branchId){
+                               String branchId,
+                              RetryPolicy retryPolicy){
 
     public static Builder builder() {
         return new Builder();
@@ -73,6 +75,7 @@ public record ExecutableTask (String id,
                 .type(this.type)
                 .pendingBranchIds(this.pendingBranchIds)
                 .joinTaskId(this.joinTaskId)
+                .retryPolicy(this.retryPolicy)
                 .boundaryEvents(this.boundaryEvents);
     }
 
@@ -99,10 +102,12 @@ public record ExecutableTask (String id,
         private List<String> pendingBranchIds;
         private String branchId;
         private String joinTaskId;
+        private RetryPolicy retryPolicy;
 
         private Builder() {}
 
         public Builder id(String id) { this.id = id; return this; }
+        public Builder retryPolicy(RetryPolicy retryPolicy) { this.retryPolicy = retryPolicy; return this; }
 
         public Builder joinTaskId(String joinTaskId) { this.joinTaskId = joinTaskId; return this; }
         public Builder pendingBranchIds(List<String> pendingBranchIds) { this.pendingBranchIds = pendingBranchIds; return this; }
@@ -149,7 +154,8 @@ public record ExecutableTask (String id,
                 this.type,
                 this.joinTaskId,
                 this.pendingBranchIds,
-                this.branchId
+                this.branchId,
+                this.retryPolicy
             );
         }
     }
