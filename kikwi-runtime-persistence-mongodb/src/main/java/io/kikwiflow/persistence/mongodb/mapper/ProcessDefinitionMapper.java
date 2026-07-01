@@ -18,7 +18,9 @@ package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.*;
+import io.kikwiflow.model.execution.enumerated.RetryStrategy;
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 import org.bson.Document;
 
 import java.util.Collections;
@@ -144,7 +146,10 @@ public final class ProcessDefinitionMapper {
             case BoundaryEventDefinition be -> {
                 doc.append("attachedToRef", be.attachedToRef());
                 if (be instanceof InterruptiveTimerEventDefinition te) {
-                    doc.append("duration", te.duration());
+                    doc.append("staticValue", te.staticValue());
+                    doc.append("providerBean", te.providerBean());
+                    doc.append("providerVariable", te.providerVariable());
+                    doc.append("providerType", te.providerType().name());
                 }
             }
             default -> {
@@ -344,7 +349,10 @@ public final class ProcessDefinitionMapper {
                 .commitBefore(doc.getBoolean("commitBefore"))
                 .commitAfter(doc.getBoolean("commitAfter"))
                 .attachedToRef(doc.getString("attachedToRef"))
-                .duration(doc.getString("duration"))
+                .staticValue(doc.getString("staticValue"))
+                .providerBean(doc.getString("providerBean"))
+                .providerVariable(doc.getString("providerVariable"))
+                .providerType(TimeProviderType.valueOf(doc.getString("providerType")))//TODO ADICIONAR VALIDAÇÃO NO VALIDATOR.
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
                 .build();

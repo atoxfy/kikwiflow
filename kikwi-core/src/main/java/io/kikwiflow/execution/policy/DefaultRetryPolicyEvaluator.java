@@ -20,6 +20,7 @@ package io.kikwiflow.execution.policy;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.execution.api.RetryPolicyEvaluator;
 import io.kikwiflow.model.definition.process.elements.RetryPolicy;
+import io.kikwiflow.model.execution.enumerated.RetryStrategy;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 
 import java.time.Duration;
@@ -51,10 +52,10 @@ public class DefaultRetryPolicyEvaluator implements RetryPolicyEvaluator {
         int attemptIndex = task.executions() != null ? task.executions().intValue() : 0;
         Instant nextDueDate = Instant.now();
 
-        if (policy.strategy() == io.kikwiflow.model.definition.process.elements.RetryStrategy.LINEAR) {
+        if (policy.strategy() == RetryStrategy.LINEAR) {
             nextDueDate = calculateLinear(policy, attemptIndex);
         }
-        else if (policy.strategy() == io.kikwiflow.model.definition.process.elements.RetryStrategy.EXPONENTIAL_BACKOFF) {
+        else if (policy.strategy() == RetryStrategy.EXPONENTIAL_BACKOFF) {
             nextDueDate = calculateExponential(policy, attemptIndex);
         }
 

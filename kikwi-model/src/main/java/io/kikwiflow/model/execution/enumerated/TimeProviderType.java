@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.definition.process.elements;
+package io.kikwiflow.model.execution.enumerated;
 
-public enum RetryStrategy {
-    LINEAR,
-    EXPONENTIAL_BACKOFF
+public enum TimeProviderType {
+    STATIC,
+    VARIABLE,
+    BEAN
 }

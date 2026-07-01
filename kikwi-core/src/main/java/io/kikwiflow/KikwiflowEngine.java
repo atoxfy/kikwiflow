@@ -31,6 +31,7 @@ import io.kikwiflow.execution.api.RetryPolicyEvaluator;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
+import io.kikwiflow.execution.evaluator.TimerDueDateResolver;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
@@ -69,7 +70,7 @@ public class KikwiflowEngine {
     private final ContinuationService continuationService;
     private final FailureHandler failureHandler;
 
-    public KikwiflowEngine(ProcessDefinitionService processDefinitionService, Navigator navigator, ProcessExecutionManager processExecutionManager, KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, List<ExecutionEventListener> executionEventListeners, RetryPolicyEvaluator retryPolicyEvaluator){
+    public KikwiflowEngine(ProcessDefinitionService processDefinitionService, Navigator navigator, ProcessExecutionManager processExecutionManager, KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, List<ExecutionEventListener> executionEventListeners, RetryPolicyEvaluator retryPolicyEvaluator, TimerDueDateResolver timerDueDateResolver){
         this.processDefinitionService = processDefinitionService;
         this.navigator = navigator;
         this.processExecutionManager = processExecutionManager;
@@ -80,7 +81,7 @@ public class KikwiflowEngine {
         this.kikwiflowConfig = kikwiflowConfig;
         this.eventListeners = executionEventListeners;
         this.taskAcquirer = new TaskAcquirer(this, kikwiEngineRepository, kikwiflowConfig );
-        this.continuationService = new ContinuationService(kikwiEngineRepository, kikwiflowConfig);
+        this.continuationService = new ContinuationService(kikwiEngineRepository, timerDueDateResolver, kikwiflowConfig);
         this.failureHandler = new FailureHandler(kikwiEngineRepository, retryPolicyEvaluator);
     }
 

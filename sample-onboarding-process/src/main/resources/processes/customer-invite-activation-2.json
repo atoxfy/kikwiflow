@@ -67,7 +67,8 @@
         {
           "id": "interruptive-timer-EXTERNAL_72040E2C",
           "type": "BOUNDARY_INTERRUPTIVE_TIMER",
-          "duration": "PT2M",
+          "providerType": "STATIC",
+          "staticValue": "PT1M",
           "attachedToRef": "wait-customer-registry",
           "outgoing": [
             {

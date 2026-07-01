@@ -175,7 +175,8 @@
         {
           "id": "interruptive-timer-317a0ef1-7c2f-4e1b-9d5b-a74a51a73589",
           "type": "BOUNDARY_INTERRUPTIVE_TIMER",
-          "duration": "PT1M",
+          "providerType": "STATIC",
+          "staticValue": "PT1M",
           "attachedToRef": "solicitar-dados-task",
           "outgoing": [
             {

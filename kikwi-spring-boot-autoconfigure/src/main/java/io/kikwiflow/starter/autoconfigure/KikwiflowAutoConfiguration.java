@@ -28,6 +28,7 @@ import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.execution.api.ProcessDefinitionParser;
 import io.kikwiflow.execution.api.RetryPolicyEvaluator;
+import io.kikwiflow.execution.evaluator.TimerDueDateResolver;
 import io.kikwiflow.execution.policy.DefaultRetryPolicyEvaluator;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
@@ -106,8 +107,8 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config) {
-        return new ContinuationService(repository, config);
+    public ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config, TimerDueDateResolver dueDateResolver) {
+        return new ContinuationService(repository, dueDateResolver, config);
     }
 
     @Bean
@@ -153,6 +154,13 @@ public class KikwiflowAutoConfiguration {
         return new DefaultRetryPolicyEvaluator(kikwiflowConfig);
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public TimerDueDateResolver dueDateResolver() {
+        return new TimerDueDateResolver();
+    }
+
+
     @Bean(initMethod = "start", destroyMethod = "stop")
     @ConditionalOnMissingBean
     public KikwiflowEngine kikwiflowEngine(
@@ -163,11 +171,13 @@ public class KikwiflowAutoConfiguration {
             ObjectProvider<List<ExecutionEventListener>> listenersProvider,
             ProcessDefinitionService processDefinitionService,
             Navigator navigator,
-            ProcessExecutionManager processExecutionManager, RetryPolicyEvaluator retryPolicyEvaluator) {
+            ProcessExecutionManager processExecutionManager,
+            RetryPolicyEvaluator retryPolicyEvaluator,
+            TimerDueDateResolver dueDateResolver) {
 
         List<ExecutionEventListener> listeners = listenersProvider.getIfAvailable(Collections::emptyList);
 
         return new KikwiflowEngine(processDefinitionService, navigator,
-                processExecutionManager, repository, config, listeners, retryPolicyEvaluator);
+                processExecutionManager, repository, config, listeners, retryPolicyEvaluator, dueDateResolver);
     }
 }

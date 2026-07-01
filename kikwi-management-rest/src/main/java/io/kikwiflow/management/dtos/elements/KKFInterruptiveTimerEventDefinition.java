@@ -20,6 +20,7 @@ package io.kikwiflow.management.dtos.elements;
 
 
 import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
+import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,10 @@ public record KKFInterruptiveTimerEventDefinition(String id,
                                                   Boolean commitBefore,
                                                   List<KKFSequenceFlowDefinition> outgoing,
                                                   String attachedToRef,
-                                                  String duration,
+                                                  TimeProviderType providerType,
+                                                  String providerVariable,
+                                                  String providerBean,
+                                                  String staticValue,
                                                   Map<String, String> extensionProperties,
                                                   KKFLayoutCoordinates layout) implements KKFBoundaryEventDefinition, KKFFlowNodeDefinition {
 

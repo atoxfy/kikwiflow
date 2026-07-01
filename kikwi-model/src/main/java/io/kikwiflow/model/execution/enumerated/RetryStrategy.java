@@ -15,17 +15,9 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.definition.process.elements;
+package io.kikwiflow.model.execution.enumerated;
 
-import io.kikwiflow.model.execution.enumerated.RetryStrategy;
-
-import java.util.List;
-
-public record RetryPolicy(
-        RetryStrategy strategy,
-        int maxRetries,
-        String initialInterval,
-        Double multiplier,
-        String maxInterval,
-        List<String> intervals
-) {}
+public enum RetryStrategy {
+    LINEAR,
+    EXPONENTIAL_BACKOFF
+}

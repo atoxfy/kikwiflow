@@ -21,6 +21,7 @@ import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
+import io.kikwiflow.execution.evaluator.TimerDueDateResolver;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
@@ -52,10 +53,12 @@ import java.util.UUID;
 public class ContinuationService {
 
     private final KikwiEngineRepository kikwiEngineRepository;
+    private final TimerDueDateResolver timerDueDateResolver;
     private final KikwiflowConfig kikwiflowConfig;
 
-    public ContinuationService(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig) {
+    public ContinuationService(KikwiEngineRepository kikwiEngineRepository, TimerDueDateResolver timerDueDateResolver, KikwiflowConfig kikwiflowConfig) {
         this.kikwiEngineRepository = kikwiEngineRepository;
+        this.timerDueDateResolver = timerDueDateResolver;
         this.kikwiflowConfig = kikwiflowConfig;
     }
 
@@ -271,14 +274,18 @@ public class ContinuationService {
                 mt.boundaryEvents().forEach(boundaryEventDefinition -> {
 
                     if(boundaryEventDefinition instanceof InterruptiveTimerEventDefinition it){
-                        ExecutableTask boundaryEvent = getExecutableTaskFrom(externalTaskNodeId,
+
+                        ExecutableTask boundaryEvent = getTimedExecutableTask(
+                                externalTaskNodeId,
                                 processInstanceId,
-                                boundaryEventDefinition.id(),
+                                it,
                                 processDefinitionId,
                                 AttachedTaskType.EXTERNAL_TASK,
-                                it.duration(),
                                 flowNodeDefinitionId,
-                                ExecutableTaskType.INTERRUPTIVE_TIMER, branchId, joinTaskId);
+                                branchId,
+                                joinTaskId,
+                                processInstanceExecution
+                        );
 
                         boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id()));
                         nextExecutableTasks.add(boundaryEvent);
@@ -311,18 +318,17 @@ public class ContinuationService {
                 st.boundaryEvents().forEach(boundaryEventDefinition -> {
                     if(boundaryEventDefinition instanceof InterruptiveTimerEventDefinition it){
 
-                        ExecutableTask boundaryEvent = getExecutableTaskFrom(executableTaskNodeId,
-                            processInstanceId,
-                            it.id(),
-                            processDefinitionId,
-                            AttachedTaskType.EXECUTABLE_TASK,
-                            it.duration(),
-                            flowNodeDefinitionId,
-                            ExecutableTaskType.INTERRUPTIVE_TIMER,
-                            branchId,
-                            joinTaskId);
-
-
+                        ExecutableTask boundaryEvent = getTimedExecutableTask(
+                                executableTaskNodeId,
+                                processInstanceId,
+                                it,
+                                processDefinitionId,
+                                AttachedTaskType.EXECUTABLE_TASK,
+                                flowNodeDefinitionId,
+                                branchId,
+                                joinTaskId,
+                                processInstanceExecution
+                        );
 
                         nextExecutableTasks.add(boundaryEvent);
                         boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id()));
@@ -332,7 +338,7 @@ public class ContinuationService {
                 });
             }
 
-            long initialRetries = kikwiflowConfig.getDefaultMaxRetries(); // Requer o getter que criamos na config
+            long initialRetries = kikwiflowConfig.getDefaultMaxRetries();
             if (st.retryPolicy() != null) {
                 initialRetries = st.retryPolicy().maxRetries();
             }
@@ -358,14 +364,26 @@ public class ContinuationService {
         }
     }
 
-    private ExecutableTask getExecutableTaskFrom(String mainTaskId, String processInstanceId, String taskDefinitionId, String processDefinitionId, AttachedTaskType mainTaskType, String duration, String flowNodeDefinitionId, ExecutableTaskType taskType, String branchId, String joinTaskId){
+    private ExecutableTask getTimedExecutableTask(
+            String mainTaskId,
+            String processInstanceId,
+            InterruptiveTimerEventDefinition timerDef,
+            String processDefinitionId,
+            AttachedTaskType mainTaskType,
+            String flowNodeDefinitionId,
+            String branchId,
+            String joinTaskId,
+            ProcessInstanceExecution executionContext) {
+
+        Instant resolvedDueDate = timerDueDateResolver.resolveDueDate(timerDef, executionContext);
+
         return ExecutableTask.builder()
                 .id(UUID.randomUUID().toString())
-                .type(taskType)
+                .type(ExecutableTaskType.INTERRUPTIVE_TIMER)
                 .processDefinitionId(processDefinitionId)
-                .taskDefinitionId(taskDefinitionId)
+                .taskDefinitionId(timerDef.id())
                 .processInstanceId(processInstanceId)
-                .dueDate(parseDuration(duration))
+                .dueDate(resolvedDueDate)
                 .attachedToRefId(mainTaskId)
                 .attachedToRefType(mainTaskType)
                 .attachedToRefDefinitionId(flowNodeDefinitionId)

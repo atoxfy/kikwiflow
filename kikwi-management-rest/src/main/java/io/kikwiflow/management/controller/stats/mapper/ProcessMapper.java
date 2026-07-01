@@ -24,7 +24,7 @@ import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
-import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
+import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 import io.kikwiflow.model.stats.KKFMetrics;
 
 import java.util.Collections;
@@ -80,7 +80,10 @@ public class ProcessMapper {
                                 kkfInterruptiveTimerEventDefinition.commitBefore(),
                                 mapOutgoing(kkfInterruptiveTimerEventDefinition.outgoing()),
                                 kkfBoundaryEventDefinition.attachedToRef(),
-                                kkfInterruptiveTimerEventDefinition.duration(),
+                                kkfInterruptiveTimerEventDefinition.providerType(),
+                                kkfInterruptiveTimerEventDefinition.providerVariable(),
+                                kkfInterruptiveTimerEventDefinition.providerBean(),
+                                kkfInterruptiveTimerEventDefinition.staticValue(),
                                 kkfInterruptiveTimerEventDefinition.extensionProperties(),
                                 mapLayout(kkfInterruptiveTimerEventDefinition.layout()));
                     }
@@ -109,7 +112,10 @@ public class ProcessMapper {
                                 kkfInterruptiveTimerEventDefinition.commitBefore(),
                                 mapOutgoingK(kkfInterruptiveTimerEventDefinition.outgoing()),
                                 kkfBoundaryEventDefinition.attachedToRef(),
-                                kkfInterruptiveTimerEventDefinition.duration(),
+                                kkfInterruptiveTimerEventDefinition.providerType(),
+                                kkfInterruptiveTimerEventDefinition.providerVariable(),
+                                kkfInterruptiveTimerEventDefinition.providerBean(),
+                                kkfInterruptiveTimerEventDefinition.staticValue(),
                                 kkfInterruptiveTimerEventDefinition.extensionProperties(),
                                 mapLayout(kkfInterruptiveTimerEventDefinition.layout()));
                     }
