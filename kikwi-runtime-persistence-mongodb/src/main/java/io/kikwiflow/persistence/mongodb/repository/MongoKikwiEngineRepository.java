@@ -311,7 +311,6 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
 
                     Bson filter = eq("_id", instance.id());
-
                     UpdateResult result = processInstances.updateOne(clientSession, filter, Updates.combine(updates));
 
                     if (result.getMatchedCount() == 0) {
