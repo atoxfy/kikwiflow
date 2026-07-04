@@ -18,8 +18,11 @@ package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.*;
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
+import io.kikwiflow.model.definition.process.policies.SchedulePolicy;
 import io.kikwiflow.model.execution.enumerated.RetryStrategy;
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.execution.enumerated.ScheduleType;
 import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 import org.bson.Document;
 
@@ -44,7 +47,9 @@ public final class ProcessDefinitionMapper {
                 ExclusiveGatewayDefinition.class.getName(), ProcessDefinitionMapper::fromDocToExclusiveGateway,
                 JoinGatewayDefinition.class.getName(), ProcessDefinitionMapper::fromDocToJoinGateway,
                 ParallelGatewayDefinition.class.getName(), ProcessDefinitionMapper::fromDocToParallelGateway,
-                InterruptiveTimerEventDefinition.class.getName(), ProcessDefinitionMapper::fromDocToInterruptiveTimerEvent
+                InterruptiveTimerEventDefinition.class.getName(), ProcessDefinitionMapper::fromDocToInterruptiveTimerEvent,
+                NonInterruptiveTimerEventDefinition.class.getName(), ProcessDefinitionMapper::fromDocToNonInterruptiveTimerEvent
+
         );
     }
 
@@ -113,10 +118,8 @@ public final class ProcessDefinitionMapper {
                             .append("intervals", st.retryPolicy().intervals()));
                 }
 
-                if (st.boundaryEvents() != null) {
-                    doc.append("boundaryEvents", st.boundaryEvents().stream()
-                            .map(ProcessDefinitionMapper::toDocument)
-                            .collect(Collectors.toList()));
+                if (st.boundaryEventIds() != null) {
+                    doc.append("boundaryEventIds", st.boundaryEventIds());
                 }
             }
             case ExclusiveGatewayDefinition gt-> {
@@ -130,17 +133,13 @@ public final class ProcessDefinitionMapper {
             }
             case ParallelGatewayDefinition gt-> {
                 doc.append("targetJoinId", gt.targetJoinId());
-
             }
             case JoinGatewayDefinition gt -> {
                 doc.append("sourceSplitId", gt.sourceSplitId());
-
             }
             case ExternalTaskDefinition mt -> {
-                if (mt.boundaryEvents() != null) {
-                    doc.append("boundaryEvents", mt.boundaryEvents().stream()
-                            .map(ProcessDefinitionMapper::toDocument)
-                            .collect(Collectors.toList()));
+                if (mt.boundaryEventIds() != null) {
+                    doc.append("boundaryEventIds", mt.boundaryEventIds());
                 }
             }
             case BoundaryEventDefinition be -> {
@@ -150,6 +149,18 @@ public final class ProcessDefinitionMapper {
                     doc.append("providerBean", te.providerBean());
                     doc.append("providerVariable", te.providerVariable());
                     doc.append("providerType", te.providerType().name());
+                }else if(be instanceof NonInterruptiveTimerEventDefinition te){
+                    SchedulePolicy schedulePolicy = te.schedulePolicy();
+                    if(schedulePolicy != null){
+                        Document scedulePolicyDoc = new Document("expression", schedulePolicy.expression())
+                                .append("type", schedulePolicy.type().name())
+                                .append("fixedDates", schedulePolicy.fixedDates());
+
+                        doc.append("schedulePolicy", scedulePolicyDoc);
+                    }
+
+                }else{
+                    throw new RuntimeException("Tipo de elemento não conhecido para persistencia");
                 }
             }
             default -> {
@@ -198,7 +209,6 @@ public final class ProcessDefinitionMapper {
         }
 
         String defaultStartPointId = doc.getString("defaultStartPointId");
-
 
         Document extensionPropertiesDoc = doc.get("extensionProperties", Document.class);
         Map<String, String> extensionProperties = Collections.emptyMap();
@@ -253,7 +263,6 @@ public final class ProcessDefinitionMapper {
                 .build();
     }
 
-
     private static EndEventDefinition fromDocToEndEvent(Document doc) {
         return EndEventDefinition.builder()
                 .id(doc.getString("id"))
@@ -278,7 +287,7 @@ public final class ProcessDefinitionMapper {
                 .retryPolicy(fromDocToRetryPolicy(doc))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
-                .boundaryEvents(fromDocToBoundaryEventsList(doc))
+                .boundaryEventIds(doc.getList("boundaryEventIds", String.class))
                 .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
                 .build();
     }
@@ -292,7 +301,7 @@ public final class ProcessDefinitionMapper {
                 .commitAfter(doc.getBoolean("commitAfter"))
                 .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
                 .outgoing(fromDocToOutgoingList(doc))
-                .boundaryEvents(fromDocToBoundaryEventsList(doc))
+                .boundaryEventIds(doc.getList("boundaryEventIds", String.class))
                 .layout(fromDocToLayoutCoords(doc.get("layout", Document.class)))
                 .build();
     }
@@ -358,6 +367,33 @@ public final class ProcessDefinitionMapper {
                 .build();
     }
 
+    private static NonInterruptiveTimerEventDefinition fromDocToNonInterruptiveTimerEvent(Document doc) {
+        return NonInterruptiveTimerEventDefinition.builder()
+                .id(doc.getString("id"))
+                .name(doc.getString("name"))
+                .description(doc.getString("description"))
+                .commitBefore(doc.getBoolean("commitBefore"))
+                .commitAfter(doc.getBoolean("commitAfter"))
+                .schedulePolicy(fromDocToSchedulePolicy(doc))
+                .attachedToRef(doc.getString("attachedToRef"))
+                .extensionProperties(fromDocToExtensionProperties(doc.get("extensionProperties", Document.class)))
+                .outgoing(fromDocToOutgoingList(doc))
+                .build();
+    }
+
+    private static SchedulePolicy fromDocToSchedulePolicy(Document document){
+        Document schedulePolicyDoc = document.get("schedulePolicy", Document.class);
+        SchedulePolicy schedulePolicy = null;
+        if(schedulePolicyDoc != null){
+            schedulePolicy = new SchedulePolicy(
+                    ScheduleType.valueOf(schedulePolicyDoc.getString("type")),
+                    schedulePolicyDoc.getString("expression"),
+                    schedulePolicyDoc.getList("fixedDates", String.class)
+            );
+        }
+        return schedulePolicy;
+    }
+
     private static RetryPolicy fromDocToRetryPolicy(Document document){
         Document policyDoc = document.get("retryPolicy", Document.class);
         RetryPolicy retryPolicy = null;
@@ -374,18 +410,10 @@ public final class ProcessDefinitionMapper {
         return  retryPolicy;
     }
 
-
     private static List<SequenceFlowDefinition> fromDocToOutgoingList(Document doc) {
         List<Document> outgoingDocs = doc.getList("outgoing", Document.class, Collections.emptyList());
         return outgoingDocs.stream()
                 .map(ProcessDefinitionMapper::fromDocToSequenceFlow)
-                .collect(Collectors.toList());
-    }
-
-    private static List<BoundaryEventDefinition> fromDocToBoundaryEventsList(Document doc) {
-        List<Document> boundaryDocs = doc.getList("boundaryEvents", Document.class, Collections.emptyList());
-        return boundaryDocs.stream()
-                .map(d -> (BoundaryEventDefinition) fromDocumentToFlowNode(d))
                 .collect(Collectors.toList());
     }
 

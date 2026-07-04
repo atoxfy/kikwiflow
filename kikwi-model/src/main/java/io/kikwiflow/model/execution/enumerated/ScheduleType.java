@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,13 +15,10 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.domain;
+package io.kikwiflow.model.execution.enumerated;
 
-import java.util.List;
-
-public class DomainDefinition {
-    private String id;
-    private String key;
-    private String description;
-    private List<DomainAttribute> attributes;
+public enum ScheduleType {
+    CRON,
+    RATE_DURATION,
+    FIXED_DATES
 }

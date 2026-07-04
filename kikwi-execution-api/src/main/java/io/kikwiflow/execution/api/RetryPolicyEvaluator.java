@@ -17,7 +17,7 @@
 
 package io.kikwiflow.execution.api;
 
-import io.kikwiflow.model.definition.process.elements.RetryPolicy;
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 
 import java.time.Instant;

@@ -8,6 +8,7 @@ import io.kikwiflow.management.dtos.elements.KKFExternalTaskDefinition;
 import io.kikwiflow.management.dtos.elements.KKFFlowNodeDefinition;
 import io.kikwiflow.management.dtos.elements.KKFInterruptiveTimerEventDefinition;
 import io.kikwiflow.management.dtos.elements.KKFJoinGatewayDefinition;
+import io.kikwiflow.management.dtos.elements.KKFNonInterruptiveTimerEventDefinition;
 import io.kikwiflow.management.dtos.elements.KKFParallelGatewayDefinition;
 import io.kikwiflow.management.dtos.elements.KKFSequenceFlowDefinition;
 import io.kikwiflow.management.dtos.elements.KKFStartEventDefinition;
@@ -20,6 +21,7 @@ import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.elements.JoinGatewayDefinition;
+import io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
@@ -94,40 +96,41 @@ public class ProcessMapper {
                 .collect(Collectors.toList());
     }
 
-
-
-    private static List<KKFBoundaryEventDefinition> mapBoundaryEventsK(List<BoundaryEventDefinition> dtos) {
-        if (dtos == null) return Collections.emptyList();
-        return dtos.stream()
-                .map(kkfBoundaryEventDefinition ->  {
-                    if(kkfBoundaryEventDefinition instanceof InterruptiveTimerEventDefinition kkfInterruptiveTimerEventDefinition){
-
-                        return new KKFInterruptiveTimerEventDefinition(
-                                kkfInterruptiveTimerEventDefinition.id(),
-                                kkfInterruptiveTimerEventDefinition.name(),
-                                kkfInterruptiveTimerEventDefinition.type(),
-                                kkfInterruptiveTimerEventDefinition.description(),
-                                kkfInterruptiveTimerEventDefinition.executor(),
-                                kkfInterruptiveTimerEventDefinition.commitAfter(),
-                                kkfInterruptiveTimerEventDefinition.commitBefore(),
-                                mapOutgoingK(kkfInterruptiveTimerEventDefinition.outgoing()),
-                                kkfBoundaryEventDefinition.attachedToRef(),
-                                kkfInterruptiveTimerEventDefinition.providerType(),
-                                kkfInterruptiveTimerEventDefinition.providerVariable(),
-                                kkfInterruptiveTimerEventDefinition.providerBean(),
-                                kkfInterruptiveTimerEventDefinition.staticValue(),
-                                kkfInterruptiveTimerEventDefinition.extensionProperties(),
-                                mapLayout(kkfInterruptiveTimerEventDefinition.layout()));
-                    }
-
-                    return null;
-
-                })
-                .collect(Collectors.toList());
+    private static KKFNonInterruptiveTimerEventDefinition mapNonInterruptiveTimerEventDefinition(NonInterruptiveTimerEventDefinition kkfNonInterruptiveTimerEventDefinition) {
+        return new KKFNonInterruptiveTimerEventDefinition(
+                kkfNonInterruptiveTimerEventDefinition.id(),
+                kkfNonInterruptiveTimerEventDefinition.name(),
+                kkfNonInterruptiveTimerEventDefinition.type(),
+                kkfNonInterruptiveTimerEventDefinition.description(),
+                kkfNonInterruptiveTimerEventDefinition.executor(),
+                kkfNonInterruptiveTimerEventDefinition.commitAfter(),
+                kkfNonInterruptiveTimerEventDefinition.commitBefore(),
+                mapOutgoingK(kkfNonInterruptiveTimerEventDefinition.outgoing()),
+                kkfNonInterruptiveTimerEventDefinition.attachedToRef(),
+                kkfNonInterruptiveTimerEventDefinition.schedulePolicy(),
+                kkfNonInterruptiveTimerEventDefinition.extensionProperties(),
+                mapLayout(kkfNonInterruptiveTimerEventDefinition.layout()));
     }
 
+    private static KKFInterruptiveTimerEventDefinition mapInterruptiveTimerEventDefinition(InterruptiveTimerEventDefinition kkfInterruptiveTimerEventDefinition) {
+            return new KKFInterruptiveTimerEventDefinition(
+                    kkfInterruptiveTimerEventDefinition.id(),
+                    kkfInterruptiveTimerEventDefinition.name(),
+                    kkfInterruptiveTimerEventDefinition.type(),
+                    kkfInterruptiveTimerEventDefinition.description(),
+                    kkfInterruptiveTimerEventDefinition.executor(),
+                    kkfInterruptiveTimerEventDefinition.commitAfter(),
+                    kkfInterruptiveTimerEventDefinition.commitBefore(),
+                    mapOutgoingK(kkfInterruptiveTimerEventDefinition.outgoing()),
+                    kkfInterruptiveTimerEventDefinition.attachedToRef(),
+                    kkfInterruptiveTimerEventDefinition.providerType(),
+                    kkfInterruptiveTimerEventDefinition.providerVariable(),
+                    kkfInterruptiveTimerEventDefinition.providerBean(),
+                    kkfInterruptiveTimerEventDefinition.staticValue(),
+                    kkfInterruptiveTimerEventDefinition.extensionProperties(),
+                    mapLayout(kkfInterruptiveTimerEventDefinition.layout()));
+    }
 
-    // Helper para converter Layout (DTO -> Domain)
     private static LayoutCoordinates mapLayout(KKFLayoutCoordinates dtoCoords) {
         if (dtoCoords == null) return new LayoutCoordinates(0.0, 0.0);
         Double x = dtoCoords.x() != null ? dtoCoords.x().doubleValue() : 0.0;
@@ -135,7 +138,6 @@ public class ProcessMapper {
 
         return new LayoutCoordinates(x, y);
     }
-
 
     private static KKFLayoutCoordinates mapLayout(LayoutCoordinates dtoCoords) {
         if (dtoCoords == null) return new KKFLayoutCoordinates(0.0, 0.0);
@@ -243,10 +245,16 @@ public class ProcessMapper {
                     t.commitBefore(),
                     metrics,
                     mapOutgoingK(t.outgoing()),
-                    mapBoundaryEventsK(t.boundaryEvents()),
+                    t.boundaryEventIds(),
                     t.extensionProperties(),
                     mapLayout(t.layout())
             );
+        }else if (dto instanceof InterruptiveTimerEventDefinition interruptiveTimerEventDefinition) {
+            return mapInterruptiveTimerEventDefinition(interruptiveTimerEventDefinition);
+
+        }else if (dto instanceof NonInterruptiveTimerEventDefinition nonInterruptiveTimerEventDefinition) {
+            return mapNonInterruptiveTimerEventDefinition(nonInterruptiveTimerEventDefinition);
+
         }else if (dto instanceof ExecutableTaskDefinition exect) {
 
             return new KKFExecutableTaskDefinition(
@@ -259,7 +267,7 @@ public class ProcessMapper {
                     exect.commitBefore(),
                     metrics,
                     mapOutgoingK(exect.outgoing()),
-                    mapBoundaryEventsK(exect.boundaryEvents()),
+                    exect.boundaryEventIds(),
                     exect.extensionProperties(),
                     mapLayout(exect.layout()),
                     exect.retryPolicy()

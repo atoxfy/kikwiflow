@@ -15,17 +15,14 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.definition.process.elements;
+package io.kikwiflow.model.definition.process.policies;
 
-import io.kikwiflow.model.execution.enumerated.RetryStrategy;
+import io.kikwiflow.model.execution.enumerated.ScheduleType;
 
 import java.util.List;
 
-public record RetryPolicy(
-        RetryStrategy strategy,
-        int maxRetries,
-        String initialInterval,
-        Double multiplier,
-        String maxInterval,
-        List<String> intervals
+public record SchedulePolicy(
+        ScheduleType type,
+        String expression,
+        List<String> fixedDates
 ) {}

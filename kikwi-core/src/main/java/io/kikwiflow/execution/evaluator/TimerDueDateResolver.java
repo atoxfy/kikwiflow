@@ -18,10 +18,14 @@ package io.kikwiflow.execution.evaluator;
 
 import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
+import io.kikwiflow.model.definition.process.policies.SchedulePolicy;
 import io.kikwiflow.model.execution.ProcessVariable;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZonedDateTime;
+
+import static io.kikwiflow.model.execution.enumerated.ScheduleType.RATE_DURATION;
 
 public class TimerDueDateResolver {
 
@@ -29,6 +33,36 @@ public class TimerDueDateResolver {
 
     public TimerDueDateResolver(/* DueDateProviderLocator beanLocator */) {
         // this.beanLocator = beanLocator;
+    }
+
+    /**
+     * Calcula a próxima data de disparo com base na política de agendamento (SchedulePolicy).
+     * Retorna null se a política tiver se esgotado (ex: passou de todas as FIXED_DATES).
+     */
+    public Instant calculateNextSchedule(SchedulePolicy policy) {
+        if (policy == null) return null;
+
+        return switch (policy.type()) {
+            case RATE_DURATION ->
+                    Instant.now().plus(Duration.parse(policy.expression()));
+
+            case CRON -> {
+                yield Instant.now().plus(Duration.parse(policy.expression()));
+
+                /*CronExpression cron = CronExpression.parse(policy.expression());
+                ZonedDateTime next = cron.next(ZonedDateTime.now(ZoneId.of("UTC")));
+                yield next != null ? next.toInstant() : null;*/
+            }
+
+            case FIXED_DATES -> {
+                Instant now = Instant.now();
+                yield policy.fixedDates().stream()
+                        .map(Instant::parse)
+                        .filter(date -> date.isAfter(now))
+                        .findFirst()
+                        .orElse(null); // Retorna null se não houver mais datas no futuro
+            }
+        };
     }
 
     public Instant resolveDueDate(InterruptiveTimerEventDefinition timerDef, ProcessInstanceExecution execution) {

@@ -28,7 +28,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = KKFInterruptiveTimerEventDefinition.class, name = "INTERRUPTIVE_TIMER"),
+        @JsonSubTypes.Type(value = KKFInterruptiveTimerEventDefinition.class, name = "NON_INTERRUPTIVE_TIMER"),
+
 })
-public sealed interface KKFBoundaryEventDefinition extends KKFFlowNodeDefinition permits KKFInterruptiveTimerEventDefinition {
+public sealed interface KKFBoundaryEventDefinition extends KKFFlowNodeDefinition permits KKFNonInterruptiveTimerEventDefinition, KKFInterruptiveTimerEventDefinition {
      String attachedToRef();
 }

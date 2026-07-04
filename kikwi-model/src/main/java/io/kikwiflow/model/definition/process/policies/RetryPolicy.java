@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,10 +15,17 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.domain;
+package io.kikwiflow.model.definition.process.policies;
 
-public class DomainAttribute {
-    String name;
-    String type;
-    String values;
-}
+import io.kikwiflow.model.execution.enumerated.RetryStrategy;
+
+import java.util.List;
+
+public record RetryPolicy(
+        RetryStrategy strategy,
+        int maxRetries,
+        String initialInterval,
+        Double multiplier,
+        String maxInterval,
+        List<String> intervals
+) {}

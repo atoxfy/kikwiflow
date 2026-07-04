@@ -41,9 +41,9 @@ import java.util.Map;
         @JsonSubTypes.Type(value = KKFExternalTaskDefinition.class, name = "EXTERNAL_TASK"),
         @JsonSubTypes.Type(value = KKFExecutableTaskDefinition.class, name = "EXECUTABLE_TASK"),
         @JsonSubTypes.Type(value = KKFInterruptiveTimerEventDefinition.class, name = "INTERRUPTIVE_TIMER"),
-        @JsonSubTypes.Type(value = KKFInterruptiveTimerEventDefinition.class, name = "NON_INTERRUPTIVE_TIMER")
+        @JsonSubTypes.Type(value = KKFNonInterruptiveTimerEventDefinition.class, name = "NON_INTERRUPTIVE_TIMER")
 })
-public sealed interface KKFFlowNodeDefinition permits KKFStartEventDefinition, KKFExternalTaskDefinition, KKFExecutableTaskDefinition, KKFEndEventDefinition, KKFExclusiveGatewayDefinition, KKFInterruptiveTimerEventDefinition, KKFJoinGatewayDefinition, KKFParallelGatewayDefinition, KKFBoundaryEventDefinition {
+public sealed interface KKFFlowNodeDefinition permits KKFStartEventDefinition, KKFExternalTaskDefinition, KKFExecutableTaskDefinition, KKFEndEventDefinition, KKFExclusiveGatewayDefinition, KKFInterruptiveTimerEventDefinition, KKFJoinGatewayDefinition, KKFParallelGatewayDefinition, KKFNonInterruptiveTimerEventDefinition, KKFBoundaryEventDefinition {
     String id();
     String name();
     String type();

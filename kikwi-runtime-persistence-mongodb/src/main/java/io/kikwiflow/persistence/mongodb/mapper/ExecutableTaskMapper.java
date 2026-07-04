@@ -16,7 +16,7 @@
  */
 package io.kikwiflow.persistence.mongodb.mapper;
 
-import io.kikwiflow.model.definition.process.elements.RetryPolicy;
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.execution.enumerated.RetryStrategy;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;

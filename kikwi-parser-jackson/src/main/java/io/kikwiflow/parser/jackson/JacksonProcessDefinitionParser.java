@@ -17,7 +17,6 @@
 
 package io.kikwiflow.parser.jackson;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kikwiflow.execution.api.ProcessDefinitionParser;
 import io.kikwiflow.model.definition.process.ProcessDefinition;

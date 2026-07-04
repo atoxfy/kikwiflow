@@ -32,7 +32,7 @@ public  record KKFExternalTaskDefinition(String id,
                                          Boolean commitBefore,
                                          KKFMetrics metrics,
                                          List<KKFSequenceFlowDefinition> outgoing,
-                                         List<KKFBoundaryEventDefinition> boundaryEvents,
+                                         List<String> boundaryEventIds,
                                          Map<String, String> extensionProperties,
                                          KKFLayoutCoordinates layout) implements KKFFlowNodeDefinition {
 

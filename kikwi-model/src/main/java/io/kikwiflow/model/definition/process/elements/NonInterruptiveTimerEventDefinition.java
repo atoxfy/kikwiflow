@@ -18,29 +18,28 @@
 package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
-import io.kikwiflow.model.definition.process.policies.RetryPolicy;
-import io.kikwiflow.model.execution.node.Executable;
+import io.kikwiflow.model.definition.process.policies.SchedulePolicy;
+import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public record ExecutableTaskDefinition(String id,
-                                       String name,
-                                       String type,
-                                       String description,
-                                       String executor,
-                                       Boolean commitAfter,
-                                       Boolean commitBefore,
-                                       List<SequenceFlowDefinition> outgoing,
-                                       List<String> boundaryEventIds,
-                                       Map<String, String> extensionProperties,
-                                       LayoutCoordinates layout,
-                                       RetryPolicy retryPolicy) implements FlowNodeDefinition, Executable {
+public record NonInterruptiveTimerEventDefinition(String id,
+                                                  String name,
+                                                  String type,
+                                                  String description,
+                                                  String executor,
+                                                  Boolean commitAfter,
+                                                  Boolean commitBefore,
+                                                  List<SequenceFlowDefinition> outgoing,
+                                                  String attachedToRef,
+                                                  SchedulePolicy schedulePolicy,
+                                                  Map<String, String> extensionProperties,
+                                                  LayoutCoordinates layout) implements BoundaryEventDefinition, FlowNodeDefinition {
 
-
-    public static Builder builder() {
-        return new Builder();
+    public static NonInterruptiveTimerEventDefinition.Builder builder() {
+        return new NonInterruptiveTimerEventDefinition.Builder();
     }
 
     public static class Builder {
@@ -50,11 +49,11 @@ public record ExecutableTaskDefinition(String id,
         private String executor;
         private Boolean commitAfter;
         private Boolean commitBefore;
-        private LayoutCoordinates layout;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
-        private List<String> boundaryEventIds = Collections.emptyList();
+        private String attachedToRef;
         private Map<String, String> extensionProperties;
-        private RetryPolicy retryPolicy;
+        private SchedulePolicy schedulePolicy;
+        private LayoutCoordinates layout;
 
         private Builder() {}
 
@@ -63,18 +62,23 @@ public record ExecutableTaskDefinition(String id,
             return this;
         }
 
+        public Builder schedulePolicy(SchedulePolicy schedulePolicy) {
+            this.schedulePolicy = schedulePolicy;
+            return this;
+        }
+
         public Builder layout(LayoutCoordinates layout) {
             this.layout = layout;
             return this;
         }
 
-        public Builder retryPolicy(RetryPolicy retryPolicy) {
-            this.retryPolicy = retryPolicy;
+        public Builder name(String name) {
+            this.name = name;
             return this;
         }
 
-        public Builder name(String name) {
-            this.name = name;
+        public Builder attachedToRef(String attachedToRef) {
+            this.attachedToRef = attachedToRef;
             return this;
         }
 
@@ -105,21 +109,13 @@ public record ExecutableTaskDefinition(String id,
             return this;
         }
 
-        public Builder boundaryEventIds(List<String> boundaryEventIds) {
-            if (boundaryEventIds != null) {
-                this.boundaryEventIds = boundaryEventIds;
-            }
-            return this;
-        }
-
-
         public Builder extensionProperties(Map<String, String> extensionProperties){
             this.extensionProperties = extensionProperties;
             return this;
         }
 
-        public ExecutableTaskDefinition build() {
-            return new ExecutableTaskDefinition(id, name, "EXECUTABLE_TASK", description, executor,  commitAfter, commitBefore, outgoing, boundaryEventIds, extensionProperties, layout, retryPolicy);
+        public NonInterruptiveTimerEventDefinition build() {
+            return new NonInterruptiveTimerEventDefinition(id, name, "BOUNDARY_NON_INTERRUPTIVE_TIMER", description, executor, commitAfter, commitBefore, outgoing, attachedToRef, schedulePolicy, extensionProperties, layout);
         }
     }
 }

@@ -19,7 +19,7 @@ package io.kikwiflow.management.dtos.elements;
 
 
 import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
-import io.kikwiflow.model.definition.process.elements.RetryPolicy;
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.stats.KKFMetrics;
 
 import java.util.List;
@@ -34,7 +34,7 @@ public record KKFExecutableTaskDefinition(String id,
                                           Boolean commitBefore,
                                           KKFMetrics metrics,
                                           List<KKFSequenceFlowDefinition> outgoing,
-                                          List<KKFBoundaryEventDefinition> boundaryEvents,
+                                          List<String> boundaryEventIds,
                                           Map<String, String> extensionProperties,
                                           KKFLayoutCoordinates layout, RetryPolicy retryPolicy) implements KKFFlowNodeDefinition {
 }

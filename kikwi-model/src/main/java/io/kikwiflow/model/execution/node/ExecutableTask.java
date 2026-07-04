@@ -17,7 +17,7 @@
 
 package io.kikwiflow.model.execution.node;
 
-import io.kikwiflow.model.definition.process.elements.RetryPolicy;
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
 

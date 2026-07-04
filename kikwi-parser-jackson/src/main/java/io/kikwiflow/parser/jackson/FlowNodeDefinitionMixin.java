@@ -25,6 +25,7 @@ import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.elements.JoinGatewayDefinition;
+import io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 
@@ -42,7 +43,8 @@ import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
         @JsonSubTypes.Type(value = JoinGatewayDefinition.class, name = "JOIN_GATEWAY"),
         @JsonSubTypes.Type(value = ExternalTaskDefinition.class, name = "EXTERNAL_TASK"),
         @JsonSubTypes.Type(value = ExclusiveGatewayDefinition.class, name = "EXCLUSIVE_GATEWAY"),
-        @JsonSubTypes.Type(value = InterruptiveTimerEventDefinition.class, name = "BOUNDARY_INTERRUPTIVE_TIMER")
+        @JsonSubTypes.Type(value = InterruptiveTimerEventDefinition.class, name = "BOUNDARY_INTERRUPTIVE_TIMER"),
+        @JsonSubTypes.Type(value = NonInterruptiveTimerEventDefinition.class, name = "BOUNDARY_NON_INTERRUPTIVE_TIMER")
 })
 public interface FlowNodeDefinitionMixin {
 }

@@ -20,5 +20,6 @@ package io.kikwiflow.model.execution.enumerated;
 public enum ExecutableTaskType {
     STANDARD,
     INTERRUPTIVE_TIMER,
-    JOIN_GATEWAY
+    JOIN_GATEWAY,
+    NON_INTERRUPTIVE_TIMER
 }
