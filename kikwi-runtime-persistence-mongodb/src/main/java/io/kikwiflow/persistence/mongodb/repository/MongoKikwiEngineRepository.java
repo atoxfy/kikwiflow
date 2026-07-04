@@ -132,7 +132,6 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         );
     }
 
-
     @Override
     public ProcessInstance saveProcessInstance(ProcessInstance instance) {
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
@@ -835,6 +834,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
             if (activeNodeId != null && !activeNodeId.isBlank()) {
                 filters.add(Filters.gt("activeNodes." + activeNodeId, 0));
             }
+
             return this;
         }
 
