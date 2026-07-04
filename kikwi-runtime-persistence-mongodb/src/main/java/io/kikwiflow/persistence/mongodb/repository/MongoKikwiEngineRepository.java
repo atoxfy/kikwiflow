@@ -59,7 +59,7 @@ import io.kikwiflow.persistence.mongodb.mapper.ExecutableTaskMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ExternalTaskMapper;
 import io.kikwiflow.persistence.mongodb.mapper.IncidentMapper;
 import io.kikwiflow.persistence.mongodb.mapper.InstantMapper;
-import io.kikwiflow.persistence.mongodb.mapper.ProcessDefinitionMapper;
+import io.kikwiflow.persistence.mongodb.mapper.definition.ProcessDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessInstanceMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper;
 import io.kikwiflow.persistence.mongodb.util.MongoKeyEncoder;
