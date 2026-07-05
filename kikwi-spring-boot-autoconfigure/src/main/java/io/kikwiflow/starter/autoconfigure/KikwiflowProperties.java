@@ -19,6 +19,9 @@ package io.kikwiflow.starter.autoconfigure;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @ConfigurationProperties(prefix = "kikwiflow")
 public class KikwiflowProperties {
 
@@ -29,6 +32,7 @@ public class KikwiflowProperties {
     private final Outbox outbox = new Outbox();
     private final AutoDeploy autoDeploy = new AutoDeploy();
     private final Execution execution = new Execution();
+    private final Retry retry = new Retry();
 
     public Execution getExecution() {
         return execution;
@@ -40,6 +44,10 @@ public class KikwiflowProperties {
 
     public Stats getStats() {
         return stats;
+    }
+
+    public Retry getRetry() {
+        return retry;
     }
 
     public AutoDeploy getAutoDeploy() { return autoDeploy; }
@@ -63,13 +71,35 @@ public class KikwiflowProperties {
     }
 
     public static class AutoDeploy {
-        private boolean enabled = true; // Por padrão ativado para DX
+        private boolean enabled = true;
         private String path = "classpath*:processes/**/*.json";
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
         public String getPath() { return path; }
         public void setPath(String path) { this.path = path; }
+    }
+
+    public static class Retry {
+        private String defaultRetryInterval;
+
+        private List<String> fatalExceptions = new ArrayList<>();
+
+        public List<String> getFatalExceptions() {
+            return fatalExceptions;
+        }
+
+        public void setFatalExceptions(List<String> fatalExceptions) {
+            this.fatalExceptions = fatalExceptions;
+        }
+
+        public String getDefaultRetryInterval() {
+            return defaultRetryInterval;
+        }
+
+        public void setDefaultRetryInterval(String defaultRetryInterval) {
+            this.defaultRetryInterval = defaultRetryInterval;
+        }
     }
 
     public static class Execution {

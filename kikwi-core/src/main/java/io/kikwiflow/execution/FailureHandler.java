@@ -53,6 +53,10 @@ public class FailureHandler {
         Throwable rootCause = exception.getCause() != null ? exception.getCause() : exception;
         boolean isUnhandledBusinessError = rootCause instanceof ProcessErrorException;
 
+        String errorMessage = rootCause.getMessage() != null
+                ? rootCause.getMessage()
+                : rootCause.getClass().getSimpleName();
+
         long currentExecutions = task.executions() != null ? task.executions() : 0L;
         long nextExecutionCount = currentExecutions + 1;
 
@@ -62,7 +66,7 @@ public class FailureHandler {
                     .executions(nextExecutionCount)
                     .dueDate(evaluation.nextDueDate())
                     .status(ExecutableTaskStatus.PENDING)
-                    .error(exception.getMessage())
+                    .error(errorMessage)
                     .executorId(null)
                     .build();
 
@@ -72,7 +76,7 @@ public class FailureHandler {
                     .retries(0L)
                     .executions(nextExecutionCount)
                     .status(ExecutableTaskStatus.ERROR)
-                    .error(exception.getMessage())
+                    .error(errorMessage)
                     .executorId(null)
                     .build();
 
@@ -81,7 +85,7 @@ public class FailureHandler {
             Incident incident = new Incident(
                     UUID.randomUUID().toString(),
                     isUnhandledBusinessError ? "UNHANDLED_BUSINESS_ERROR" : "FAILED_JOB",
-                    exception.getMessage(),
+                    errorMessage,
                     getStackTrace(exception),
                     task.processDefinitionId(),
                     task.processInstanceId(),

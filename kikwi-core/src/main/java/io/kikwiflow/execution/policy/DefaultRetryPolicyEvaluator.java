@@ -25,17 +25,27 @@ import io.kikwiflow.model.execution.node.ExecutableTask;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
 
 public class DefaultRetryPolicyEvaluator implements RetryPolicyEvaluator {
 
     private final KikwiflowConfig config;
+    private final Set<String> fatalExceptionsSet;
 
     public DefaultRetryPolicyEvaluator(KikwiflowConfig config) {
         this.config = config;
+        this.fatalExceptionsSet = config.getFatalExceptions() != null
+                ? new java.util.HashSet<>(config.getFatalExceptions())
+                : java.util.Collections.emptySet();
     }
 
     @Override
     public RetryEvaluationResult evaluate(ExecutableTask task, Exception exception, RetryPolicy policy) {
+        Throwable rootCause = exception.getCause() != null ? exception.getCause() : exception;
+        if (fatalExceptionsSet.contains(rootCause.getClass().getName())) {
+            return new RetryEvaluationResult(0L, Instant.now(), true);
+        }
+
         if (policy == null) {
             long retriesLeft = task.retries() - 1;
 

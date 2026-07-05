@@ -50,6 +50,9 @@ public class EnrichCustomerProfileTaskHandler implements TaskHandler {
             throw new ProcessErrorException("CLIENTE_NAO_ENCONTRADO");
         }else if(taxId.equals("20")){
             throw new RuntimeException("Falha grave!");
+        }else if(taxId.equals("21")){
+            String s = null;
+            var o = s.trim();
         }
 
         customerDirectory.findByTaxId(taxId)

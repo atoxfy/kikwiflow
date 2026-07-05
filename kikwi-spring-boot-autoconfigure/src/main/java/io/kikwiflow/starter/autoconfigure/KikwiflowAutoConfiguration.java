@@ -54,7 +54,6 @@ import java.util.List;
 @EnableConfigurationProperties(KikwiflowProperties.class)
 public class KikwiflowAutoConfiguration {
 
-
     @Bean
     @ConditionalOnMissingBean
     public DeployValidator deployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderLocator answerProviderLocator){
@@ -132,6 +131,17 @@ public class KikwiflowAutoConfiguration {
             config.setLockTimeoutMillis(properties.getExecution().getLockTimeoutMillis());
         }
 
+        if (properties.getRetry() != null ){
+
+            if(properties.getRetry().getDefaultRetryInterval() != null){
+                config.setDefaultRetryInterval(properties.getRetry().getDefaultRetryInterval());
+            }
+
+            if(properties.getRetry().getFatalExceptions() != null) {
+                config.setFatalExceptions(properties.getRetry().getFatalExceptions());
+            }
+        }
+
         return config;
     }
 
@@ -159,7 +169,6 @@ public class KikwiflowAutoConfiguration {
     public TimerDueDateResolver dueDateResolver() {
         return new TimerDueDateResolver();
     }
-
 
     @Bean(initMethod = "start", destroyMethod = "stop")
     @ConditionalOnMissingBean

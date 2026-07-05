@@ -121,7 +121,7 @@ public class ProcessExecutionManager {
             Instant startedAt = Instant.now();
             NodeExecutionStatus status = NodeExecutionStatus.SUCCESS;
             Continuation continuation = null;
-            Exception caughtException = null;
+            RuntimeException caughtException = null;
 
             try {
                 flowNodeExecutor.execute(processInstance, processDefinition, currentNode);
@@ -148,7 +148,7 @@ public class ProcessExecutionManager {
                     caughtException = processError;
                 }
 
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 status = NodeExecutionStatus.ERROR;
                 caughtException = e;
             }
@@ -192,7 +192,7 @@ public class ProcessExecutionManager {
             }
 
             if (caughtException != null) {
-                throw new RuntimeException("Execution Error: Falha na execução ou roteamento do nó [" + currentNode.id() + "]", caughtException);
+                throw caughtException;
             }
 
             isFirstNodeInLoop = false;

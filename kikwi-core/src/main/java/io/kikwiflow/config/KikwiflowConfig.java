@@ -16,6 +16,9 @@
  */
 package io.kikwiflow.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class KikwiflowConfig {
 
     /**
@@ -53,7 +56,7 @@ public class KikwiflowConfig {
     private String defaultRetryInterval = "PT3M";
     private int defaultMaxRetries = 3;
     private String instanceName;
-
+    private List<String> fatalExceptions = new ArrayList<>();
 
     public KikwiflowConfig() {
     }
@@ -68,6 +71,16 @@ public class KikwiflowConfig {
 
     public int getDefaultMaxRetries() {
         return defaultMaxRetries;
+    }
+
+    public List<String> getFatalExceptions() {
+        return fatalExceptions;
+    }
+
+    public void setFatalExceptions(List<String> fatalExceptions) {
+        if (fatalExceptions != null) {
+            this.fatalExceptions = fatalExceptions;
+        }
     }
 
     public void setDefaultMaxRetries(int defaultMaxRetries) {
@@ -152,6 +165,7 @@ public class KikwiflowConfig {
         sb.append(", shutdownGracePeriodSeconds=").append(shutdownGracePeriodSeconds);
         sb.append(", lockTimeoutMillis=").append(lockTimeoutMillis);
         sb.append(", instanceName='").append(instanceName).append('\'');
+        sb.append(", fatalExceptions=").append(fatalExceptions);
         sb.append('}');
         return sb.toString();
     }
