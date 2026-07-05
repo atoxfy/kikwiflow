@@ -250,7 +250,7 @@ public class KikwiflowEngine {
         }
 
         FlowNodeDefinition completedNode = processDefinition.flowNodes().get(taskToComplete.taskDefinitionId());
-        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, variables, false);
+        Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, processInstanceExecution.getVariables(), false);
 
         ExecutionResult executionResult;
 

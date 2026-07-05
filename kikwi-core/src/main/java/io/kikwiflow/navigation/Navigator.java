@@ -20,7 +20,10 @@ import io.kikwiflow.decision.api.AnswerProvider;
 import io.kikwiflow.decision.api.AnswerProviderLocator;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
+import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
@@ -144,5 +147,32 @@ public class Navigator {
                 .filter(SequenceFlowDefinition::isDefault)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Execution Error: Nenhuma aresta corresponde à resposta '" + answer + "' no gateway '" + gateway.id() + "' e nenhuma aresta 'isDefault' foi configurada."));
+    }
+
+    /**
+     * Inspeciona se o nó atual possui um ErrorHandlerDefinition mapeado para o código de erro lançado.
+     */
+    public Optional<ErrorHandlerDefinition> findMatchingErrorHandler(
+            FlowNodeDefinition currentNode,
+            ProcessDefinition processDefinition,
+            String errorCode) {
+
+        List<String> boundaryIds = null;
+        if (currentNode instanceof ExecutableTaskDefinition taskDef) {
+            boundaryIds = taskDef.boundaryEventIds();
+        } else if (currentNode instanceof ExternalTaskDefinition extDef) {
+            boundaryIds = extDef.boundaryEventIds();
+        }
+
+        if (boundaryIds == null || boundaryIds.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return boundaryIds.stream()
+                .map(id -> processDefinition.flowNodes().get(id))
+                .filter(node -> node instanceof ErrorHandlerDefinition)
+                .map(node -> (ErrorHandlerDefinition) node)
+                .filter(handler -> handler.errorCode() == null || handler.errorCode().equals(errorCode))
+                .findFirst();
     }
 }

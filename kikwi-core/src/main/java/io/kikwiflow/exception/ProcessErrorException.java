@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,8 +15,22 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.model.definition.process.elements;
+package io.kikwiflow.exception;
 
-public sealed interface BoundaryEventDefinition extends FlowNodeDefinition permits InterruptiveTimerEventDefinition, NonInterruptiveTimerEventDefinition, ErrorHandlerDefinition {
-     String attachedToRef();
+public class ProcessErrorException extends RuntimeException {
+    private final String errorCode;
+
+    public ProcessErrorException(String errorCode, String message) {
+        super(message);
+        this.errorCode = errorCode;
+    }
+
+    public ProcessErrorException(String errorCode) {
+        super("Business process error code: " + errorCode);
+        this.errorCode = errorCode;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
 }

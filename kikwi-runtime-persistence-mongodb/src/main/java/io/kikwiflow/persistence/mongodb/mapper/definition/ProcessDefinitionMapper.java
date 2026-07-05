@@ -18,6 +18,7 @@ package io.kikwiflow.persistence.mongodb.mapper.definition;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
+import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
@@ -30,6 +31,7 @@ import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.DefaultEndEventDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.DefaultStartEventDefinitionMapper;
+import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ErrorHandlerDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ExclusiveGatewayDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ExecutableTaskDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ExternalTaskDefinitionMapper;
@@ -60,8 +62,8 @@ public final class ProcessDefinitionMapper {
                 JoinGatewayDefinition.class.getName(), JoinGatewayDefinitionMapper::mapToDefinition,
                 ParallelGatewayDefinition.class.getName(), ParallelGatewayDefinitionMapper::mapToDefinition,
                 InterruptiveTimerEventDefinition.class.getName(), InterruptiveTimerEventDefinitionMapper::mapToDefinition,
-                NonInterruptiveTimerEventDefinition.class.getName(), NonInterruptiveTimerEventDefinitionMapper::mapToDefinition
-
+                NonInterruptiveTimerEventDefinition.class.getName(), NonInterruptiveTimerEventDefinitionMapper::mapToDefinition,
+                ErrorHandlerDefinition.class.getName(), ErrorHandlerDefinitionMapper::mapToDefinition
         );
     }
 
@@ -142,6 +144,9 @@ public final class ProcessDefinitionMapper {
             }
             case NonInterruptiveTimerEventDefinition te -> {
                 NonInterruptiveTimerEventDefinitionMapper.mapToDocument(doc, te);
+            }
+            case ErrorHandlerDefinition te -> {
+                ErrorHandlerDefinitionMapper.mapToDocument(doc, te);
             }
 
             default -> {

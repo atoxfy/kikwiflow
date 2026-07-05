@@ -16,6 +16,7 @@
  */
 package io.kikwiflow.execution;
 
+import io.kikwiflow.exception.ProcessErrorException; // Import da nova exceção
 import io.kikwiflow.execution.api.RetryPolicyEvaluator;
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.execution.Incident;
@@ -31,6 +32,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
 public class FailureHandler {
 
     private final KikwiEngineRepository repository;
@@ -46,15 +48,18 @@ public class FailureHandler {
         List<Incident> incidentsToCreate = new ArrayList<>();
         RetryPolicy retryPolicy = task.retryPolicy();
 
-        // Executa a estratégia de tempo fortemente tipada configurada no nó
         RetryPolicyEvaluator.RetryEvaluationResult evaluation = policyEvaluator.evaluate(task, exception, retryPolicy);
+
+        Throwable rootCause = exception.getCause() != null ? exception.getCause() : exception;
+        boolean isUnhandledBusinessError = rootCause instanceof ProcessErrorException;
 
         long currentExecutions = task.executions() != null ? task.executions() : 0L;
         long nextExecutionCount = currentExecutions + 1;
-        if (!evaluation.shouldCreateIncident()) {
+
+        if (!evaluation.shouldCreateIncident() && !isUnhandledBusinessError) {
             ExecutableTask updatedTask = task.toBuilder()
                     .retries(evaluation.retriesLeft())
-                    .executions(nextExecutionCount)    // <-- ADICIONADO: Incrementa execuções
+                    .executions(nextExecutionCount)
                     .dueDate(evaluation.nextDueDate())
                     .status(ExecutableTaskStatus.PENDING)
                     .error(exception.getMessage())
@@ -65,7 +70,7 @@ public class FailureHandler {
         } else {
             ExecutableTask failedTask = task.toBuilder()
                     .retries(0L)
-                    .executions(nextExecutionCount)    // <-- ADICIONADO
+                    .executions(nextExecutionCount)
                     .status(ExecutableTaskStatus.ERROR)
                     .error(exception.getMessage())
                     .executorId(null)
@@ -75,7 +80,7 @@ public class FailureHandler {
 
             Incident incident = new Incident(
                     UUID.randomUUID().toString(),
-                    "FAILED_JOB",
+                    isUnhandledBusinessError ? "UNHANDLED_BUSINESS_ERROR" : "FAILED_JOB",
                     exception.getMessage(),
                     getStackTrace(exception),
                     task.processDefinitionId(),
@@ -84,8 +89,7 @@ public class FailureHandler {
                     Instant.now(),
                     IncidentStatus.OPEN,
                     task.taskDefinitionId()
-
-                    );
+            );
 
             incidentsToCreate.add(incident);
         }
@@ -102,6 +106,6 @@ public class FailureHandler {
     public String getStackTrace(Throwable t) {
         StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
-        return sw.toString(); // Limitar caracteres se necessário
+        return sw.toString();
     }
 }

@@ -2,6 +2,7 @@ package io.kikwiflow.management.controller.stats.mapper;
 
 import io.kikwiflow.management.dtos.elements.KKFBoundaryEventDefinition;
 import io.kikwiflow.management.dtos.elements.KKFEndEventDefinition;
+import io.kikwiflow.management.dtos.elements.KKFErrorHandlerDefinition;
 import io.kikwiflow.management.dtos.elements.KKFExclusiveGatewayDefinition;
 import io.kikwiflow.management.dtos.elements.KKFExecutableTaskDefinition;
 import io.kikwiflow.management.dtos.elements.KKFExternalTaskDefinition;
@@ -15,6 +16,7 @@ import io.kikwiflow.management.dtos.elements.KKFStartEventDefinition;
 import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
 import io.kikwiflow.model.definition.process.elements.BoundaryEventDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
+import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
@@ -254,6 +256,8 @@ public class ProcessMapper {
 
         }else if (dto instanceof NonInterruptiveTimerEventDefinition nonInterruptiveTimerEventDefinition) {
             return mapNonInterruptiveTimerEventDefinition(nonInterruptiveTimerEventDefinition);
+        } else if (dto instanceof ErrorHandlerDefinition errorHandlerDefinition) {
+                return mapErrorHandlerDefinition(errorHandlerDefinition);
 
         }else if (dto instanceof ExecutableTaskDefinition exect) {
 
@@ -275,5 +279,20 @@ public class ProcessMapper {
         }else {
             throw new IllegalArgumentException("Tipo de nó não suportado no mapper: " + dto.getClass().getSimpleName());
         }
+    }
+
+    private static KKFErrorHandlerDefinition mapErrorHandlerDefinition(ErrorHandlerDefinition errorHandlerDefinition) {
+        return new KKFErrorHandlerDefinition(
+                errorHandlerDefinition.id(),
+                errorHandlerDefinition.name(),
+                errorHandlerDefinition.type(),
+                errorHandlerDefinition.description(),
+                errorHandlerDefinition.commitAfter(),
+                errorHandlerDefinition.commitBefore(),
+                mapOutgoingK(errorHandlerDefinition.outgoing()),
+                errorHandlerDefinition.attachedToRef(),
+                errorHandlerDefinition.errorCode(),
+                errorHandlerDefinition.extensionProperties(),
+                mapLayout(errorHandlerDefinition.layout()));
     }
 }

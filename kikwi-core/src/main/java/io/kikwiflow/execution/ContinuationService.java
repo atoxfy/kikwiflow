@@ -26,6 +26,7 @@ import io.kikwiflow.execution.evaluator.TimerDueDateResolver;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.BoundaryEventDefinition;
+import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
@@ -417,7 +418,9 @@ public class ContinuationService {
                             nextExecutableTasks.add(boundaryEvent);
                         }
 
-                    }else{
+                    } else if (boundaryEventDefinition instanceof ErrorHandlerDefinition) {
+
+                    } else{
                         throw new NotImplementedException("Processamento de tarefa de borda não implementado para o tipo " + boundaryEventDefinition.type());
                     }
                 });

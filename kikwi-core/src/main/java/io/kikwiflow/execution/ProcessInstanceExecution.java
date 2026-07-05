@@ -222,12 +222,16 @@ public class ProcessInstanceExecution {
         this.tenantId = tenantId;
     }
 
-    public void addVariables(Map<String, ProcessVariable> variables) {
-        if(variables == null) return;
-        this.variables.putAll(variables);
+    public void addVariables(Map<String, ProcessVariable> variablesToAdd) {
+        if (variablesToAdd == null || variablesToAdd.isEmpty()) return;
+
+        if (this.variables == null) {
+            this.variables = new java.util.HashMap<>();
+        }
+
+        variablesToAdd.forEach((k, v) -> {
+            this.variableOperations.put(k, new VariableOperation(v, VariableOpType.SET));
+            this.variables.put(k, v);
+        });
     }
-
-
-
-
 }

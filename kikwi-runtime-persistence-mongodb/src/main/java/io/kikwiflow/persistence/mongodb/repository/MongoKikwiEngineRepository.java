@@ -51,6 +51,8 @@ import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.shared.PageResult;
 import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.api.data. UnitOfWork;
+import io.kikwiflow.persistence.api.data.VariableOpType;
+import io.kikwiflow.persistence.api.data.VariableOperation;
 import io.kikwiflow.persistence.api.exception.OptimisticLockingFailureException;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
@@ -292,22 +294,21 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     }
 
                     if (instance.variables() != null) {
-                        Map<String, io.kikwiflow.persistence.api.data.VariableOperation> variableOps = unitOfWork.variableOperations();
+                        Map<String, VariableOperation> variableOps = unitOfWork.variableOperations();
 
                         if (variableOps != null && !variableOps.isEmpty()) {
                             variableOps.forEach((key, operation) -> {
-                                String fieldPath = "variables." + io.kikwiflow.persistence.mongodb.util.MongoKeyEncoder.encode(key);
+                                String fieldPath = "variables." + MongoKeyEncoder.encode(key);
 
-                                if (operation.type() == io.kikwiflow.persistence.api.data.VariableOpType.SET) {
-                                    updates.add(Updates.set(fieldPath, io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper.toDocument(operation.value())));
+                                if (operation.type() == VariableOpType.SET) {
+                                    updates.add(Updates.set(fieldPath, ProcessVariableMapper.toDocument(operation.value())));
                                 }
-                                else if (operation.type() == io.kikwiflow.persistence.api.data.VariableOpType.UNSET) {
+                                else if (operation.type() == VariableOpType.UNSET) {
                                     updates.add(Updates.unset(fieldPath));
                                 }
                             });
                         }
                     }
-
 
                     Bson filter = eq("_id", instance.id());
                     UpdateResult result = processInstances.updateOne(clientSession, filter, Updates.combine(updates));

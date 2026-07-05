@@ -17,6 +17,7 @@
 
 package io.kikwiflow.sample.onboarding.process.executors;
 
+import io.kikwiflow.exception.ProcessErrorException;
 import io.kikwiflow.execution.api.ExecutionContext;
 import io.kikwiflow.execution.api.TaskHandler;
 import io.kikwiflow.model.execution.ProcessVariable;
@@ -45,6 +46,12 @@ public class EnrichCustomerProfileTaskHandler implements TaskHandler {
         logger.info("[{}] EnrichCustomerProfileTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
         VariableScope variableScope = VariableScope.ofContext(execution);
         String taxId = variableScope.getTaxId();
+        if(taxId.equals("19")){
+            throw new ProcessErrorException("CLIENTE_NAO_ENCONTRADO");
+        }else if(taxId.equals("20")){
+            throw new RuntimeException("Falha grave!");
+        }
+
         customerDirectory.findByTaxId(taxId)
                         .ifPresent(customer -> {
                             variableScope.setName(customer.name());

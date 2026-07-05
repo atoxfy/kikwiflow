@@ -17,11 +17,13 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.exception.ProcessErrorException;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.event.FlowNodeFinished;
@@ -36,6 +38,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
 
 /**
@@ -125,6 +128,25 @@ public class ProcessExecutionManager {
                 boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());
 
                 continuation = navigator.determineNextContinuation(currentNode, processDefinition, processInstance.getVariables(), isCommitAfter);
+
+            } catch (ProcessErrorException processError) {
+
+                Optional<ErrorHandlerDefinition> boundary = navigator.findMatchingErrorHandler(currentNode, processDefinition, processError.getErrorCode());
+
+                if (boundary.isPresent()) {
+                    status = NodeExecutionStatus.INTERRUPTED;
+                    ErrorHandlerDefinition handler = boundary.get();
+
+                    List<FlowNodeDefinition> nextNodes = handler.outgoing().stream()
+                            .map(seq -> processDefinition.flowNodes().get(seq.targetNodeId()))
+                            .toList();
+
+                    continuation = new Continuation(nextNodes, Boolean.TRUE.equals(handler.commitAfter()));
+                } else {
+
+                    status = NodeExecutionStatus.ERROR;
+                    caughtException = processError;
+                }
 
             } catch (Exception e) {
                 status = NodeExecutionStatus.ERROR;
