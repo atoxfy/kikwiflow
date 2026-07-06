@@ -38,6 +38,9 @@ public record ProcessInstance(
         Instant endedAt,
         String origin,
         int version,
+        String parentInstanceId,
+        String callerTaskId,
+        String callerBranchId,
         Map<String, Integer> activeNodes) {
 
     public static Builder builder() {
@@ -56,12 +59,30 @@ public record ProcessInstance(
         private String tenantId;
         private String origin;
         private int version = 0;
+        private String parentInstanceId;
+        private String callerTaskId;
+        private String callerBranchId;
         private Map<String, Integer> activeNodes = new java.util.HashMap<>();
 
         private Builder() {}
 
         public Builder version(int version) {
             this.version = version;
+            return this;
+        }
+
+        public Builder callerBranchId(String callerBranchId) {
+            this.callerBranchId = callerBranchId;
+            return this;
+        }
+
+        public Builder callerTaskId(String callerTaskId) {
+            this.callerTaskId = callerTaskId;
+            return this;
+        }
+
+        public Builder parentInstanceId(String parentInstanceId) {
+            this.parentInstanceId = parentInstanceId;
             return this;
         }
 
@@ -132,7 +153,7 @@ public record ProcessInstance(
                 status = ProcessInstanceStatus.ACTIVE;
             }
 
-            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt, origin, version, activeNodes);
+            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt, origin, version, parentInstanceId, callerTaskId, callerBranchId, activeNodes);
         }
     }
 }

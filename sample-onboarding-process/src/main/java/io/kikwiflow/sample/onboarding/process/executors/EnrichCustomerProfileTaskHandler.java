@@ -46,6 +46,7 @@ public class EnrichCustomerProfileTaskHandler implements TaskHandler {
         logger.info("[{}] EnrichCustomerProfileTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
         VariableScope variableScope = VariableScope.ofContext(execution);
         String taxId = variableScope.getTaxId();
+
         if(taxId.equals("19")){
             throw new ProcessErrorException("CLIENTE_NAO_ENCONTRADO");
         }else if(taxId.equals("20")){

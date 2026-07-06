@@ -52,6 +52,10 @@ public class ProcessInstanceExecution {
     private String tenantId;
     private String origin;
     private int version;
+    private String parentInstanceId;
+    private String callerTaskId;
+    private String callerBranchId;
+
     private Map<String, Integer> activeNodes;
     private final List<BranchPullIntention> branchPullIntentions = new ArrayList<>();
     private final Map<String, VariableOperation> variableOperations = new java.util.HashMap<>();
@@ -107,6 +111,14 @@ public class ProcessInstanceExecution {
         this.branchPullIntentions.add(new BranchPullIntention(joinTaskId, branchId));
     }
 
+    public String getCallerBranchId() {
+        return callerBranchId;
+    }
+
+    public void setCallerBranchId(String callerBranchId) {
+        this.callerBranchId = callerBranchId;
+    }
+
     /**
      * Retorna as intenções acumuladas para a camada de serviço transacional.
      */
@@ -121,6 +133,21 @@ public class ProcessInstanceExecution {
         this.branchPullIntentions.clear();
     }
 
+    public String getParentInstanceId() {
+        return parentInstanceId;
+    }
+
+    public void setParentInstanceId(String parentInstanceId) {
+        this.parentInstanceId = parentInstanceId;
+    }
+
+    public String getCallerTaskId() {
+        return callerTaskId;
+    }
+
+    public void setCallerTaskId(String callerTaskId) {
+        this.callerTaskId = callerTaskId;
+    }
 
     public int getVersion() {
         return version;

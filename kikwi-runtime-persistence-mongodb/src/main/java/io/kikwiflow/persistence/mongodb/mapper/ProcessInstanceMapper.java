@@ -45,6 +45,9 @@ public final class ProcessInstanceMapper {
                 .append("startedAt", instance.startedAt())
                 .append("endedAt", instance.endedAt())
                 .append("origin", instance.origin())
+                .append("parentInstanceId", instance.parentInstanceId())
+                .append("callerTaskId", instance.callerTaskId())
+                .append("callerBranchId", instance.callerBranchId())
                 .append("version", instance.version());
 
 
@@ -98,6 +101,9 @@ public final class ProcessInstanceMapper {
                 .id(doc.getString("_id"))
                 .businessKey(doc.getString("businessKey"))
                 .businessValue(businessValue)
+                .parentInstanceId(doc.getString("parentInstanceId"))
+                .callerTaskId(doc.getString("callerTaskId"))
+                .callerBranchId(doc.getString("callerBranchId"))
                 .tenantId(doc.getString("tenantId"))
                 .status(ProcessInstanceStatus.valueOf(doc.getString("status")))
                 .processDefinitionId(doc.getString("processDefinitionId"))
