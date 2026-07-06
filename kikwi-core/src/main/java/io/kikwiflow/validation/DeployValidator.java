@@ -16,11 +16,11 @@
  */
 package io.kikwiflow.validation;
 
-import io.kikwiflow.decision.api.AnswerProvider;
-import io.kikwiflow.decision.api.AnswerProviderLocator;
 import io.kikwiflow.exception.InvalidProcessDefinitionException;
 import io.kikwiflow.exception.TaskHandlerNotFoundException;
 import io.kikwiflow.execution.TaskHandlerResolver;
+import io.kikwiflow.execution.api.provider.AnswerProvider;
+import io.kikwiflow.execution.api.resolver.AnswerProviderResolver;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
@@ -34,11 +34,11 @@ import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
 public class DeployValidator {
 
     private final TaskHandlerResolver taskHandlerResolver;
-    private final AnswerProviderLocator answerProviderLocator;
+    private final AnswerProviderResolver answerProviderResolver;
 
-    public DeployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderLocator answerProviderLocator) {
+    public DeployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderResolver answerProviderResolver) {
         this.taskHandlerResolver = taskHandlerResolver;
-        this.answerProviderLocator = answerProviderLocator;
+        this.answerProviderResolver = answerProviderResolver;
     }
 
     public void validate(ProcessDefinition definition) {
@@ -63,10 +63,8 @@ public class DeployValidator {
                         throw new InvalidProcessDefinitionException(String.format("Validation failed for Gateway '%s': Configured as BEAN but 'providerBean' is empty.", gateway.id()));
                     }
                     try {
-                        AnswerProvider provider = answerProviderLocator.getProvider(beanName);
-                        if (provider == null) {
-                            throw new InvalidProcessDefinitionException(String.format("AnswerProvider bean '%s' not found.", beanName));
-                        }
+                        AnswerProvider provider = answerProviderResolver.getProvider(beanName).orElseThrow(() -> new InvalidProcessDefinitionException(String.format("AnswerProvider bean '%s' not found.", beanName)));
+
                     } catch (Exception e) {
                         throw new InvalidProcessDefinitionException(String.format("AnswerProvider bean '%s' not found or could not be instantiated.", beanName), e);
                     }

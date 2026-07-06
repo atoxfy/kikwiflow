@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -15,21 +15,11 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.execution.api;
+package io.kikwiflow.exception;
 
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.execution.ProcessVariable;
-
-public interface ExecutionContext {
-    void setVariable(String variableName, ProcessVariable value);
-    void removeVariable(String variableName);
-    ProcessVariable getVariable(String variableName);
-
-    boolean hasVariable(String variableName);
-
-    String getProcessInstanceId();
-
-    FlowNodeDefinition getFlowNode();
-
+public class BadImplementationException extends RuntimeException {
+    public BadImplementationException(String message) {
+        super(message);
+    }
 
 }

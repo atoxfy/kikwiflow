@@ -17,8 +17,8 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.exception.BadDefinitionExecutionException;
-import io.kikwiflow.execution.api.ExecutionContext;
-import io.kikwiflow.execution.api.TaskHandler;
+import io.kikwiflow.execution.api.context.ExecutionContext;
+import io.kikwiflow.execution.api.handler.TaskHandler;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 

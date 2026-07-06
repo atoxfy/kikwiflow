@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -14,9 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.execution.api;
 
+package io.kikwiflow.execution.api.context;
 
-public interface  TaskHandler {
-     void handle(ExecutionContext execution);
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Contexto de leitura injetado nos AnswerProviders.
+ * Garante a imutabilidade dos dados durante o processo de decisão.
+ */
+public interface EvaluationContext {
+
+    String getProcessInstanceId();
+
+    /**
+     * Retorna o valor de uma variável de processo.
+     */
+    Optional<Object> getVariableValue(String name);
+
+    /**
+     * Retorna um mapa imutável com todas as variáveis do escopo atual.
+     */
+    Map<String, Object> getVariables();
 }

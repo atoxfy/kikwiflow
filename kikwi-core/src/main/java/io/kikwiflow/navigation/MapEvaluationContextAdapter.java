@@ -17,7 +17,7 @@
 
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.decision.api.AnswerContext;
+import io.kikwiflow.execution.api.context.EvaluationContext;
 import io.kikwiflow.model.execution.ProcessVariable;
 
 import java.util.Collections;
@@ -25,12 +25,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class MapAnswerContextAdapter implements AnswerContext {
+public class MapEvaluationContextAdapter implements EvaluationContext {
 
     private final String processInstanceId;
     private final Map<String, Object> readOnlyVariables;
 
-    public MapAnswerContextAdapter(String processInstanceId, Map<String, ProcessVariable> variables) {
+    public MapEvaluationContextAdapter(String processInstanceId, Map<String, ProcessVariable> variables) {
         this.processInstanceId = processInstanceId;
         this.readOnlyVariables = Collections.unmodifiableMap(
                 variables.entrySet().stream()

@@ -19,15 +19,16 @@ package io.kikwiflow.starter.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.config.KikwiflowConfig;
-import io.kikwiflow.decision.api.AnswerProviderLocator;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.execution.ContinuationService;
-import io.kikwiflow.execution.TaskHandlerResolver;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.TaskExecutor;
-import io.kikwiflow.execution.api.ProcessDefinitionParser;
-import io.kikwiflow.execution.api.RetryPolicyEvaluator;
+import io.kikwiflow.execution.TaskHandlerResolver;
+import io.kikwiflow.execution.api.parser.ProcessDefinitionParser;
+import io.kikwiflow.execution.api.resolver.AnswerProviderResolver;
+import io.kikwiflow.execution.api.resolver.DueDateProviderResolver;
+import io.kikwiflow.execution.api.retry.RetryPolicyEvaluator;
 import io.kikwiflow.execution.evaluator.TimerDueDateResolver;
 import io.kikwiflow.execution.policy.DefaultRetryPolicyEvaluator;
 import io.kikwiflow.navigation.Navigator;
@@ -35,6 +36,9 @@ import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.parser.jackson.JacksonProcessDefinitionParser;
 import io.kikwiflow.parser.jackson.KikwiflowJacksonModule;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.starter.autoconfigure.resolvers.SpringAnswerProviderResolver;
+import io.kikwiflow.starter.autoconfigure.resolvers.SpringDueDateProviderResolver;
+import io.kikwiflow.starter.autoconfigure.resolvers.SpringTaskHandlerResolver;
 import io.kikwiflow.validation.DeployValidator;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -56,8 +60,8 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public DeployValidator deployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderLocator answerProviderLocator){
-        return new DeployValidator(taskHandlerResolver, answerProviderLocator);
+    public DeployValidator deployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderResolver answerProviderResolver){
+        return new DeployValidator(taskHandlerResolver, answerProviderResolver);
     }
 
     @Bean
@@ -94,8 +98,8 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public Navigator navigator(AnswerProviderLocator answerProviderLocator) {
-        return new Navigator(answerProviderLocator);
+    public Navigator navigator(AnswerProviderResolver answerProviderResolver) {
+        return new Navigator(answerProviderResolver);
     }
 
     @Bean
@@ -154,8 +158,14 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AnswerProviderLocator answerProviderLocator(ApplicationContext applicationContext){
-        return new SpringAnswerProviderLocator(applicationContext);
+    public AnswerProviderResolver answerProviderResolver(ApplicationContext applicationContext){
+        return new SpringAnswerProviderResolver(applicationContext);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public DueDateProviderResolver dueDateProviderResolver(ApplicationContext applicationContext){
+        return new SpringDueDateProviderResolver(applicationContext);
     }
 
     @Bean
@@ -164,10 +174,12 @@ public class KikwiflowAutoConfiguration {
         return new DefaultRetryPolicyEvaluator(kikwiflowConfig);
     }
 
+
+
     @Bean
     @ConditionalOnMissingBean
-    public TimerDueDateResolver dueDateResolver() {
-        return new TimerDueDateResolver();
+    public TimerDueDateResolver timerDueDateResolver(DueDateProviderResolver dueDateProviderResolver) {
+        return new TimerDueDateResolver(dueDateProviderResolver);
     }
 
     @Bean(initMethod = "start", destroyMethod = "stop")
@@ -176,7 +188,7 @@ public class KikwiflowAutoConfiguration {
             KikwiEngineRepository repository,
             KikwiflowConfig config,
             TaskHandlerResolver taskHandlerResolver,
-            AnswerProviderLocator answerProviderLocator,
+            AnswerProviderResolver answerProviderResolver,
             ObjectProvider<List<ExecutionEventListener>> listenersProvider,
             ProcessDefinitionService processDefinitionService,
             Navigator navigator,

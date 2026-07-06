@@ -55,7 +55,6 @@ public class ProcessInstanceExecution {
     private String parentInstanceId;
     private String callerTaskId;
     private String callerBranchId;
-
     private Map<String, Integer> activeNodes;
     private final List<BranchPullIntention> branchPullIntentions = new ArrayList<>();
     private final Map<String, VariableOperation> variableOperations = new java.util.HashMap<>();

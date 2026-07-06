@@ -17,8 +17,8 @@
 
 package io.kikwiflow.sample.onboarding.process.executors.asyc;
 
-import io.kikwiflow.execution.api.ExecutionContext;
-import io.kikwiflow.execution.api.TaskHandler;
+import io.kikwiflow.execution.api.context.ExecutionContext;
+import io.kikwiflow.execution.api.handler.TaskHandler;
 import io.kikwiflow.model.execution.ProcessVariable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

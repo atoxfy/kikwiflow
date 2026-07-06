@@ -17,8 +17,8 @@
 
 package io.kikwiflow.sample.onboarding.process.executors;
 
-import io.kikwiflow.execution.api.ExecutionContext;
-import io.kikwiflow.execution.api.TaskHandler;
+import io.kikwiflow.execution.api.context.ExecutionContext;
+import io.kikwiflow.execution.api.handler.TaskHandler;
 import io.kikwiflow.sample.onboarding.directory.CustomerDirectory;
 import io.kikwiflow.sample.onboarding.process.VariableScope;
 import org.apache.logging.log4j.LogManager;

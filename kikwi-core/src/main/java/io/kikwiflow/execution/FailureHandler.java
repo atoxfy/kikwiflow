@@ -17,7 +17,7 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.exception.ProcessErrorException; // Import da nova exceção
-import io.kikwiflow.execution.api.RetryPolicyEvaluator;
+import io.kikwiflow.execution.api.retry.RetryPolicyEvaluator;
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;

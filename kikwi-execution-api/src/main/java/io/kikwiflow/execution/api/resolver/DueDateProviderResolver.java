@@ -15,22 +15,12 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.sample.onboarding.process.executors;
+package io.kikwiflow.execution.api.resolver;
 
-import io.kikwiflow.execution.api.context.ExecutionContext;
-import io.kikwiflow.execution.api.handler.TaskHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
+import io.kikwiflow.execution.api.provider.DueDateProvider;
 
-@Component("sendCustomerInvite")
-public class SendCustomerInviteTaskHandler implements TaskHandler {
-    private static Logger logger = LogManager.getLogger(SendCustomerInviteTaskHandler.class);
+import java.util.Optional;
 
-    @Override
-    public void handle(ExecutionContext execution) {
-        String threadName = Thread.currentThread().getName();
-        logger.info("[{}] SendCustomerInviteTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
-
-    }
+public interface DueDateProviderResolver {
+    Optional<DueDateProvider> getProvider(String name);
 }

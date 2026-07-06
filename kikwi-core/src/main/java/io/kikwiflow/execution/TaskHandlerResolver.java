@@ -16,7 +16,7 @@
  */
 package io.kikwiflow.execution;
 
-import io.kikwiflow.execution.api.TaskHandler;
+import io.kikwiflow.execution.api.handler.TaskHandler;
 
 import java.util.Optional;
 

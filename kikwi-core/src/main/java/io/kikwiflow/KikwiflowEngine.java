@@ -27,7 +27,7 @@ import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.execution.ProcessInstanceFactory;
 import io.kikwiflow.execution.TaskAcquirer;
-import io.kikwiflow.execution.api.RetryPolicyEvaluator;
+import io.kikwiflow.execution.api.retry.RetryPolicyEvaluator;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;

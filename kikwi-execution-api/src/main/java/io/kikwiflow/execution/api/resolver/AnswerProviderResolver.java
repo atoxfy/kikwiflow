@@ -15,19 +15,15 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.execution.api;
+package io.kikwiflow.execution.api.resolver;
 
-import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
+import io.kikwiflow.execution.api.provider.AnswerProvider;
 
-import java.io.InputStream;
+import java.util.Optional;
 
 /**
- * Interface agnóstica para conversão de arquivos físicos em definições de processo.
+ * Porta (Port) para a Engine buscar provedores de decisão de forma agnóstica.
  */
-public interface ProcessDefinitionParser {
-    ProcessDefinitionDeployRequest parse(byte[] processContent ) throws Exception;
-    String calculateChecksum (ProcessDefinitionDeployRequest processDefinitionDeployRequest) throws Exception;
-    ProcessDefinition parse(ProcessDefinitionDeployRequest processContent );
-
+public interface AnswerProviderResolver {
+    Optional<AnswerProvider> getProvider(String name);
 }

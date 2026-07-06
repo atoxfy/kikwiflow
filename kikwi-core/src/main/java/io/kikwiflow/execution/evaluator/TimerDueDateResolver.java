@@ -16,23 +16,24 @@
  */
 package io.kikwiflow.execution.evaluator;
 
+import io.kikwiflow.exception.BadImplementationException;
 import io.kikwiflow.execution.ProcessInstanceExecution;
+import io.kikwiflow.execution.api.context.EvaluationContext;
+import io.kikwiflow.execution.api.resolver.DueDateProviderResolver;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.policies.SchedulePolicy;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.navigation.MapEvaluationContextAdapter;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZonedDateTime;
-
-import static io.kikwiflow.model.execution.enumerated.ScheduleType.RATE_DURATION;
 
 public class TimerDueDateResolver {
 
-    // private final DueDateProviderLocator beanLocator;
+    private final DueDateProviderResolver dueDateProviderResolver;
 
-    public TimerDueDateResolver(/* DueDateProviderLocator beanLocator */) {
-        // this.beanLocator = beanLocator;
+    public TimerDueDateResolver(DueDateProviderResolver dueDateProviderResolver) {
+        this.dueDateProviderResolver = dueDateProviderResolver;
     }
 
     /**
@@ -81,8 +82,14 @@ public class TimerDueDateResolver {
                 }
             }
             case BEAN -> {
-                // timeValue = beanLocator.getProvider(timerDef.providerBean()).resolve(execution);
-                throw new UnsupportedOperationException("Resolução de timer via BEAN ainda não implementada.");
+                if (timerDef.providerBean() == null || timerDef.providerBean().isBlank()) {
+                    throw new IllegalArgumentException("Kikwiflow Engine: Nome do Bean não configurado para o timer -> " + timerDef.id());
+                }
+
+                EvaluationContext evaluationContext = new MapEvaluationContextAdapter(execution.getId(), execution.getVariables());
+                timeValue = dueDateProviderResolver.getProvider(timerDef.providerBean())
+                        .map(resolver ->  resolver.resolve(evaluationContext))
+                        .orElseThrow(() -> new BadImplementationException("Não foi possível definir a data de execução (dueDate)"));
             }
         }
 

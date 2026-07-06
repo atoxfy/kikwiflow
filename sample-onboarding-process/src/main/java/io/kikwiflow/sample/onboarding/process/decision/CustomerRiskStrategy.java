@@ -17,8 +17,8 @@
 
 package io.kikwiflow.sample.onboarding.process.decision;
 
-import io.kikwiflow.decision.api.AnswerContext;
-import io.kikwiflow.decision.api.AnswerProvider;
+import io.kikwiflow.execution.api.context.EvaluationContext;
+import io.kikwiflow.execution.api.provider.AnswerProvider;
 import io.kikwiflow.sample.onboarding.process.VariableScope;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +28,7 @@ import java.util.Objects;
 public class CustomerRiskStrategy implements AnswerProvider {
 
     @Override
-    public String resolve(AnswerContext context) {
+    public String resolve(EvaluationContext context) {
         return context.getVariableValue(VariableScope.RISK_SCORE)
                 .filter(Objects::nonNull)
                 .map(riskScore -> (Double) riskScore < 50 ? "FRAUDE" : "APROVADO")

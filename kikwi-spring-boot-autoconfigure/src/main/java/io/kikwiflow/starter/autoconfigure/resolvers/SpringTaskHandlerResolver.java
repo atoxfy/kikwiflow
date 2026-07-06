@@ -14,23 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.kikwiflow.starter.autoconfigure.resolvers;
 
-package io.kikwiflow.sample.onboarding.process.executors;
-
-import io.kikwiflow.execution.api.context.ExecutionContext;
+import io.kikwiflow.execution.TaskHandlerResolver;
 import io.kikwiflow.execution.api.handler.TaskHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.context.ApplicationContext;
 
-@Component("sendCustomerInvite")
-public class SendCustomerInviteTaskHandler implements TaskHandler {
-    private static Logger logger = LogManager.getLogger(SendCustomerInviteTaskHandler.class);
+import java.util.Optional;
+
+public class SpringTaskHandlerResolver implements TaskHandlerResolver {
+
+    private final ApplicationContext applicationContext;
+
+    public SpringTaskHandlerResolver(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
+    }
 
     @Override
-    public void handle(ExecutionContext execution) {
-        String threadName = Thread.currentThread().getName();
-        logger.info("[{}] SendCustomerInviteTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
-
+    public Optional<TaskHandler> resolve(String beanName) {
+        try {
+            return Optional.of(applicationContext.getBean(beanName, TaskHandler.class));
+        } catch (NoSuchBeanDefinitionException e) {
+            return Optional.empty();
+        }
     }
 }

@@ -15,26 +15,25 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.decision.api;
+package io.kikwiflow.execution.api.retry;
 
-import java.util.Map;
-import java.util.Optional;
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
+import io.kikwiflow.model.execution.node.ExecutableTask;
 
-/**
- * Contexto de leitura injetado nos AnswerProviders.
- * Garante a imutabilidade dos dados durante o processo de decisão.
- */
-public interface AnswerContext {
+import java.time.Instant;
 
-    String getProcessInstanceId();
+public interface RetryPolicyEvaluator {
 
     /**
-     * Retorna o valor de uma variável de processo.
+     * Avalia o erro atual da tarefa e calcula o contexto do próximo passo de resiliência.
+     * Retorna a quantidade de retries restantes e o próximo dueDate.
      */
-    Optional<Object> getVariableValue(String name);
+    RetryEvaluationResult evaluate(ExecutableTask task, Exception exception, RetryPolicy policy);
 
-    /**
-     * Retorna um mapa imutável com todas as variáveis do escopo atual.
-     */
-    Map<String, Object> getVariables();
+    public record RetryEvaluationResult(
+            long retriesLeft,
+            Instant nextDueDate,
+            boolean shouldCreateIncident
+    ) {}
 }
+

@@ -17,7 +17,7 @@
 
 package io.kikwiflow.sample.onboarding.process;
 
-import io.kikwiflow.execution.api.ExecutionContext;
+import io.kikwiflow.execution.api.context.ExecutionContext;
 import io.kikwiflow.model.execution.ProcessVariable;
 
 import java.time.LocalDate;

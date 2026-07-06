@@ -15,11 +15,22 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.decision.api;
+package io.kikwiflow.execution.api.provider;
+
+import io.kikwiflow.execution.api.context.EvaluationContext;
 
 /**
- * Porta (Port) para a Engine buscar provedores de decisão de forma agnóstica.
+ * Contrato principal para provedores de decisão.
  */
-public interface AnswerProviderLocator {
-    AnswerProvider getProvider(String name);
+@FunctionalInterface
+public interface AnswerProvider {
+
+    /**
+     * Avalia o contexto atual e retorna uma String representando a hipótese de resposta.
+     *
+     * @param context Contexto imutável da execução.
+     * @return A resposta (hipótese) gerada. Retornar nulo é permitido, mas deve ser tratado
+     *         explicitamente no modelo do processo.
+     */
+    String resolve(EvaluationContext context);
 }

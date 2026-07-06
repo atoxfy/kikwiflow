@@ -15,24 +15,15 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.decision.api;
+package io.kikwiflow.execution.api.provider;
 
-import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.execution.api.context.EvaluationContext;
 
-import java.util.Map;
-
-/**
- * Contrato principal para provedores de decisão.
- */
-@FunctionalInterface
-public interface AnswerProvider {
-
+public interface DueDateProvider {
     /**
-     * Avalia o contexto atual e retorna uma String representando a hipótese de resposta.
-     *
-     * @param context Contexto imutável da execução.
-     * @return A resposta (hipótese) gerada. Retornar nulo é permitido, mas deve ser tratado
-     *         explicitamente no modelo do processo.
+     * Resolve a data/hora alvo do timer com base no contexto da execução.
+     * @param execution O contexto atual (permite ler variáveis, tenant, etc)
+     * @return Uma string no formato ISO-8601 (Duração "PT1H" ou Data Absoluta "2026-12-25T20:00:00Z")
      */
-    String resolve(AnswerContext context);
+    String resolve(EvaluationContext execution);
 }

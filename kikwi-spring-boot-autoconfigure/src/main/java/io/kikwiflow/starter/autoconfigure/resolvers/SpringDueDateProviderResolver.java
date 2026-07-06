@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -14,27 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.kikwiflow.starter.autoconfigure;
 
-import io.kikwiflow.execution.TaskHandlerResolver;
-import io.kikwiflow.execution.api.TaskHandler;
+package io.kikwiflow.starter.autoconfigure.resolvers;
+
+import io.kikwiflow.execution.api.provider.DueDateProvider;
+import io.kikwiflow.execution.api.resolver.DueDateProviderResolver;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 
 import java.util.Optional;
 
-public class SpringTaskHandlerResolver implements TaskHandlerResolver {
+public class SpringDueDateProviderResolver implements DueDateProviderResolver {
 
     private final ApplicationContext applicationContext;
 
-    public SpringTaskHandlerResolver(ApplicationContext applicationContext) {
+    public SpringDueDateProviderResolver(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
 
     @Override
-    public Optional<TaskHandler> resolve(String beanName) {
+    public Optional<DueDateProvider> getProvider(String beanName) {
         try {
-            return Optional.of(applicationContext.getBean(beanName, TaskHandler.class));
+            return Optional.of(applicationContext.getBean(beanName, DueDateProvider.class));
         } catch (NoSuchBeanDefinitionException e) {
             return Optional.empty();
         }

@@ -18,7 +18,7 @@
 package io.kikwiflow.execution.policy;
 
 import io.kikwiflow.config.KikwiflowConfig;
-import io.kikwiflow.execution.api.RetryPolicyEvaluator;
+import io.kikwiflow.execution.api.retry.RetryPolicyEvaluator;
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.execution.enumerated.RetryStrategy;
 import io.kikwiflow.model.execution.node.ExecutableTask;

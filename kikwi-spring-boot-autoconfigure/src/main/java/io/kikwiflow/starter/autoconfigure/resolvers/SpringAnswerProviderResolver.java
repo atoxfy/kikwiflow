@@ -15,22 +15,29 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.starter.autoconfigure;
+package io.kikwiflow.starter.autoconfigure.resolvers;
 
-import io.kikwiflow.decision.api.AnswerProvider;
-import io.kikwiflow.decision.api.AnswerProviderLocator;
+import io.kikwiflow.execution.api.provider.AnswerProvider;
+import io.kikwiflow.execution.api.resolver.AnswerProviderResolver;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 
-public class SpringAnswerProviderLocator implements AnswerProviderLocator {
+import java.util.Optional;
+
+public class SpringAnswerProviderResolver implements AnswerProviderResolver {
 
     private final ApplicationContext applicationContext;
 
-    public SpringAnswerProviderLocator(ApplicationContext applicationContext) {
+    public SpringAnswerProviderResolver(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
 
     @Override
-    public AnswerProvider getProvider(String name) {
-        return applicationContext.getBean(name, AnswerProvider.class);
+    public Optional<AnswerProvider> getProvider(String beanName) {
+        try {
+            return Optional.of(applicationContext.getBean(beanName, AnswerProvider.class));
+        } catch (NoSuchBeanDefinitionException e) {
+            return Optional.empty();
+        }
     }
 }

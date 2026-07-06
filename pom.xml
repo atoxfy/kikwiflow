@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.kikwiflow</groupId>
     <artifactId>kikwiflow-parent</artifactId>
-    <version>0.1.54</version>
+    <version>0.1.55</version>
     <packaging>pom</packaging>
     <name>kikwiflow :: Parent</name>
     <url>https://kikwiflow.io</url>
@@ -68,7 +68,6 @@
         <module>kikwi-in-memory-spring-boot-autoconfigure</module>
         <module>kikwi-in-memory-spring-boot-starter</module>
         <module>kikwi-execution-api</module>
-        <module>kikwi-decision-api</module>
         <module>kikwi-view-models</module>
         <module>kikwi-runtime-persistence-mongodb-spring-boot-autoconfigure</module>
         <module>kikwi-runtime-persistence-mongodb-spring-boot-starter</module>

@@ -15,22 +15,17 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.sample.onboarding.process.executors;
+package io.kikwiflow.execution.api.parser;
 
-import io.kikwiflow.execution.api.context.ExecutionContext;
-import io.kikwiflow.execution.api.handler.TaskHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 
-@Component("sendCustomerInvite")
-public class SendCustomerInviteTaskHandler implements TaskHandler {
-    private static Logger logger = LogManager.getLogger(SendCustomerInviteTaskHandler.class);
+/**
+ * Interface agnóstica para conversão de arquivos físicos em definições de processo.
+ */
+public interface ProcessDefinitionParser {
+    ProcessDefinitionDeployRequest parse(byte[] processContent ) throws Exception;
+    String calculateChecksum (ProcessDefinitionDeployRequest processDefinitionDeployRequest) throws Exception;
+    ProcessDefinition parse(ProcessDefinitionDeployRequest processContent );
 
-    @Override
-    public void handle(ExecutionContext execution) {
-        String threadName = Thread.currentThread().getName();
-        logger.info("[{}] SendCustomerInviteTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
-
-    }
 }

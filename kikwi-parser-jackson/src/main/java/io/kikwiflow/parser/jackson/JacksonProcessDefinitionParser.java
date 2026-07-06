@@ -18,7 +18,7 @@
 package io.kikwiflow.parser.jackson;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.kikwiflow.execution.api.ProcessDefinitionParser;
+import io.kikwiflow.execution.api.parser.ProcessDefinitionParser;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 

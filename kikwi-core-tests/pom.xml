@@ -23,7 +23,7 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.54</version>
+        <version>0.1.55</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <properties>
@@ -72,12 +72,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-decision-api</artifactId>
-              <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

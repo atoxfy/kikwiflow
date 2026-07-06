@@ -18,7 +18,6 @@ package io.kikwiflow.starter.autoconfigure;
 
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.execution.api.ProcessDefinitionParser;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.io.Resource;

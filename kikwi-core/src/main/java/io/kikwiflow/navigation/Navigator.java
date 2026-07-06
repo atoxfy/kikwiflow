@@ -16,8 +16,9 @@
  */
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.decision.api.AnswerProvider;
-import io.kikwiflow.decision.api.AnswerProviderLocator;
+import io.kikwiflow.execution.api.context.EvaluationContext;
+import io.kikwiflow.execution.api.provider.AnswerProvider;
+import io.kikwiflow.execution.api.resolver.AnswerProviderResolver;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
@@ -37,10 +38,10 @@ import java.util.Optional;
 
 public class Navigator {
 
-    private final AnswerProviderLocator answerProviderLocator;
+    private final AnswerProviderResolver answerProviderResolver;
 
-    public Navigator(AnswerProviderLocator answerProviderLocator) {
-        this.answerProviderLocator = answerProviderLocator;
+    public Navigator(AnswerProviderResolver answerProviderResolver) {
+        this.answerProviderResolver = answerProviderResolver;
     }
 
     public Continuation determineNextContinuation(FlowNodeDefinition completedNode, ProcessDefinition processDefinition, Map<String, ProcessVariable> variables, boolean forceAsync) {
@@ -116,16 +117,18 @@ public class Navigator {
             ProcessVariable variable = variables.get(gateway.providerVariable());
             return variable != null && variable.value() != null ? variable.value().toString() : null;
         }
+
         if (gateway.providerType() == AnswerProviderType.BEAN) {
             if (gateway.providerBean() == null || gateway.providerBean().isBlank()) {
                 throw new IllegalStateException("Architectural Error: Gateway '" + gateway.id() + "' está configurado como BEAN, mas 'providerBean' é nulo ou vazio.");
             }
-            AnswerProvider provider = answerProviderLocator.getProvider(gateway.providerBean());
-            if (provider == null) {
-                throw new IllegalStateException("Execution Error: Nenhum AnswerProvider encontrado para o bean '" + gateway.providerBean() + "'.");
-            }
-            return provider.resolve(new MapAnswerContextAdapter(gateway.id(), variables));
+
+            AnswerProvider provider = answerProviderResolver.getProvider(gateway.providerBean())
+                    .orElseThrow(() ->  new IllegalStateException("Execution Error: Nenhum AnswerProvider encontrado para o bean '" + gateway.providerBean() + "'."));
+
+            return provider.resolve(new MapEvaluationContextAdapter(gateway.id(), variables));
         }
+
         throw new IllegalStateException("Execution Error: Tipo de AnswerProvider não suportado ou nulo no gateway '" + gateway.id() + "'.");
     }
 

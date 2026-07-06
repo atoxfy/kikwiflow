@@ -15,22 +15,21 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.sample.onboarding.process.executors;
+package io.kikwiflow.execution.api.context;
 
-import io.kikwiflow.execution.api.context.ExecutionContext;
-import io.kikwiflow.execution.api.handler.TaskHandler;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
+import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.execution.ProcessVariable;
 
-@Component("sendCustomerInvite")
-public class SendCustomerInviteTaskHandler implements TaskHandler {
-    private static Logger logger = LogManager.getLogger(SendCustomerInviteTaskHandler.class);
+public interface ExecutionContext {
+    void setVariable(String variableName, ProcessVariable value);
+    void removeVariable(String variableName);
+    ProcessVariable getVariable(String variableName);
 
-    @Override
-    public void handle(ExecutionContext execution) {
-        String threadName = Thread.currentThread().getName();
-        logger.info("[{}] SendCustomerInviteTaskHandler - Iniciando handle para instância: {}", threadName, execution.getProcessInstanceId());
+    boolean hasVariable(String variableName);
 
-    }
+    String getProcessInstanceId();
+
+    FlowNodeDefinition getFlowNode();
+
+
 }

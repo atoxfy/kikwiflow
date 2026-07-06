@@ -19,14 +19,11 @@ package io.kikwiflow.navigation;
 import io.kikwiflow.cache.ProcessDefinitionCache;
 import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.execution.api.ProcessDefinitionParser;
+import io.kikwiflow.execution.api.parser.ProcessDefinitionParser;
 import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.validation.DeployValidator;
 
-import java.io.InputStream;
-import java.security.MessageDigest;
-import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
 
