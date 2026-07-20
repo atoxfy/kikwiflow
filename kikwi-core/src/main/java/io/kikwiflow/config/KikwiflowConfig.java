@@ -57,6 +57,7 @@ public class KikwiflowConfig {
     private int defaultMaxRetries = 3;
     private String instanceName;
     private List<String> fatalExceptions = new ArrayList<>();
+    private boolean isProcessDefinitionDeployEnabled = true;
 
     public KikwiflowConfig() {
     }
@@ -67,6 +68,22 @@ public class KikwiflowConfig {
 
     public void setDefaultRetryInterval(String defaultRetryInterval) {
         this.defaultRetryInterval = defaultRetryInterval;
+    }
+
+    public void setStatsEnabled(boolean statsEnabled) {
+        isStatsEnabled = statsEnabled;
+    }
+
+    public void setOutboxEventsEnabled(boolean outboxEventsEnabled) {
+        isOutboxEventsEnabled = outboxEventsEnabled;
+    }
+
+    public boolean isProcessDefinitionDeployEnabled() {
+        return isProcessDefinitionDeployEnabled;
+    }
+
+    public void setProcessDefinitionDeployEnabled(boolean processDefinitionDeployEnabled) {
+        isProcessDefinitionDeployEnabled = processDefinitionDeployEnabled;
     }
 
     public int getDefaultMaxRetries() {

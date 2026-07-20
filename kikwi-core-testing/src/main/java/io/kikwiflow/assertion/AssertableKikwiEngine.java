@@ -61,7 +61,6 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
         this.assertableEventListener = spy(new AssertableEventListener(outboxEventQueue, flowNodeExecutionSnapshotRepository, processInstanceSnapshotRepository));
     }
 
-    @Override
     public ProcessInstance saveProcessInstance(ProcessInstance instance) {
         return inMemoryKikwiEngineRepository.saveProcessInstance(instance);
     }

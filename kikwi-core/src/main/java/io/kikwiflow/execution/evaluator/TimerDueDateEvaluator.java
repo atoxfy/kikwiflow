@@ -28,11 +28,11 @@ import io.kikwiflow.navigation.MapEvaluationContextAdapter;
 import java.time.Duration;
 import java.time.Instant;
 
-public class TimerDueDateResolver {
+public class TimerDueDateEvaluator {
 
     private final DueDateProviderResolver dueDateProviderResolver;
 
-    public TimerDueDateResolver(DueDateProviderResolver dueDateProviderResolver) {
+    public TimerDueDateEvaluator(DueDateProviderResolver dueDateProviderResolver) {
         this.dueDateProviderResolver = dueDateProviderResolver;
     }
 

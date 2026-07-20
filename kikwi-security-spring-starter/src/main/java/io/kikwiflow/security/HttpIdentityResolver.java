@@ -15,15 +15,17 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.api.command;
+package io.kikwiflow.security;
 
-import io.kikwiflow.api.dto.CompleteExternalTaskRequest;
-import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.security.IdentityContext;
+import jakarta.servlet.http.HttpServletRequest;
 
-public interface ExternalTaskOperationsApi {
-    void claim(String id, String assignee, IdentityContext identityContext);
-    void unclaim(String id, IdentityContext identityContext);
-    ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest, IdentityContext identityContext);
+/**
+ * Ponto de extensão para que a aplicação hospedeira traduza
+ * sua autenticação (JWT, Sessão, OAuth) para o IdentityContext do Kikwiflow.
+ */
+public interface HttpIdentityResolver {
+
+    IdentityContext resolve(HttpServletRequest request);
 
 }

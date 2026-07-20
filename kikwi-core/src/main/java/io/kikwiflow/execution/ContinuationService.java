@@ -22,10 +22,9 @@ import io.kikwiflow.exception.NotImplementedException;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
-import io.kikwiflow.execution.evaluator.TimerDueDateResolver;
+import io.kikwiflow.execution.evaluator.TimerDueDateEvaluator;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.definition.process.elements.BoundaryEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
@@ -58,12 +57,12 @@ import java.util.UUID;
 public class ContinuationService {
 
     private final KikwiEngineRepository kikwiEngineRepository;
-    private final TimerDueDateResolver timerDueDateResolver;
+    private final TimerDueDateEvaluator timerDueDateEvaluator;
     private final KikwiflowConfig kikwiflowConfig;
 
-    public ContinuationService(KikwiEngineRepository kikwiEngineRepository, TimerDueDateResolver timerDueDateResolver, KikwiflowConfig kikwiflowConfig) {
+    public ContinuationService(KikwiEngineRepository kikwiEngineRepository, TimerDueDateEvaluator timerDueDateEvaluator, KikwiflowConfig kikwiflowConfig) {
         this.kikwiEngineRepository = kikwiEngineRepository;
-        this.timerDueDateResolver = timerDueDateResolver;
+        this.timerDueDateEvaluator = timerDueDateEvaluator;
         this.kikwiflowConfig = kikwiflowConfig;
     }
 
@@ -204,7 +203,7 @@ public class ContinuationService {
                     io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition timerDef =
                             (io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition) processDef.flowNodes().get(completedExecutableTask.taskDefinitionId());
 
-                    Instant nextDueDate = timerDueDateResolver.calculateNextSchedule(timerDef.schedulePolicy());
+                    Instant nextDueDate = timerDueDateEvaluator.calculateNextSchedule(timerDef.schedulePolicy());
 
                     if (nextDueDate != null) {
 
@@ -462,7 +461,7 @@ public class ContinuationService {
             String branchId,
             String joinTaskId) {
 
-        Instant firstDueDate = timerDueDateResolver.calculateNextSchedule(timerDef.schedulePolicy());
+        Instant firstDueDate = timerDueDateEvaluator.calculateNextSchedule(timerDef.schedulePolicy());
 
         if (firstDueDate == null) {
             return null;
@@ -495,7 +494,7 @@ public class ContinuationService {
             String joinTaskId,
             ProcessInstanceExecution executionContext) {
 
-        Instant resolvedDueDate = timerDueDateResolver.resolveDueDate(timerDef, executionContext);
+        Instant resolvedDueDate = timerDueDateEvaluator.resolveDueDate(timerDef, executionContext);
 
         return ExecutableTask.builder()
                 .id(UUID.randomUUID().toString())

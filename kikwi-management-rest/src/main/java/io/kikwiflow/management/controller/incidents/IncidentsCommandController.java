@@ -19,6 +19,7 @@ package io.kikwiflow.management.controller.incidents;
 
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.management.annotation.KikwiRestController;
+import io.kikwiflow.model.security.IdentityContext;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,7 +40,7 @@ public class IncidentsCommandController {
 
     @PutMapping("/{id}/retry")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void retry(@PathVariable("id") String id){
-        engine.retryIncident(id);
+    public void retry(@PathVariable("id") String id, IdentityContext identityContext){
+        engine.retryIncident(id, identityContext);
     }
 }

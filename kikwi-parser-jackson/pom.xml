@@ -26,7 +26,6 @@
         <version>0.1.55</version>
     </parent>
 
-    <groupId>io.kikwiflow</groupId>
     <artifactId>kikwi-parser-jackson</artifactId>
     <name>kikwiflow :: Parser Jackson</name>
     <description>Contains JSON parsing interfaces</description>

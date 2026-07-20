@@ -31,7 +31,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public class TaskAcquirer implements Runnable {
-    private final KikwiflowEngine engine;
+    private KikwiflowEngine engine;
     private final KikwiEngineRepository kikwiEngineRepository;
     private final KikwiflowConfig kikwiflowConfig;
     private final ExecutorService acquirerExecutor;
@@ -40,8 +40,7 @@ public class TaskAcquirer implements Runnable {
     private final Semaphore concurrencyLimit;
     private final String workerId;
 
-    public TaskAcquirer(KikwiflowEngine engine, KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig) {
-        this.engine = engine;
+    public TaskAcquirer(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig) {
         this.kikwiEngineRepository = kikwiEngineRepository;
         this.kikwiflowConfig = kikwiflowConfig;
         this.acquirerExecutor = Executors.newSingleThreadExecutor(Thread.ofVirtual().name("kikwiflow-acquirer-", 0).factory());
@@ -52,7 +51,8 @@ public class TaskAcquirer implements Runnable {
     }
 
 
-    public void start(){
+    public void start(KikwiflowEngine kikwiflowEngine){
+        this.engine = kikwiflowEngine;
         if(!running){
             this.running = true;
             this.acquirerExecutor.submit(this);

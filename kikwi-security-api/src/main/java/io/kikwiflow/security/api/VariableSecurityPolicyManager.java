@@ -15,15 +15,19 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.api.command;
+package io.kikwiflow.security.api;
 
-import io.kikwiflow.api.dto.CompleteExternalTaskRequest;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.security.IdentityContext;
 
-public interface ExternalTaskOperationsApi {
-    void claim(String id, String assignee, IdentityContext identityContext);
-    void unclaim(String id, IdentityContext identityContext);
-    ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest, IdentityContext identityContext);
+import java.util.Map;
+import java.util.Set;
 
+public interface VariableSecurityPolicyManager {
+
+    boolean canWrite(String processDefinitionId, IdentityContext identity, Set<String> variableNames);
+    boolean canRead(String processDefinitionId, IdentityContext identity, Set<String> variableNames);
+    boolean canWrite(String processDefinitionId, IdentityContext identity, String variableName);
+    boolean canRead(String processDefinitionId, IdentityContext identity, String variableNames);
+    Map<String, ProcessVariable> applyReadPoliciesAndMasking(String processDefinitionId, IdentityContext identity, Map<String, ProcessVariable> rawVariables);
 }

@@ -16,8 +16,9 @@
  */
 package io.kikwiflow.starter.autoconfigure;
 
-import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.navigation.ProcessDefinitionService;
+import io.kikwiflow.model.security.IdentityContext;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.io.Resource;
@@ -27,14 +28,15 @@ import java.io.InputStream;
 
 public class KikwiflowAutoDeployer implements ApplicationRunner {
 
-    private final KikwiflowEngine engine;
+    private final ProcessDefinitionService processDefinitionService;
     private final ResourcePatternResolver resourcePatternResolver;
     private final String locationPattern;
 
-    public KikwiflowAutoDeployer(KikwiflowEngine engine,
+    public KikwiflowAutoDeployer(ProcessDefinitionService processDefinitionService,
                                  ResourcePatternResolver resourcePatternResolver,
                                  String locationPattern) {
-        this.engine = engine;
+
+        this.processDefinitionService = processDefinitionService;
         this.resourcePatternResolver = resourcePatternResolver;
         this.locationPattern = locationPattern;
     }
@@ -42,6 +44,7 @@ public class KikwiflowAutoDeployer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         try {
+
             Resource[] resources = resourcePatternResolver.getResources(locationPattern);
             if (resources.length == 0) {
                 System.out.println("Kikwiflow AutoDeploy: Nenhum processo encontrado em " + locationPattern);
@@ -51,17 +54,18 @@ public class KikwiflowAutoDeployer implements ApplicationRunner {
             int count = 0;
             for (Resource resource : resources) {
                 try (InputStream is = resource.getInputStream()) {
+
                     byte[] content = is.readAllBytes();
 
-                    ProcessDefinition processDef = engine.deployDefinition(content);
+                    ProcessDefinition processDef = processDefinitionService.deploy(content, IdentityContext.system());
                     count++;
-                    System.out.println("Kikwiflow AutoDeploy: Processo deployado -> " + processDef.key() + " (v" + processDef.version() + ")");
+                    System.out.println(" ✓ Processo deployado: " + processDef.key() + " (v" + processDef.version() + ")");
                 } catch (Exception e) {
-                    System.err.println("Kikwiflow AutoDeploy: Falha ao fazer parse/deploy do arquivo " + resource.getFilename() + " - " + e.getMessage());
+                    System.err.println( "Kikwiflow AutoDeploy: Falha ao fazer parse/deploy do arquivo " + resource.getFilename() + " - " + e.getMessage());
                 }
             }
-            System.out.println("Kikwiflow AutoDeploy: Concluído. " + count + " processo(s) deployado(s).");
 
+            System.out.println(" ✓ AutoDeploy concluído:  (" + count + ") processos");
         } catch (Exception e) {
             System.err.println("Kikwiflow AutoDeploy: Erro crítico ao escanear diretório: " + e.getMessage());
         }

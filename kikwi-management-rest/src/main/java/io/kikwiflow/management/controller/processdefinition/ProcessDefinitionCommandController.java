@@ -21,30 +21,31 @@ import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
+import io.kikwiflow.navigation.ProcessDefinitionService;
+import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.spring.rest.api.command.ProcessDefinitionOperationsRestApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.web.bind.annotation.RestController;
 
 @KikwiRestController
 @ConditionalOnBean(KikwiflowEngine.class)
 public class ProcessDefinitionCommandController implements ProcessDefinitionOperationsRestApi {
 
-    private final KikwiflowEngine engine;
+    private final ProcessDefinitionService processDefinitionService;
 
-    public ProcessDefinitionCommandController(KikwiflowEngine engine) {
-        this.engine = engine;
+    public ProcessDefinitionCommandController(ProcessDefinitionService processDefinitionService) {
+        this.processDefinitionService = processDefinitionService;
     }
 
+
     @Override
-    public ProcessDefinition deploy(ProcessDefinitionDeployRequest request) throws Exception {
-        // Envia os bytes puros para o Core (que calculará o hash real)
-        return engine.deployDefinition(request);
+    public ProcessDefinition deploy(ProcessDefinitionDeployRequest request, IdentityContext identityContext) throws Exception {
+        return processDefinitionService.deploy(request, identityContext);
     }
 
 
     @Override
     public void clearDefinitionCache() {
-        this.engine.clearDefinitionCache();
+        this.processDefinitionService.clearCache();
     }
 }
 

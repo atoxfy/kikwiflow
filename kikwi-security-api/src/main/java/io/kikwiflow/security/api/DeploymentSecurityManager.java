@@ -15,15 +15,16 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.api.command;
+package io.kikwiflow.security.api;
 
-import io.kikwiflow.api.dto.CompleteExternalTaskRequest;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 import io.kikwiflow.model.security.IdentityContext;
 
-public interface ExternalTaskOperationsApi {
-    void claim(String id, String assignee, IdentityContext identityContext);
-    void unclaim(String id, IdentityContext identityContext);
-    ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest, IdentityContext identityContext);
+public interface DeploymentSecurityManager {
 
+    /**
+     * Valida se a identidade informada possui privilégios para fazer deploy de novos processos.
+     * @throws SecurityException se o acesso for negado.
+     */
+    void validateDeployAccess(IdentityContext identity, ProcessDefinitionDeployRequest content);
 }

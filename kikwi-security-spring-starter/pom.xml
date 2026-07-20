@@ -26,29 +26,40 @@
         <version>0.1.55</version>
     </parent>
 
-    <artifactId>kikwi-management-rest-spring-boot-starter</artifactId>
-    <name>kikwiflow :: Management Rest API Spring Boot Starter</name>
-    <description>Management Rest API Starter for Spring Boot Applications</description>
+    <artifactId>kikwi-security-spring-starter</artifactId>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
     <dependencies>
         <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-management-rest-spring-boot-autoconfigure</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-security-spring-starter</artifactId>
+            <artifactId>kikwi-security-api</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

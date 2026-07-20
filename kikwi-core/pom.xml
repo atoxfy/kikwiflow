@@ -48,6 +48,11 @@
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-security-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-lightweight-events-api</artifactId>
               <version>${project.version}</version>
         </dependency>

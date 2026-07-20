@@ -33,6 +33,7 @@ public class KikwiflowProperties {
     private final AutoDeploy autoDeploy = new AutoDeploy();
     private final Execution execution = new Execution();
     private final Retry retry = new Retry();
+    private final Security security = new Security();
 
     public Execution getExecution() {
         return execution;
@@ -50,10 +51,27 @@ public class KikwiflowProperties {
         return retry;
     }
 
+    public Security getSecurity() {
+        return security;
+    }
+
     public AutoDeploy getAutoDeploy() { return autoDeploy; }
 
     public Outbox getOutbox() {
         return outbox;
+    }
+
+
+    public static class Security {
+        private boolean isDeployEnabled;
+
+        public boolean isDeployEnabled() {
+            return isDeployEnabled;
+        }
+
+        public void setDeployEnabled(boolean deployEnabled) {
+            isDeployEnabled = deployEnabled;
+        }
     }
 
     public static class Stats {

@@ -15,15 +15,28 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.api.command;
+package io.kikwiflow.model.security;
 
-import io.kikwiflow.api.dto.CompleteExternalTaskRequest;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.security.IdentityContext;
+import java.util.Collections;
+import java.util.Set;
 
-public interface ExternalTaskOperationsApi {
-    void claim(String id, String assignee, IdentityContext identityContext);
-    void unclaim(String id, IdentityContext identityContext);
-    ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest, IdentityContext identityContext);
+public record IdentityContext(
+        String actorId,
+        String tenantId,
+        Set<String> roles
+) {
 
+    private static final String SYSTEM_ACTOR = "__KIKWIFLOW_SYSTEM__";
+
+    public static IdentityContext system() {
+        return new IdentityContext(SYSTEM_ACTOR, "GLOBAL", Set.of("SYSTEM_ADMIN"));
+    }
+
+    public boolean isSystem() {
+        return SYSTEM_ACTOR.equals(this.actorId);
+    }
+
+    public IdentityContext(String actorId, String tenantId) {
+        this(actorId, tenantId, Collections.emptySet());
+    }
 }

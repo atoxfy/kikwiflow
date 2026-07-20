@@ -15,15 +15,24 @@
  * limitations under the License.
  */
 
-package io.kikwiflow.api.command;
+package io.kikwiflow.security;
 
-import io.kikwiflow.api.dto.CompleteExternalTaskRequest;
-import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
+import io.kikwiflow.security.api.DeploymentSecurityManager;
 import io.kikwiflow.model.security.IdentityContext;
 
-public interface ExternalTaskOperationsApi {
-    void claim(String id, String assignee, IdentityContext identityContext);
-    void unclaim(String id, IdentityContext identityContext);
-    ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest, IdentityContext identityContext);
+public class DefaultDeploymentSecurityManager implements DeploymentSecurityManager {
 
+    private final boolean isDeployEnabled;
+
+    public DefaultDeploymentSecurityManager(boolean isDeployEnabled){
+        this.isDeployEnabled = isDeployEnabled;
+    }
+
+    @Override
+    public void validateDeployAccess(IdentityContext identity, ProcessDefinitionDeployRequest content) {
+        if (!isDeployEnabled) {
+            throw new SecurityException("Deploys estão desabilitados");
+        }
+    }
 }

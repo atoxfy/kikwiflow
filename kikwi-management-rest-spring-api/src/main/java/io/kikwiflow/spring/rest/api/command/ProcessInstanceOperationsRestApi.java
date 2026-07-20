@@ -21,6 +21,7 @@ import io.kikwiflow.api.command.ProcessInstanceOperationsApi;
 import io.kikwiflow.api.dto.ProcessInstanceStartRequest;
 import io.kikwiflow.api.dto.SetVariablesRequest;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.security.IdentityContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,16 +36,16 @@ public interface ProcessInstanceOperationsRestApi extends ProcessInstanceOperati
     @Override
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    ProcessInstance start(@RequestBody ProcessInstanceStartRequest processInstanceStartRequest);
+    ProcessInstance start(@RequestBody ProcessInstanceStartRequest processInstanceStartRequest, IdentityContext identityContext);
 
     @Override
     @PutMapping("{id}/variables")
     @ResponseStatus(HttpStatus.OK)
-    ProcessInstance setVariables(@PathVariable(value = "id") String id, @RequestBody SetVariablesRequest setVariablesRequest);
+    ProcessInstance setVariables(@PathVariable(value = "id") String id, @RequestBody SetVariablesRequest setVariablesRequest, IdentityContext identityContext);
 
     @Override
     @PutMapping("{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void deleteInstance(@PathVariable(value = "id") String processInstanceId);
+    void deleteInstance(@PathVariable(value = "id") String processInstanceId, IdentityContext identityContext);
 
 }

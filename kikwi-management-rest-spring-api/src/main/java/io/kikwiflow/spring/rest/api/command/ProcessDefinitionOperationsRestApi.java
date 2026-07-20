@@ -20,6 +20,7 @@ package io.kikwiflow.spring.rest.api.command;
 import io.kikwiflow.api.command.ProcessDefinitionOperationsApi;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
+import io.kikwiflow.model.security.IdentityContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,7 +34,7 @@ public interface ProcessDefinitionOperationsRestApi extends ProcessDefinitionOpe
     @Override
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    ProcessDefinition deploy(@RequestBody ProcessDefinitionDeployRequest deployRequest) throws Exception;
+    ProcessDefinition deploy(@RequestBody ProcessDefinitionDeployRequest deployRequest, IdentityContext identityContext) throws Exception;
 
 
     @Override

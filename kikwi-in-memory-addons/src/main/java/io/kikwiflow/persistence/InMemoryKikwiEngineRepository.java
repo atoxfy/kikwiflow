@@ -63,7 +63,6 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         processDefinitionHistoryCollection.clear();
     }
 
-    @Override
     public ProcessInstance saveProcessInstance(ProcessInstance instance) {
 
         ProcessInstance instanceToSave = ProcessInstance.builder()

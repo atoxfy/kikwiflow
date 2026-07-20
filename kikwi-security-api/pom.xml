@@ -26,9 +26,10 @@
         <version>0.1.55</version>
     </parent>
 
-    <artifactId>kikwi-management-rest-spring-boot-starter</artifactId>
-    <name>kikwiflow :: Management Rest API Spring Boot Starter</name>
-    <description>Management Rest API Starter for Spring Boot Applications</description>
+    <artifactId>kikwi-security-api</artifactId>
+    <name>kikwiflow :: Security API</name>
+    <description>Contains security interfaces</description>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
@@ -38,17 +39,9 @@
     <dependencies>
         <dependency>
             <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-management-rest-spring-boot-autoconfigure</artifactId>
+            <artifactId>kikwi-model</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-security-spring-starter</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
     </dependencies>
+
 </project>

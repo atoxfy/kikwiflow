@@ -19,23 +19,28 @@ package io.kikwiflow.starter.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.execution.ContinuationService;
+import io.kikwiflow.execution.FailureHandler;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
+import io.kikwiflow.execution.TaskAcquirer;
 import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.execution.TaskHandlerResolver;
 import io.kikwiflow.execution.api.parser.ProcessDefinitionParser;
 import io.kikwiflow.execution.api.resolver.AnswerProviderResolver;
 import io.kikwiflow.execution.api.resolver.DueDateProviderResolver;
 import io.kikwiflow.execution.api.retry.RetryPolicyEvaluator;
-import io.kikwiflow.execution.evaluator.TimerDueDateResolver;
+import io.kikwiflow.execution.evaluator.TimerDueDateEvaluator;
 import io.kikwiflow.execution.policy.DefaultRetryPolicyEvaluator;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
 import io.kikwiflow.parser.jackson.JacksonProcessDefinitionParser;
 import io.kikwiflow.parser.jackson.KikwiflowJacksonModule;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.security.DefaultDeploymentSecurityManager;
+import io.kikwiflow.security.api.DeploymentSecurityManager;
 import io.kikwiflow.starter.autoconfigure.resolvers.SpringAnswerProviderResolver;
 import io.kikwiflow.starter.autoconfigure.resolvers.SpringDueDateProviderResolver;
 import io.kikwiflow.starter.autoconfigure.resolvers.SpringTaskHandlerResolver;
@@ -52,67 +57,12 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(KikwiflowEngine.class)
 @EnableConfigurationProperties(KikwiflowProperties.class)
 public class KikwiflowAutoConfiguration {
-
-    @Bean
-    @ConditionalOnMissingBean
-    public DeployValidator deployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderResolver answerProviderResolver){
-        return new DeployValidator(taskHandlerResolver, answerProviderResolver);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(KikwiflowJacksonModule.class)
-    public KikwiflowJacksonModule kikwiflowJacksonModule() {
-        return new KikwiflowJacksonModule();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(ProcessDefinitionParser.class)
-    public ProcessDefinitionParser processDefinitionParser(ObjectMapper objectMapper) {
-        return new JacksonProcessDefinitionParser(objectMapper);
-    }
-
-    @Bean
-    @ConditionalOnProperty(prefix = "kikwiflow.auto-deploy", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public KikwiflowAutoDeployer kikwiflowAutoDeployer(
-            KikwiflowEngine engine,
-            ResourcePatternResolver resourcePatternResolver,
-            KikwiflowProperties properties) {
-
-        return new KikwiflowAutoDeployer(
-                engine,
-                resourcePatternResolver,
-                properties.getAutoDeploy().getPath()
-        );
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public ProcessDefinitionService processDefinitionService(ProcessDefinitionParser parser, KikwiEngineRepository repository, DeployValidator deployValidator) {
-        return new ProcessDefinitionService(parser, repository, deployValidator);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public Navigator navigator(AnswerProviderResolver answerProviderResolver) {
-        return new Navigator(answerProviderResolver);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public ProcessExecutionManager processExecutionManager(TaskHandlerResolver taskHandlerResolver, Navigator navigator, KikwiflowConfig config) {
-        return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(taskHandlerResolver)), navigator, config);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config, TimerDueDateResolver dueDateResolver) {
-        return new ContinuationService(repository, dueDateResolver, config);
-    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -146,9 +96,77 @@ public class KikwiflowAutoConfiguration {
             }
         }
 
+
+        if(properties.getSecurity() != null){
+            config.setProcessDefinitionDeployEnabled(properties.getSecurity().isDeployEnabled());
+
+        }
+
         return config;
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public DeployValidator deployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderResolver answerProviderResolver){
+        return new DeployValidator(taskHandlerResolver, answerProviderResolver);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(KikwiflowJacksonModule.class)
+    public KikwiflowJacksonModule kikwiflowJacksonModule() {
+        return new KikwiflowJacksonModule();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ProcessDefinitionParser.class)
+    public ProcessDefinitionParser processDefinitionParser(ObjectMapper objectMapper) {
+        return new JacksonProcessDefinitionParser(objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public DeploymentSecurityManager deploymentSecurityManager(KikwiflowConfig kikwiflowConfig){
+        return new DefaultDeploymentSecurityManager(kikwiflowConfig.isProcessDefinitionDeployEnabled());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ProcessDefinitionService processDefinitionService(ProcessDefinitionParser parser, KikwiEngineRepository repository, DeployValidator deployValidator, DeploymentSecurityManager deploymentSecurityManager) {
+        return new ProcessDefinitionService(parser, repository, deployValidator, deploymentSecurityManager);
+    }
+
+
+    @Bean
+    @ConditionalOnProperty(prefix = "kikwiflow.process-definition.auto-deploy", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public KikwiflowAutoDeployer kikwiflowAutoDeployer(
+            ProcessDefinitionService processDefinitionService,
+            ResourcePatternResolver resourcePatternResolver,
+            KikwiflowProperties properties) {
+
+        return new KikwiflowAutoDeployer(
+                processDefinitionService ,
+                resourcePatternResolver,
+                properties.getAutoDeploy().getPath()
+        );
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public Navigator navigator(AnswerProviderResolver answerProviderResolver) {
+        return new Navigator(answerProviderResolver);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ProcessExecutionManager processExecutionManager(TaskHandlerResolver taskHandlerResolver, Navigator navigator, KikwiflowConfig config) {
+        return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(taskHandlerResolver)), navigator, config);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config, TimerDueDateEvaluator dueDateResolver) {
+        return new ContinuationService(repository, dueDateResolver, config);
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -174,31 +192,56 @@ public class KikwiflowAutoConfiguration {
         return new DefaultRetryPolicyEvaluator(kikwiflowConfig);
     }
 
-
+    @Bean
+    @ConditionalOnMissingBean
+    public TimerDueDateEvaluator timerDueDateResolver(DueDateProviderResolver dueDateProviderResolver) {
+        return new TimerDueDateEvaluator(dueDateProviderResolver);
+    }
 
     @Bean
     @ConditionalOnMissingBean
-    public TimerDueDateResolver timerDueDateResolver(DueDateProviderResolver dueDateProviderResolver) {
-        return new TimerDueDateResolver(dueDateProviderResolver);
+    public FailureHandler failureHandler(KikwiEngineRepository repository, RetryPolicyEvaluator retryEvaluator) {
+        return new FailureHandler(repository, retryEvaluator);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AsynchronousEventPublisher asynchronousEventPublisher(ObjectProvider<List<ExecutionEventListener>> listenersProvider) {
+        AsynchronousEventPublisher publisher = new AsynchronousEventPublisher(Executors.newVirtualThreadPerTaskExecutor());
+        List<ExecutionEventListener> listeners = listenersProvider.getIfAvailable(Collections::emptyList);
+        listeners.forEach(publisher::registerListener);
+        return publisher;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public TaskAcquirer taskAcquirer(KikwiEngineRepository repository, KikwiflowConfig config) {
+        return new TaskAcquirer(repository, config);
     }
 
     @Bean(initMethod = "start", destroyMethod = "stop")
     @ConditionalOnMissingBean
     public KikwiflowEngine kikwiflowEngine(
-            KikwiEngineRepository repository,
-            KikwiflowConfig config,
-            TaskHandlerResolver taskHandlerResolver,
-            AnswerProviderResolver answerProviderResolver,
-            ObjectProvider<List<ExecutionEventListener>> listenersProvider,
             ProcessDefinitionService processDefinitionService,
             Navigator navigator,
             ProcessExecutionManager processExecutionManager,
-            RetryPolicyEvaluator retryPolicyEvaluator,
-            TimerDueDateResolver dueDateResolver) {
+            KikwiEngineRepository repository,
+            KikwiflowConfig config,
+            AsynchronousEventPublisher eventPublisher,
+            ContinuationService continuationService,
+            FailureHandler failureHandler,
+            TaskAcquirer taskAcquirer) {
 
-        List<ExecutionEventListener> listeners = listenersProvider.getIfAvailable(Collections::emptyList);
-
-        return new KikwiflowEngine(processDefinitionService, navigator,
-                processExecutionManager, repository, config, listeners, retryPolicyEvaluator, dueDateResolver);
+        return new KikwiflowEngine(
+                processDefinitionService,
+                navigator,
+                processExecutionManager,
+                repository,
+                config,
+                eventPublisher,
+                continuationService,
+                failureHandler,
+                taskAcquirer
+        );
     }
 }

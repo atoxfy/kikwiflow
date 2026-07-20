@@ -27,24 +27,26 @@ import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.execution.ProcessInstanceFactory;
 import io.kikwiflow.execution.TaskAcquirer;
-import io.kikwiflow.execution.api.retry.RetryPolicyEvaluator;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
-import io.kikwiflow.execution.evaluator.TimerDueDateResolver;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.event.lightweight.SyncContinuationFailed;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
+import io.kikwiflow.model.execution.enumerated.IncidentStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.navigation.Navigator;
 import io.kikwiflow.navigation.ProcessDefinitionService;
+import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.util.KikwiflowBanner;
 
 import java.math.BigDecimal;
@@ -54,52 +56,56 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class KikwiflowEngine {
 
-    private final ExecutorService executorService;
     private final ProcessDefinitionService processDefinitionService;
     private final Navigator navigator;
     private final ProcessExecutionManager processExecutionManager;
     private final KikwiflowConfig kikwiflowConfig;
-    private final List<ExecutionEventListener> eventListeners;
     private final AsynchronousEventPublisher asynchronousEventPublisher;
     private final KikwiEngineRepository kikwiEngineRepository;
     private final TaskAcquirer taskAcquirer;
     private final ContinuationService continuationService;
     private final FailureHandler failureHandler;
 
-    public KikwiflowEngine(ProcessDefinitionService processDefinitionService, Navigator navigator, ProcessExecutionManager processExecutionManager, KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig, List<ExecutionEventListener> executionEventListeners, RetryPolicyEvaluator retryPolicyEvaluator, TimerDueDateResolver timerDueDateResolver){
+    public KikwiflowEngine(
+            ProcessDefinitionService processDefinitionService,
+            Navigator navigator,
+            ProcessExecutionManager processExecutionManager,
+            KikwiEngineRepository kikwiEngineRepository,
+            KikwiflowConfig kikwiflowConfig,
+            AsynchronousEventPublisher asynchronousEventPublisher,
+            ContinuationService continuationService,
+            FailureHandler failureHandler,
+            TaskAcquirer taskAcquirer) {
+
         this.processDefinitionService = processDefinitionService;
         this.navigator = navigator;
         this.processExecutionManager = processExecutionManager;
         this.kikwiEngineRepository = kikwiEngineRepository;
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
-        this.asynchronousEventPublisher = new AsynchronousEventPublisher(executorService);
-        this.registerListeners(executionEventListeners);
         this.kikwiflowConfig = kikwiflowConfig;
-        this.eventListeners = executionEventListeners;
-        this.taskAcquirer = new TaskAcquirer(this, kikwiEngineRepository, kikwiflowConfig );
-        this.continuationService = new ContinuationService(kikwiEngineRepository, timerDueDateResolver, kikwiflowConfig);
-        this.failureHandler = new FailureHandler(kikwiEngineRepository, retryPolicyEvaluator);
+
+        this.asynchronousEventPublisher = asynchronousEventPublisher;
+        this.continuationService = continuationService;
+        this.failureHandler = failureHandler;
+        this.taskAcquirer = taskAcquirer;
     }
 
     public void start(){
         KikwiflowBanner.print();
-        taskAcquirer.start();
+        taskAcquirer.start(this);
     }
 
     public void stop(){
         taskAcquirer.stop();
     }
 
-    public void deleteInstance(String processInstanceId){
+    public void deleteInstance(String processInstanceId, IdentityContext identityContext){
         this.kikwiEngineRepository.deleteProcessInstanceById(processInstanceId);
     }
 
-    public void claim(String externalTaskId, String assignee){
+    public void claim(String externalTaskId, String assignee, IdentityContext identityContext){
         this.kikwiEngineRepository.claim(externalTaskId, assignee);
     }
 
@@ -107,30 +113,32 @@ public class KikwiflowEngine {
         this.kikwiEngineRepository.unclaim(externalTaskId);
     }
 
+
     /**
      * Retenta manualmente um incidente aberto, reativando a tarefa associada
      * e marcando o incidente como RESOLVED de forma atômica e transacional.
      */
-    public void retryIncident(String incidentId) {
-        io.kikwiflow.model.execution.Incident incident = kikwiEngineRepository.findIncidentById(incidentId)
-                .orElseThrow(() -> new io.kikwiflow.exception.TaskNotFoundException("Incident not found with id: " + incidentId));
+    public void retryIncident(String incidentId, IdentityContext identityContext) {
+        Incident incident = kikwiEngineRepository.findIncidentById(incidentId)
+                .orElseThrow(() -> new TaskNotFoundException("Incident not found with id: " + incidentId));
 
-        if (incident.status() != io.kikwiflow.model.execution.enumerated.IncidentStatus.OPEN) {
+        if (incident.status() != IncidentStatus.OPEN) {
             throw new IllegalStateException("Only OPEN incidents can be retried.");
         }
 
         ExecutableTask failedTask = kikwiEngineRepository.findExecutableTaskById(incident.executionId())
-                .orElseThrow(() -> new io.kikwiflow.exception.TaskNotFoundException("Associated ExecutableTask not found: " + incident.executionId()));
+                .orElseThrow(() -> new TaskNotFoundException("Associated ExecutableTask not found: " + incident.executionId()));
 
         ExecutableTask restoredTask = failedTask.toBuilder()
-                .status(io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus.PENDING)
-                .retries(3L)
+                .status(ExecutableTaskStatus.PENDING)
+                .retries(3L)//todo validate policy
                 .error(null)
                 .dueDate(Instant.now())
                 .executorId(null)
                 .build();
 
-        io.kikwiflow.model.execution.Incident resolvedIncident = new io.kikwiflow.model.execution.Incident(
+
+        Incident resolvedIncident = new Incident(
                 incident.id(),
                 incident.type(),
                 incident.message(),
@@ -139,11 +147,11 @@ public class KikwiflowEngine {
                 incident.processInstanceId(),
                 incident.executionId(),
                 incident.createdAt(),
-                io.kikwiflow.model.execution.enumerated.IncidentStatus.RESOLVED,
+                IncidentStatus.RESOLVED,
                 incident.taskDefinitionId()
         );
 
-        io.kikwiflow.persistence.api.data.UnitOfWork uow = new io.kikwiflow.persistence.api.data.UnitOfWork(
+        UnitOfWork uow = new UnitOfWork(
                 null,
                 null,
                 null,
@@ -171,10 +179,11 @@ public class KikwiflowEngine {
     public void overrideTaskRetryContext(String executableTaskId,
                                          Instant customDueDate,
                                          Long newRetriesCount,
-                                         RetryPolicy customRetryPolicy) {
+                                         RetryPolicy customRetryPolicy,
+                                         IdentityContext identityContext) {
 
         ExecutableTask task = kikwiEngineRepository.findExecutableTaskById(executableTaskId)
-                .orElseThrow(() -> new io.kikwiflow.exception.TaskNotFoundException("Task not found: " + executableTaskId));
+                .orElseThrow(() -> new TaskNotFoundException("Task not found: " + executableTaskId));
 
         ExecutableTask.Builder builder = task.toBuilder();
 
@@ -191,19 +200,19 @@ public class KikwiflowEngine {
         }
 
         ExecutableTask overriddenTask = builder
-                .status(io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus.PENDING)
+                .status(ExecutableTaskStatus.PENDING)
                 .error(null)
                 .executorId(null)
                 .build();
 
-        io.kikwiflow.persistence.api.data.UnitOfWork uow = new io.kikwiflow.persistence.api.data.UnitOfWork(
+        UnitOfWork uow = new UnitOfWork(
                 null,
                 null,
                 null,
                 null,
                 null,
                 null,
-                java.util.List.of(overriddenTask),
+                List.of(overriddenTask),
                 null,
                 null,
                 null,
@@ -220,18 +229,18 @@ public class KikwiflowEngine {
      * Completa uma tarefa externa e continua a execução do processo.
      *
      * @param externalTaskId O ID da tarefa externa a ser completada.
-     * @param tenantId O ID do tenant que está tentando completar a tarefa. A operação falhará se não corresponder ao tenant da instância.
+     * @param identityContext identityContext
      * @param variables Um mapa de variáveis a serem adicionadas ou atualizadas na instância do processo.
      * @return O estado final da instância do processo após a continuação da execução.
      * @throws TaskNotFoundException se nenhuma tarefa com o ID fornecido for encontrada.
      * @throws ProcessInstanceNotFoundException se a instância de processo associada não for encontrada.
      * @throws SecurityException se o tenantId fornecido não corresponder ao tenantId da instância do processo.
      */
-    public ProcessInstance completeExternalTask(String externalTaskId, String tenantId, Map<String, ProcessVariable> variables) {
+    public ProcessInstance completeExternalTask(String externalTaskId, Map<String, ProcessVariable> variables, IdentityContext identityContext) {
         ExternalTask taskToComplete = kikwiEngineRepository.findExternalTaskById(externalTaskId)
                 .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId));
 
-        if (!Objects.equals(taskToComplete.tenantId(), tenantId)) {
+        if (!Objects.equals(taskToComplete.tenantId(), identityContext.tenantId())) {
             throw new SecurityException(
                     "Tenant mismatch: Task " + externalTaskId + " does not belong to the provided tenant."
             );
@@ -334,15 +343,8 @@ public class KikwiflowEngine {
         }
     }
 
-    public ProcessDefinition deployDefinition(ProcessDefinitionDeployRequest content) throws Exception {
-        return processDefinitionService.deploy(content);
-    }
-
-    public ProcessDefinition deployDefinition(byte[] content) throws Exception {
-        return processDefinitionService.deploy(content);
-    }
-
-    public ProcessInstance setVariables(String processInstanceId, Map<String, ProcessVariable> variables){
+    public ProcessInstance setVariables(String processInstanceId, Map<String, ProcessVariable> variables, IdentityContext identityContext){
+        //TODO implement the identity context logic.
         return kikwiEngineRepository.addVariables(processInstanceId, variables);
     }
 
@@ -373,6 +375,8 @@ public class KikwiflowEngine {
         private BigDecimal businessValue;
         private String tenantId;
         private String origin;
+        private String actor;
+
 
         private ProcessStarter(KikwiflowEngine engine) {
             this.engine = engine;
@@ -395,6 +399,11 @@ public class KikwiflowEngine {
 
         public ProcessStarter withBusinessKey(String key) {
             this.businessKey = key;
+            return this;
+        }
+
+        public ProcessStarter byActor(String actor) {
+            this.actor = actor;
             return this;
         }
 

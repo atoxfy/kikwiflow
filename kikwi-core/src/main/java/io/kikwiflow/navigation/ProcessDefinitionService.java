@@ -22,6 +22,8 @@ import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.execution.api.parser.ProcessDefinitionParser;
 import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.security.api.DeploymentSecurityManager;
+import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.validation.DeployValidator;
 
 import java.util.Optional;
@@ -40,57 +42,55 @@ public class ProcessDefinitionService {
     private final KikwiEngineRepository kikwiEngineRepository;
     private final ProcessDefinitionCache processDefinitionCache;
     private final DeployValidator deployValidator;
+    private final DeploymentSecurityManager deploymentSecurityManager;
 
     /**
      * Constrói uma nova instância do ProcessDefinitionService.
-     *
      * @param kikwiEngineRepository O repositório para persistir e buscar as definições de processo.
      */
-    public ProcessDefinitionService(ProcessDefinitionParser processDefinitionParser, KikwiEngineRepository kikwiEngineRepository, DeployValidator deployValidator){
+    public ProcessDefinitionService(ProcessDefinitionParser processDefinitionParser, KikwiEngineRepository kikwiEngineRepository, DeployValidator deployValidator, DeploymentSecurityManager deploymentSecurityManager){
         this.processDefinitionParser = processDefinitionParser;
         this.kikwiEngineRepository = kikwiEngineRepository;
         this.deployValidator = deployValidator;
+        this.deploymentSecurityManager = deploymentSecurityManager;
         this.processDefinitionCache = new ProcessDefinitionCache();
     }
 
-    public ProcessDefinition deploy(byte[] content) throws Exception {
+    public ProcessDefinition deploy(byte[] content, IdentityContext identityContext) throws Exception {
         ProcessDefinitionDeployRequest processDefinitionDeployRequest = processDefinitionParser.parse(content);
-        return deploy(processDefinitionDeployRequest);
+        return deploy(processDefinitionDeployRequest, identityContext);
     }
 
-    public ProcessDefinition deploy(ProcessDefinitionDeployRequest processContent) throws Exception {
-        // 1. Calcula o Checksum antes de qualquer coisa
+    private ProcessDefinition deploy(ProcessDefinitionDeployRequest processContent) throws Exception {
         String checksum = processDefinitionParser.calculateChecksum(processContent);
 
-        // Nota: Você precisará adicionar findByKeyAndChecksum() e findLatestVersionByKey() no QueryRepository[cite: 5]
         ProcessDefinition parsedDefinition = processDefinitionParser.parse(processContent);
 
         Optional<ProcessDefinition> existingIdentical = kikwiEngineRepository.findByKeyAndChecksum(parsedDefinition.key(), checksum);
         if (existingIdentical.isPresent()) {
-            return existingIdentical.get(); // Fuga rápida!
+            return existingIdentical.get();
         }
 
-        // 3. Arquivo novo ou alterado: Descobrir a próxima versão
         int nextVersion = kikwiEngineRepository.findLatestVersionByKey(parsedDefinition.key())
                 .map(def -> def.version() + 1)
                 .orElse(1);
 
-        // 4. Enriquecer o domínio com regras de negócio
         ProcessDefinition definitionToSave = parsedDefinition.toBuilder()
                 .id(UUID.randomUUID().toString())
                 .version(nextVersion)
                 .checksum(checksum)
                 .build();
 
-        // 5. Validar e Persistir
         deployValidator.validate(definitionToSave);
         ProcessDefinition savedDefinition = kikwiEngineRepository.saveProcessDefinition(definitionToSave);
         processDefinitionCache.clear();
-
         return savedDefinition;
     }
 
-
+    public ProcessDefinition deploy(ProcessDefinitionDeployRequest processContent, IdentityContext identityContext) throws Exception {
+        deploymentSecurityManager.validateDeployAccess(identityContext, processContent);
+        return deploy(processContent);
+    }
 
 
     /**

@@ -135,14 +135,6 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessInstance saveProcessInstance(ProcessInstance instance) {
-        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
-        Document doc = ProcessInstanceMapper.toDocument(instance);
-        collection.replaceOne(eq("_id", instance.id()), doc, new ReplaceOptions().upsert(true));
-        return  instance;
-    }
-
-    @Override
     public ProcessDefinition saveProcessDefinition(ProcessDefinition processDefinitionToSave) {
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION);
         Document doc = ProcessDefinitionMapper.toDocument(processDefinitionToSave);

@@ -19,8 +19,9 @@ package io.kikwiflow.api.command;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
+import io.kikwiflow.model.security.IdentityContext;
 
 public interface ProcessDefinitionOperationsApi {
-    ProcessDefinition deploy( ProcessDefinitionDeployRequest deployRequest) throws Exception;
+    ProcessDefinition deploy( ProcessDefinitionDeployRequest deployRequest, IdentityContext identityContext) throws Exception;
     void clearDefinitionCache();
 }
