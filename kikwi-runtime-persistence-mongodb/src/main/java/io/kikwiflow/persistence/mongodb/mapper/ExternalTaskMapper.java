@@ -92,6 +92,7 @@ public final class ExternalTaskMapper {
                 .joinTaskId(doc.getString("joinTaskId"))
                 .createdAt(InstantMapper.mapToInstant("createdAt", doc))
                 .topicName(doc.getString("topicName"))
+                .tenantId(doc.getString("tenantId"))
                 .assignee(doc.getString("assignee"))
                 .attachedToRefId(doc.getString("attachedToRefId"))
                 .attachedToRefDefinitionId(doc.getString("attachedToRefDefinitionId"))

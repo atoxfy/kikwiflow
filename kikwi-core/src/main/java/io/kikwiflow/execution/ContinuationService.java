@@ -508,6 +508,8 @@ public class ContinuationService {
                 .attachedToRefDefinitionId(flowNodeDefinitionId)
                 .branchId(branchId)
                 .joinTaskId(joinTaskId)
+                .name(timerDef.name())
+                .description(timerDef.description())
                 .build();
     }
 

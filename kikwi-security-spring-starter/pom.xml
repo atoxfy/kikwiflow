@@ -23,11 +23,12 @@
     <parent>
         <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.55</version>
+        <version>0.1.63</version>
     </parent>
 
     <artifactId>kikwi-security-spring-starter</artifactId>
-
+    <name>kikwiflow :: Security Spring Boot Starter</name>
+    <description>Kikwiflow Security Addon </description>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>

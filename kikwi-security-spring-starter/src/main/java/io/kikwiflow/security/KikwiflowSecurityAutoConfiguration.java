@@ -32,9 +32,6 @@ public class KikwiflowSecurityAutoConfiguration {
     public HttpIdentityResolver anonymousIdentityResolver() {
         return request -> {
             String tenantId = request.getHeader("X-Tenant-Id");
-            if (tenantId == null || tenantId.isBlank()) {
-                tenantId = "DEFAULT";
-            }
 
             return new IdentityContext(
                     "anonymous",

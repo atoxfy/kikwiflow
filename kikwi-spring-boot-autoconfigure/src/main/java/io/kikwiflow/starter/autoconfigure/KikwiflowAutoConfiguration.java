@@ -99,7 +99,6 @@ public class KikwiflowAutoConfiguration {
 
         if(properties.getSecurity() != null){
             config.setProcessDefinitionDeployEnabled(properties.getSecurity().isDeployEnabled());
-
         }
 
         return config;
