@@ -813,6 +813,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         private final List<Bson> filters = new ArrayList<>();
         private int page = 0;
         private int size = 20;
+        private Bson sort = Sorts.descending("startedAt");
 
         @Override
         public ProcessInstanceQuery processDefinitionId(String processDefinitionId) {
@@ -823,11 +824,36 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         }
 
         @Override
+        public ProcessInstanceQuery processDefinitionIdIn(List<String> processDefinitionIds) {
+            if (processDefinitionIds != null && !processDefinitionIds.isEmpty()) {
+                filters.add(Filters.in("processDefinitionId", processDefinitionIds));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery processDefinitionKeyIn(List<String> processDefinitionKeys) {
+            if (processDefinitionKeys != null && !processDefinitionKeys.isEmpty()) {
+                List<String> resolvedDefIds = new ArrayList<>();
+                getDatabase().getCollection(PROCESS_DEFINITION_COLLECTION)
+                        .find(Filters.in("key", processDefinitionKeys))
+                        .projection(Projections.include("_id"))
+                        .forEach(doc -> resolvedDefIds.add(doc.getString("_id")));
+
+                if (resolvedDefIds.isEmpty()) {
+                    filters.add(Filters.eq("_id", "no-match"));
+                } else {
+                    filters.add(Filters.in("processDefinitionId", resolvedDefIds));
+                }
+            }
+            return this;
+        }
+
+        @Override
         public ProcessInstanceQuery activeNodeId(String activeNodeId) {
             if (activeNodeId != null && !activeNodeId.isBlank()) {
                 filters.add(Filters.gt("activeNodes." + activeNodeId, 0));
             }
-
             return this;
         }
 
@@ -835,6 +861,81 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         public ProcessInstanceQuery tenantId(String tenantId) {
             if (tenantId != null && !tenantId.isBlank()) {
                 filters.add(Filters.eq("tenantId", tenantId));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery tenantIdIn(List<String> tenantIds) {
+            if (tenantIds != null && !tenantIds.isEmpty()) {
+                filters.add(Filters.in("tenantId", tenantIds));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery statusIn(List<ProcessInstanceStatus> statuses) {
+            if (statuses != null && !statuses.isEmpty()) {
+                List<String> statusNames = statuses.stream().map(Enum::name).toList();
+                filters.add(Filters.in("status", statusNames));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery businessKey(String businessKey) {
+            if (businessKey != null && !businessKey.isBlank()) {
+                filters.add(Filters.eq("businessKey", businessKey));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery businessKeyIn(List<String> businessKeys) {
+            if (businessKeys != null && !businessKeys.isEmpty()) {
+                filters.add(Filters.in("businessKey", businessKeys));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery startedAfter(Instant startedAfter) {
+            if (startedAfter != null) {
+                filters.add(Filters.gte("startedAt", startedAfter));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery startedBefore(Instant startedBefore) {
+            if (startedBefore != null) {
+                filters.add(Filters.lte("startedAt", startedBefore));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery variableEquals(String key, Object value) {
+            if (key != null && !key.isBlank() && value != null) {
+                String encodedKey = MongoKeyEncoder.encode(key);
+                filters.add(Filters.eq("variables." + encodedKey + ".value", value));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery variableExists(String key) {
+            if (key != null && !key.isBlank()) {
+                String encodedKey = MongoKeyEncoder.encode(key);
+                filters.add(Filters.exists("variables." + encodedKey, true));
+            }
+            return this;
+        }
+
+        @Override
+        public ProcessInstanceQuery orderBy(String field, boolean ascending) {
+            if (field != null && !field.isBlank()) {
+                this.sort = ascending ? Sorts.ascending(field) : Sorts.descending(field);
             }
             return this;
         }
@@ -873,7 +974,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
             collection.find(finalFilter)
                     .projection(projection)
-                    .sort(Sorts.descending("startedAt"))
+                    .sort(sort)
                     .skip(page * size)
                     .limit(size)
                     .forEach(doc -> {

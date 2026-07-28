@@ -18,12 +18,34 @@
 package io.kikwiflow.persistence.api.query;
 
 import io.kikwiflow.model.execution.ProcessInstanceSummary;
+import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.shared.PageResult;
+
+import java.time.Instant;
+import java.util.List;
 
 public interface ProcessInstanceQuery {
     ProcessInstanceQuery processDefinitionId(String processDefinitionId);
+    ProcessInstanceQuery processDefinitionIdIn(List<String> processDefinitionIds);
+    ProcessInstanceQuery processDefinitionKeyIn(List<String> processDefinitionKeys);
+
     ProcessInstanceQuery activeNodeId(String activeNodeId);
+
     ProcessInstanceQuery tenantId(String tenantId);
+    ProcessInstanceQuery tenantIdIn(List<String> tenantIds);
+
+    ProcessInstanceQuery statusIn(List<ProcessInstanceStatus> statuses);
+
+    ProcessInstanceQuery businessKey(String businessKey);
+    ProcessInstanceQuery businessKeyIn(List<String> businessKeys);
+
+    ProcessInstanceQuery startedAfter(Instant startedAfter);
+    ProcessInstanceQuery startedBefore(Instant startedBefore);
+
+    ProcessInstanceQuery variableEquals(String key, Object value);
+    ProcessInstanceQuery variableExists(String key);
+
+    ProcessInstanceQuery orderBy(String field, boolean ascending);
     ProcessInstanceQuery page(int page);
     ProcessInstanceQuery size(int size);
 
