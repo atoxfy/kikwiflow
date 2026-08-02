@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.64</version>
+        <version>0.1.65</version>
     </parent>
 
     <artifactId>kikwi-management-rest-spring-boot-autoconfigure</artifactId>

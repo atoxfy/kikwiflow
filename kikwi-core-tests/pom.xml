@@ -23,7 +23,7 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.64</version>
+        <version>0.1.65</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <properties>
@@ -67,6 +67,12 @@
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-core-testing</artifactId>
               <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-parser-jackson</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

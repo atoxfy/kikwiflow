@@ -19,6 +19,7 @@ package io.kikwiflow.rest.autoconfigure;
 
 import io.kikwiflow.management.controller.externaltask.ExternalTaskCommandController;
 import io.kikwiflow.management.controller.externaltask.ExternalTaskQueryController;
+import io.kikwiflow.management.controller.history.EventHistoryQueryController;
 import io.kikwiflow.management.controller.incidents.IncidentsCommandController;
 import io.kikwiflow.management.controller.incidents.IncidentsQueryController;
 import io.kikwiflow.management.controller.processdefinition.ProcessDefinitionCommandController;
@@ -32,10 +33,13 @@ import io.kikwiflow.management.service.ProcessInstanceSnapshotService;
 import io.kikwiflow.management.service.StatsService;
 import io.kikwiflow.parser.jackson.KikwiflowJacksonModule;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
+import io.kikwiflow.rest.autoconfigure.properties.KikwiflowHistoryProperties;
 import io.kikwiflow.rest.autoconfigure.properties.KikwiflowPulseProperties;
 import io.kikwiflow.rest.autoconfigure.properties.KikwiflowRestProperties;
+import io.kikwiflow.security.api.VariableSecurityPolicyManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -51,7 +55,7 @@ import java.util.concurrent.ScheduledExecutorService;
         afterName = "io.kikwiflow.starter.autoconfigure.KikwiflowAutoConfiguration"
 )
 @ConditionalOnClass(ProcessDefinitionQueryController.class)
-@EnableConfigurationProperties({KikwiflowPulseProperties.class, KikwiflowRestProperties.class})
+@EnableConfigurationProperties({KikwiflowPulseProperties.class, KikwiflowRestProperties.class, KikwiflowHistoryProperties.class})
 @Import({
         KikwiflowWebMvcAutoConfiguration.class,
         ProcessDefinitionQueryController.class,
@@ -112,5 +116,13 @@ public class KikwiRestAutoConfiguration {
             KikwiflowPulseProperties properties) {
 
         return new StatsSSEQueryController(statsService, kikwiflowRestExecutor, properties.interval());
+    }
+
+    @Bean
+    @ConditionalOnBean(QueryRepository.class)
+    @ConditionalOnProperty(prefix = "kikwiflow.history", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public EventHistoryQueryController eventHistoryQueryController(QueryRepository queryRepository,
+                                                                    VariableSecurityPolicyManager variableSecurityPolicyManager) {
+        return new EventHistoryQueryController(queryRepository, variableSecurityPolicyManager);
     }
 }

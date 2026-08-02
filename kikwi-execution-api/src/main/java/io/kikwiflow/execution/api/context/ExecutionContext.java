@@ -22,6 +22,11 @@ import io.kikwiflow.model.execution.ProcessVariable;
 
 public interface ExecutionContext {
     void setVariable(String variableName, ProcessVariable value);
+
+    default void setVariable(ProcessVariable value) {
+        setVariable(value.name(), value);
+    }
+
     void removeVariable(String variableName);
     ProcessVariable getVariable(String variableName);
 

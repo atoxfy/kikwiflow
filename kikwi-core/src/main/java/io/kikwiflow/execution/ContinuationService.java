@@ -22,6 +22,7 @@ import io.kikwiflow.exception.NotImplementedException;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
+import io.kikwiflow.execution.event.CriticalEventRecorder;
 import io.kikwiflow.execution.evaluator.TimerDueDateEvaluator;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
@@ -31,14 +32,11 @@ import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition;
-import io.kikwiflow.model.event.FlowNodeFinished;
 import io.kikwiflow.model.event.OutboxEventEntity;
-import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
-import io.kikwiflow.model.execution.enumerated.NodeExecutionStatus;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.node.AttachedEventReference;
 import io.kikwiflow.model.execution.node.AttachedTaskType;
@@ -59,27 +57,45 @@ public class ContinuationService {
     private final KikwiEngineRepository kikwiEngineRepository;
     private final TimerDueDateEvaluator timerDueDateEvaluator;
     private final KikwiflowConfig kikwiflowConfig;
+    private final CriticalEventRecorder criticalEventRecorder;
 
-    public ContinuationService(KikwiEngineRepository kikwiEngineRepository, TimerDueDateEvaluator timerDueDateEvaluator, KikwiflowConfig kikwiflowConfig) {
+    public ContinuationService(KikwiEngineRepository kikwiEngineRepository, TimerDueDateEvaluator timerDueDateEvaluator,
+                               KikwiflowConfig kikwiflowConfig, CriticalEventRecorder criticalEventRecorder) {
         this.kikwiEngineRepository = kikwiEngineRepository;
         this.timerDueDateEvaluator = timerDueDateEvaluator;
         this.kikwiflowConfig = kikwiflowConfig;
+        this.criticalEventRecorder = criticalEventRecorder;
     }
 
     public ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask, ProcessDefinition processDefinition){
-        return this.handleContinuation(executionResult, completedExternalTask, null, processDefinition);
+        return this.handleContinuation(executionResult, completedExternalTask, null, processDefinition, null);
+    }
+
+    /**
+     * @param actorId quem comandou o complete (ver {@code KikwiflowEngine.completeExternalTask}), usado apenas
+     *               para o evento {@code EXTERNAL_TASK_COMPLETED} — pode ser {@code null} quando não informado.
+     *               Não afeta em nada a execução: o complete continua soberano independentemente de quem for
+     *               o assignee da tarefa.
+     */
+    public ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask, ProcessDefinition processDefinition, String actorId){
+        return this.handleContinuation(executionResult, completedExternalTask, null, processDefinition, actorId);
     }
 
     public ProcessInstance handleContinuation(ExecutionResult executionResult, ExecutableTask completedExecutableTask, ProcessDefinition processDefinition){
-        return this.handleContinuation(executionResult, null, completedExecutableTask, processDefinition );
+        return this.handleContinuation(executionResult, null, completedExecutableTask, processDefinition, null);
     }
 
-    public ProcessInstance handleContinuation(ExecutionResult executionResult, ProcessDefinition processDefinition){
-        return this.handleContinuation(executionResult, null, null, processDefinition);
+    /**
+     * @param actorId quem iniciou a instância (ver {@code KikwiflowEngine.ProcessStarter.byActor}), usado apenas
+     *               para o evento {@code PROCESS_INSTANCE_STARTED} — pode ser {@code null} quando não informado.
+     */
+    public ProcessInstance handleContinuation(ExecutionResult executionResult, ProcessDefinition processDefinition, String actorId){
+        return this.handleContinuation(executionResult, null, null, processDefinition, actorId);
     }
 
     private ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask,
-                                               ExecutableTask completedExecutableTask, ProcessDefinition processDefinition) {
+                                               ExecutableTask completedExecutableTask, ProcessDefinition processDefinition,
+                                               String actorId) {
 
         Continuation continuation = executionResult.continuation();
         ExecutionOutcome executionOutcome = executionResult.outcome();
@@ -155,18 +171,13 @@ public class ContinuationService {
         }
 
         List<OutboxEventEntity> events = new ArrayList<>(executionOutcome.events());
-        if(kikwiflowConfig.isOutboxEventsEnabled() && ProcessInstanceStatus.COMPLETED.equals(processInstanceExecution.getStatus())){
-            ProcessInstanceFinished processInstanceFinished = ProcessInstanceFinished.builder()
-                    .processDefinitionId(processInstanceExecution.getProcessDefinitionId())
-                    .businessKey(processInstanceExecution.getBusinessKey())
-                    .id(processInstanceExecution.getId())
-                    .status(processInstanceExecution.getStatus())
-                    .variables(processInstanceExecution.getVariables())
-                    .startedAt(processInstanceExecution.getStartedAt())
-                    .endedAt(processInstanceExecution.getEndedAt())
-                    .build();
+        criticalEventRecorder.recordProcessInstanceFinished(events, processInstanceExecution, processDefinition);
 
-            events.add(new OutboxEventEntity("PROCESS_INSTANCE_FINISHED", processInstanceFinished));
+        // O overload de 2 argumentos (sem tarefa concluída) só é chamado por ProcessStarter.execute() — é o
+        // único ponto de entrada onde tanto completedExternalTask quanto completedExecutableTask são null,
+        // o que o torna um sinal confiável de "esta é a primeira continuação da instância".
+        if (completedExternalTask == null && completedExecutableTask == null) {
+            criticalEventRecorder.recordProcessInstanceStarted(events, processInstanceExecution, processDefinition, actorId);
         }
 
         ProcessInstance processInstanceToSave = ProcessInstanceMapper.mapToRecord(processInstanceExecution);
@@ -187,16 +198,8 @@ public class ContinuationService {
                     }
 
                     finishedNodeDefinitions.add(completedExecutableTask.attachedToRefDefinitionId());
-                    FlowNodeFinished interruptedEvent = FlowNodeFinished.builder()
-                            .flowNodeDefinitionId(completedExecutableTask.attachedToRefDefinitionId())
-                            .processInstanceId(processInstanceExecution.getId())
-                            .processDefinitionId(processInstanceExecution.getProcessDefinitionId())
-                            .interruptedByNodeDefinitionId(completedExecutableTask.taskDefinitionId())
-                            .finishedAt(Instant.now())
-                            .nodeExecutionStatus(NodeExecutionStatus.INTERRUPTED)
-                            .build();
-
-                    events.add(new OutboxEventEntity("FLOW_NODE_FINISHED", interruptedEvent));
+                    criticalEventRecorder.recordInterruptedFlowNode(events, processInstanceExecution, processDefinition,
+                            completedExecutableTask.attachedToRefDefinitionId(), completedExecutableTask.taskDefinitionId());
                 }else if(completedExecutableTask.type().equals(ExecutableTaskType.NON_INTERRUPTIVE_TIMER)) {
 
                     ProcessDefinition processDef = kikwiEngineRepository.findProcessDefinitionById(processInstanceExecution.getProcessDefinitionId()).orElseThrow();
@@ -204,6 +207,9 @@ public class ContinuationService {
                             (io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition) processDef.flowNodes().get(completedExecutableTask.taskDefinitionId());
 
                     Instant nextDueDate = timerDueDateEvaluator.calculateNextSchedule(timerDef.schedulePolicy());
+
+                    criticalEventRecorder.recordTimerFired(events, processInstanceExecution,
+                            completedExecutableTask.taskDefinitionId(), nextDueDate);
 
                     if (nextDueDate != null) {
 
@@ -237,6 +243,7 @@ public class ContinuationService {
         if (completedExternalTask != null) {
             externalTasksToDelete.add(completedExternalTask.id());
             finishedNodeDefinitions.add(completedExternalTask.taskDefinitionId());
+            criticalEventRecorder.recordExternalTaskCompleted(events, completedExternalTask, actorId);
             if (completedExternalTask.attachedToRefId() != null) {
                 if (completedExternalTask.attachedToRefType().equals(AttachedTaskType.EXECUTABLE_TASK)) {
                     executableTasksToDelete.add(completedExternalTask.attachedToRefId());
@@ -244,17 +251,8 @@ public class ContinuationService {
                     externalTasksToDelete.add(completedExternalTask.attachedToRefId());
                 }
                 finishedNodeDefinitions.add(completedExternalTask.attachedToRefDefinitionId());
-                if(kikwiflowConfig.isOutboxEventsEnabled()){
-                    FlowNodeFinished interruptedEvent = FlowNodeFinished.builder()
-                            .flowNodeDefinitionId(completedExternalTask.attachedToRefDefinitionId())
-                            .processInstanceId(processInstanceExecution.getId())
-                            .processDefinitionId(processInstanceExecution.getProcessDefinitionId())
-                            .interruptedByNodeDefinitionId(completedExternalTask.taskDefinitionId())
-                            .finishedAt(Instant.now())
-                            .nodeExecutionStatus(NodeExecutionStatus.INTERRUPTED)
-                            .build();
-                    events.add(new OutboxEventEntity("FLOW_NODE_FINISHED", interruptedEvent));
-                }
+                criticalEventRecorder.recordInterruptedFlowNode(events, processInstanceExecution, processDefinition,
+                        completedExternalTask.attachedToRefDefinitionId(), completedExternalTask.taskDefinitionId());
             }
             if (completedExternalTask.boundaryEvents() != null) {
                 completedExternalTask.boundaryEvents().forEach(eventRef -> {

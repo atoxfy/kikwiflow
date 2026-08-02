@@ -25,6 +25,7 @@ import io.kikwiflow.execution.ContinuationService;
 import io.kikwiflow.execution.FailureHandler;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
+import io.kikwiflow.execution.event.CriticalEventRecorder;
 import io.kikwiflow.execution.TaskAcquirer;
 import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.execution.TaskHandlerResolver;
@@ -40,7 +41,9 @@ import io.kikwiflow.parser.jackson.JacksonProcessDefinitionParser;
 import io.kikwiflow.parser.jackson.KikwiflowJacksonModule;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.security.DefaultDeploymentSecurityManager;
+import io.kikwiflow.security.DefaultVariableSecurityPolicyManager;
 import io.kikwiflow.security.api.DeploymentSecurityManager;
+import io.kikwiflow.security.api.VariableSecurityPolicyManager;
 import io.kikwiflow.starter.autoconfigure.resolvers.SpringAnswerProviderResolver;
 import io.kikwiflow.starter.autoconfigure.resolvers.SpringDueDateProviderResolver;
 import io.kikwiflow.starter.autoconfigure.resolvers.SpringTaskHandlerResolver;
@@ -128,6 +131,18 @@ public class KikwiflowAutoConfiguration {
         return new DefaultDeploymentSecurityManager(kikwiflowConfig.isProcessDefinitionDeployEnabled());
     }
 
+    /**
+     * Sem implementação própria registrada, o comportamento OSS é permissivo (no-op — ver
+     * {@link DefaultVariableSecurityPolicyManager}). Aplicações que precisam de RBAC/masking real sobre
+     * variáveis de processo devem registrar seu próprio bean {@link VariableSecurityPolicyManager}, que
+     * vence aqui via {@code @ConditionalOnMissingBean}.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public VariableSecurityPolicyManager variableSecurityPolicyManager(){
+        return new DefaultVariableSecurityPolicyManager();
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public ProcessDefinitionService processDefinitionService(ProcessDefinitionParser parser, KikwiEngineRepository repository, DeployValidator deployValidator, DeploymentSecurityManager deploymentSecurityManager) {
@@ -157,14 +172,20 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ProcessExecutionManager processExecutionManager(TaskHandlerResolver taskHandlerResolver, Navigator navigator, KikwiflowConfig config) {
-        return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(taskHandlerResolver)), navigator, config);
+    public CriticalEventRecorder criticalEventRecorder(KikwiflowConfig config) {
+        return new CriticalEventRecorder(config);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config, TimerDueDateEvaluator dueDateResolver) {
-        return new ContinuationService(repository, dueDateResolver, config);
+    public ProcessExecutionManager processExecutionManager(TaskHandlerResolver taskHandlerResolver, Navigator navigator, CriticalEventRecorder criticalEventRecorder) {
+        return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(taskHandlerResolver)), navigator, criticalEventRecorder);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config, TimerDueDateEvaluator dueDateResolver, CriticalEventRecorder criticalEventRecorder) {
+        return new ContinuationService(repository, dueDateResolver, config, criticalEventRecorder);
     }
 
     @Bean
@@ -199,8 +220,8 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public FailureHandler failureHandler(KikwiEngineRepository repository, RetryPolicyEvaluator retryEvaluator) {
-        return new FailureHandler(repository, retryEvaluator);
+    public FailureHandler failureHandler(KikwiEngineRepository repository, RetryPolicyEvaluator retryEvaluator, CriticalEventRecorder criticalEventRecorder) {
+        return new FailureHandler(repository, retryEvaluator, criticalEventRecorder);
     }
 
     @Bean
@@ -229,7 +250,8 @@ public class KikwiflowAutoConfiguration {
             AsynchronousEventPublisher eventPublisher,
             ContinuationService continuationService,
             FailureHandler failureHandler,
-            TaskAcquirer taskAcquirer) {
+            TaskAcquirer taskAcquirer,
+            CriticalEventRecorder criticalEventRecorder) {
 
         return new KikwiflowEngine(
                 processDefinitionService,
@@ -240,7 +262,8 @@ public class KikwiflowAutoConfiguration {
                 eventPublisher,
                 continuationService,
                 failureHandler,
-                taskAcquirer
+                taskAcquirer,
+                criticalEventRecorder
         );
     }
 }

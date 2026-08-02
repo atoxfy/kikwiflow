@@ -17,6 +17,7 @@
 
 package io.kikwiflow.persistence.mongodb.repository;
 
+import com.mongodb.MongoCommandException;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
@@ -39,6 +40,7 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.UpdateResult;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -64,6 +66,7 @@ import io.kikwiflow.persistence.mongodb.mapper.InstantMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.ProcessDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessInstanceMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper;
+import io.kikwiflow.persistence.mongodb.mapper.event.OutboxEventMapper;
 import io.kikwiflow.persistence.mongodb.util.MongoKeyEncoder;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -76,6 +79,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
@@ -90,13 +94,22 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     private final String EXTERNAL_TASK_COLLECTION = "external_tasks";
     private final String EXECUTABLE_TASK_COLLECTION = "executable_tasks";
     private final String INCIDENTS_COLLECTION = "incidents";
+    private final String OUTBOX_EVENTS_COLLECTION = "outbox_events";
 
     private final MongoClient mongoClient;
     private final String databaseName;
+    private final boolean outboxPersistenceEnabled;
+    private final long outboxTtlSeconds;
 
-    public MongoKikwiEngineRepository(MongoClient mongoClient, String databaseName) {
+    public MongoKikwiEngineRepository(MongoClient mongoClient, String databaseName, boolean outboxPersistenceEnabled) {
+        this(mongoClient, databaseName, outboxPersistenceEnabled, 0L);
+    }
+
+    public MongoKikwiEngineRepository(MongoClient mongoClient, String databaseName, boolean outboxPersistenceEnabled, long outboxTtlSeconds) {
         this.mongoClient = mongoClient;
         this.databaseName = databaseName;
+        this.outboxPersistenceEnabled = outboxPersistenceEnabled;
+        this.outboxTtlSeconds = outboxTtlSeconds;
     }
 
     private MongoDatabase getDatabase() {
@@ -385,8 +398,13 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     }
                 }
 
-                if(unitOfWork.events() != null){
-                    // TODO: Lidar com a persistência de Outbox Events
+                if (outboxPersistenceEnabled && unitOfWork.events() != null && !unitOfWork.events().isEmpty()) {
+                    MongoCollection<Document> outboxEvents = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
+                    List<InsertOneModel<Document>> eventWrites = unitOfWork.events().stream()
+                            .map(OutboxEventMapper::toDocument)
+                            .map(InsertOneModel::new)
+                            .toList();
+                    outboxEvents.bulkWrite(clientSession, eventWrites);
                 }
 
                 return "Transaction committed";
@@ -444,7 +462,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables) {
+    public ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables, List<OutboxEventEntity> events) {
         if (variables == null || variables.isEmpty()) {
             return findProcessInstanceById(processInstanceId).orElse(null);
         }
@@ -457,6 +475,19 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
             updates.add(Updates.set(fieldPath, ProcessVariableMapper.toDocument(entry.getValue())));
         }
 
+        if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {
+            try (ClientSession clientSession = mongoClient.startSession()) {
+                Document[] updatedDocHolder = new Document[1];
+                clientSession.withTransaction(() -> {
+                    FindOneAndUpdateOptions options = new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER);
+                    updatedDocHolder[0] = collection.findOneAndUpdate(clientSession, eq("_id", processInstanceId), Updates.combine(updates), options);
+                    writeOutboxEvents(clientSession, events);
+                    return "Transaction committed";
+                });
+                return ProcessInstanceMapper.fromDocument(updatedDocHolder[0]);
+            }
+        }
+
         FindOneAndUpdateOptions options = new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER);
         Document updatedDoc = collection.findOneAndUpdate(eq("_id", processInstanceId), Updates.combine(updates), options);
 
@@ -464,15 +495,53 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
-    public void claim(String externalTaskId, String assignee) {
+    public void claim(String externalTaskId, String assignee, List<OutboxEventEntity> events) {
         MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+
+        if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {
+            try (ClientSession clientSession = mongoClient.startSession()) {
+                clientSession.withTransaction(() -> {
+                    externalTasks.updateOne(clientSession, eq("_id", externalTaskId), Updates.set("assignee", assignee));
+                    writeOutboxEvents(clientSession, events);
+                    return "Transaction committed";
+                });
+            }
+            return;
+        }
+
         externalTasks.updateOne(eq("_id", externalTaskId), Updates.set("assignee", assignee));
     }
 
     @Override
-    public void unclaim(String externalTaskId) {
+    public void unclaim(String externalTaskId, List<OutboxEventEntity> events) {
         MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+
+        if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {
+            try (ClientSession clientSession = mongoClient.startSession()) {
+                clientSession.withTransaction(() -> {
+                    externalTasks.updateOne(clientSession, eq("_id", externalTaskId), Updates.unset("assignee"));
+                    writeOutboxEvents(clientSession, events);
+                    return "Transaction committed";
+                });
+            }
+            return;
+        }
+
         externalTasks.updateOne(eq("_id", externalTaskId), Updates.unset("assignee"));
+    }
+
+    /**
+     * Espelha o trecho de {@code commitWork} que grava eventos no outbox — usado pelos comandos que não
+     * passam por {@link UnitOfWork} ({@code claim}/{@code unclaim}/{@code addVariables}), para que o evento
+     * seja gravado na mesma transação Mongo da mudança de estado.
+     */
+    private void writeOutboxEvents(ClientSession clientSession, List<OutboxEventEntity> events) {
+        MongoCollection<Document> outboxEvents = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
+        List<InsertOneModel<Document>> eventWrites = events.stream()
+                .map(OutboxEventMapper::toDocument)
+                .map(InsertOneModel::new)
+                .toList();
+        outboxEvents.bulkWrite(clientSession, eventWrites);
     }
 
     @Override
@@ -488,7 +557,9 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION)
                         .deleteOne(clientSession, eq("_id", processInstanceId));
 
-                // TODO: Considerar se os eventos do outbox e o histórico também devem ser deletados.
+                // Decisão consciente: eventos em OUTBOX_EVENTS_COLLECTION NÃO são deletados aqui.
+                // Essa coleção dobra como histórico durável de execução (ver findEventHistoryByProcessInstanceId),
+                // então apagar uma instância concluída não deve destruir o rastro de por onde ela passou.
                 return "Deletion transaction committed for instance " + processInstanceId;
             });
         }
@@ -717,6 +788,53 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 Indexes.compoundIndex(Indexes.ascending("assignee"), Indexes.ascending("tenantId")),
                 new IndexOptions().name("assignee_tenant_idx")
         );
+
+        // indices da coleção de outbox/histórico de eventos
+        MongoCollection<Document> outboxEventsCollection = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
+        outboxEventsCollection.createIndex(
+                Indexes.compoundIndex(Indexes.ascending("processInstanceId"), Indexes.ascending("timestamp")),
+                new IndexOptions().name("proc_inst_timestamp_idx")
+        );
+        outboxEventsCollection.createIndex(
+                Indexes.ascending("processDefinitionId"),
+                new IndexOptions().name("proc_def_idx")
+        );
+        outboxEventsCollection.createIndex(
+                Indexes.compoundIndex(Indexes.ascending("relayStatus"), Indexes.ascending("timestamp")),
+                new IndexOptions().name("relay_status_timestamp_idx")
+        );
+
+        ensureOutboxTtlIndex(outboxEventsCollection);
+    }
+
+    /**
+     * Cria (ou ajusta, via {@code collMod}) o índice TTL nativo do MongoDB sobre {@code outbox_events.timestamp}
+     * quando {@code kikwiflow.outbox.ttl} está configurado. Se {@code outboxTtlSeconds <= 0} (padrão), a
+     * retenção é indefinida e nenhum índice TTL é criado ou tocado — desabilitar o TTL depois de já tê-lo criado
+     * não remove o índice existente automaticamente; isso exige um passo manual
+     * ({@code db.outbox_events.dropIndex("outbox_ttl_idx")}).
+     */
+    private void ensureOutboxTtlIndex(MongoCollection<Document> outboxEventsCollection) {
+        if (outboxTtlSeconds <= 0) {
+            return;
+        }
+
+        String indexName = "outbox_ttl_idx";
+        try {
+            outboxEventsCollection.createIndex(
+                    Indexes.ascending("timestamp"),
+                    new IndexOptions().name(indexName).expireAfter(outboxTtlSeconds, TimeUnit.SECONDS)
+            );
+        } catch (MongoCommandException e) {
+            // IndexOptionsConflict (85) / IndexKeySpecsConflict (86): o índice já existe com um
+            // expireAfterSeconds diferente do configurado agora — ajusta em vez de falhar o boot.
+            if (e.getErrorCode() == 85 || e.getErrorCode() == 86) {
+                getDatabase().runCommand(new Document("collMod", OUTBOX_EVENTS_COLLECTION)
+                        .append("index", new Document("name", indexName).append("expireAfterSeconds", outboxTtlSeconds)));
+            } else {
+                throw e;
+            }
+        }
     }
 
 
@@ -801,6 +919,18 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 .into(tasks);
 
         return tasks;
+    }
+
+    @Override
+    public List<OutboxEventEntity> findEventHistoryByProcessInstanceId(String processInstanceId) {
+        MongoCollection<Document> collection = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
+        List<OutboxEventEntity> events = new ArrayList<>();
+        collection.find(eq("processInstanceId", processInstanceId))
+                .sort(Sorts.ascending("timestamp"))
+                .map(OutboxEventMapper::fromDocument)
+                .into(events);
+
+        return events;
     }
 
 

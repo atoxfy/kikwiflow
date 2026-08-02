@@ -23,10 +23,12 @@ import io.kikwiflow.exception.ProcessInstanceNotFoundException;
 import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.execution.ContinuationService;
 import io.kikwiflow.execution.FailureHandler;
+import io.kikwiflow.execution.FlowNodeExecutionFailure;
 import io.kikwiflow.execution.ProcessExecutionManager;
 import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.execution.ProcessInstanceFactory;
 import io.kikwiflow.execution.TaskAcquirer;
+import io.kikwiflow.execution.event.CriticalEventRecorder;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
@@ -34,6 +36,7 @@ import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
+import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.lightweight.SyncContinuationFailed;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -51,6 +54,7 @@ import io.kikwiflow.util.KikwiflowBanner;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -68,6 +72,7 @@ public class KikwiflowEngine {
     private final TaskAcquirer taskAcquirer;
     private final ContinuationService continuationService;
     private final FailureHandler failureHandler;
+    private final CriticalEventRecorder criticalEventRecorder;
 
     public KikwiflowEngine(
             ProcessDefinitionService processDefinitionService,
@@ -78,7 +83,8 @@ public class KikwiflowEngine {
             AsynchronousEventPublisher asynchronousEventPublisher,
             ContinuationService continuationService,
             FailureHandler failureHandler,
-            TaskAcquirer taskAcquirer) {
+            TaskAcquirer taskAcquirer,
+            CriticalEventRecorder criticalEventRecorder) {
 
         this.processDefinitionService = processDefinitionService;
         this.navigator = navigator;
@@ -90,6 +96,7 @@ public class KikwiflowEngine {
         this.continuationService = continuationService;
         this.failureHandler = failureHandler;
         this.taskAcquirer = taskAcquirer;
+        this.criticalEventRecorder = criticalEventRecorder;
     }
 
     public void start(){
@@ -106,11 +113,17 @@ public class KikwiflowEngine {
     }
 
     public void claim(String externalTaskId, String assignee, IdentityContext identityContext){
-        this.kikwiEngineRepository.claim(externalTaskId, assignee);
+        List<OutboxEventEntity> events = new ArrayList<>();
+        kikwiEngineRepository.findExternalTaskById(externalTaskId)
+                .ifPresent(task -> criticalEventRecorder.recordExternalTaskClaimed(events, task, assignee, identityContext.actorId()));
+        this.kikwiEngineRepository.claim(externalTaskId, assignee, events);
     }
 
-    public void unclaim(String externalTaskId){
-        this.kikwiEngineRepository.unclaim(externalTaskId);
+    public void unclaim(String externalTaskId, IdentityContext identityContext){
+        List<OutboxEventEntity> events = new ArrayList<>();
+        kikwiEngineRepository.findExternalTaskById(externalTaskId)
+                .ifPresent(task -> criticalEventRecorder.recordExternalTaskUnclaimed(events, task, identityContext.actorId()));
+        this.kikwiEngineRepository.unclaim(externalTaskId, events);
     }
 
 
@@ -129,9 +142,13 @@ public class KikwiflowEngine {
         ExecutableTask failedTask = kikwiEngineRepository.findExecutableTaskById(incident.executionId())
                 .orElseThrow(() -> new TaskNotFoundException("Associated ExecutableTask not found: " + incident.executionId()));
 
+        long retriesToRestore = failedTask.retryPolicy() != null
+                ? failedTask.retryPolicy().maxRetries()
+                : kikwiflowConfig.getDefaultMaxRetries();
+
         ExecutableTask restoredTask = failedTask.toBuilder()
                 .status(ExecutableTaskStatus.PENDING)
-                .retries(3L)//todo validate policy
+                .retries(retriesToRestore)
                 .error(null)
                 .dueDate(Instant.now())
                 .executorId(null)
@@ -151,6 +168,13 @@ public class KikwiflowEngine {
                 incident.taskDefinitionId()
         );
 
+        String tenantId = kikwiEngineRepository.findProcessInstanceById(incident.processInstanceId())
+                .map(ProcessInstance::tenantId)
+                .orElse(null);
+
+        List<OutboxEventEntity> events = new ArrayList<>();
+        criticalEventRecorder.recordIncidentResolved(events, resolvedIncident, tenantId, identityContext.actorId());
+
         UnitOfWork uow = new UnitOfWork(
                 null,
                 null,
@@ -160,7 +184,7 @@ public class KikwiflowEngine {
                 null,
                 List.of(restoredTask),
                 null,
-                null,
+                events.isEmpty() ? null : events,
                 null,
                 List.of(resolvedIncident),
                 null,
@@ -278,27 +302,29 @@ public class KikwiflowEngine {
                 );
             } catch (Exception ex) {
 
+                Throwable rootCause = (ex instanceof FlowNodeExecutionFailure && ex.getCause() != null) ? ex.getCause() : ex;
+
                 if(kikwiflowConfig.isStatsEnabled()){
                     SyncContinuationFailed telemetryEvent = new SyncContinuationFailed(
                             processInstanceExecution.getId(),
                             taskToComplete.id(),
                             startPoint.id(),
-                            ex.getMessage(),
-                            failureHandler.getStackTrace(ex),
+                            rootCause.getMessage(),
+                            FailureHandler.getStackTrace(rootCause),
                             Instant.now()
                     );
 
                     this.asynchronousEventPublisher.publishEvent(telemetryEvent);
                 }
 
-                throw new RuntimeException("Kikwiflow Core: Falha síncrona no nó [" + startPoint.id() + "] após a conclusão da tarefa externa [" + taskToComplete.id() + "]. Transação abortada.", ex);
+                throw new RuntimeException("Kikwiflow Core: Falha síncrona no nó [" + startPoint.id() + "] após a conclusão da tarefa externa [" + taskToComplete.id() + "]. Transação abortada.", rootCause);
             }
 
         } else {
             executionResult = new ExecutionResult(new ExecutionOutcome(processInstanceExecution, Collections.emptyList()), null);
         }
 
-        return continuationService.handleContinuation(executionResult, taskToComplete, processDefinition);
+        return continuationService.handleContinuation(executionResult, taskToComplete, processDefinition, identityContext.actorId());
     }
 
 
@@ -331,8 +357,18 @@ public class KikwiflowEngine {
             return this.continuationService.handleContinuation(executionResult, executableTask, processDefinition);
 
         } catch (Exception e) {
-            System.err.println("Task execution failed: " + e.getMessage());
-            failureHandler.handleFailure(executableTask, e);
+            Exception rootException = e;
+            List<OutboxEventEntity> pendingCriticalEvents = List.of();
+
+            if (e instanceof FlowNodeExecutionFailure flowNodeExecutionFailure) {
+                pendingCriticalEvents = flowNodeExecutionFailure.getCriticalEvents();
+                if (flowNodeExecutionFailure.getCause() instanceof Exception causeAsException) {
+                    rootException = causeAsException;
+                }
+            }
+
+            System.err.println("Task execution failed: " + rootException.getMessage());
+            failureHandler.handleFailure(executableTask, rootException, pendingCriticalEvents, processInstanceRecord.tenantId());
             return processInstanceRecord;
         }
     }
@@ -344,8 +380,13 @@ public class KikwiflowEngine {
     }
 
     public ProcessInstance setVariables(String processInstanceId, Map<String, ProcessVariable> variables, IdentityContext identityContext){
-        //TODO implement the identity context logic.
-        return kikwiEngineRepository.addVariables(processInstanceId, variables);
+        //TODO implement the identity context logic (authorization).
+        List<OutboxEventEntity> events = new ArrayList<>();
+        ProcessInstance processInstance = kikwiEngineRepository.findProcessInstanceById(processInstanceId).orElse(null);
+        String processDefinitionId = processInstance != null ? processInstance.processDefinitionId() : null;
+        String tenantId = processInstance != null ? processInstance.tenantId() : null;
+        criticalEventRecorder.recordProcessVariableChanged(events, processInstanceId, processDefinitionId, tenantId, variables, identityContext.actorId());
+        return kikwiEngineRepository.addVariables(processInstanceId, variables, events);
     }
 
     public void clearDefinitionCache(){
@@ -438,15 +479,27 @@ public class KikwiflowEngine {
             String defaultStartPointId  = processDefinition.defaultStartPoint();
             FlowNodeDefinition defaultStartPoint = processDefinition.flowNodes().get(defaultStartPointId);
             Objects.requireNonNull(defaultStartPoint, "Malformed process definition: unknown default start point. The default start point needs to be declared in flow nodes map");
-            ExecutionResult executionResult = engine.processExecutionManager.executeFlow(
-                    defaultStartPoint,
-                    null,
-                    null,
-                    processInstanceExecution,
-                    processDefinition,
-                    false);
 
-            return engine.continuationService.handleContinuation(executionResult, processDefinition);
+            ExecutionResult executionResult;
+            try {
+                executionResult = engine.processExecutionManager.executeFlow(
+                        defaultStartPoint,
+                        null,
+                        null,
+                        processInstanceExecution,
+                        processDefinition,
+                        false);
+            } catch (FlowNodeExecutionFailure flowNodeExecutionFailure) {
+                // Nada foi persistido ainda neste ponto (instância síncrona ainda não confirmada), então os
+                // outbox events acumulados não têm onde ser gravados; propaga a causa original para preservar
+                // o tipo/mensagem da exceção de negócio para quem chamou startProcess().execute().
+                if (flowNodeExecutionFailure.getCause() instanceof RuntimeException runtimeCause) {
+                    throw runtimeCause;
+                }
+                throw flowNodeExecutionFailure;
+            }
+
+            return engine.continuationService.handleContinuation(executionResult, processDefinition, actor);
         }
     }
 }

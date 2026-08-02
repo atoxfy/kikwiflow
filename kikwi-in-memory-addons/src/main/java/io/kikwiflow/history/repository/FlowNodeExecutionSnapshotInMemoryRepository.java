@@ -42,4 +42,8 @@ public class FlowNodeExecutionSnapshotInMemoryRepository implements FlowNodeExec
         processInstanceIdElements.add(flowNodeExecutionSnapshot);
         coveredElements.put(processInstanceId, processInstanceIdElements);
     }
+
+    public List<FlowNodeFinished> findByProcessInstanceId(String processInstanceId) {
+        return coveredElements.getOrDefault(processInstanceId, List.of());
+    }
 }

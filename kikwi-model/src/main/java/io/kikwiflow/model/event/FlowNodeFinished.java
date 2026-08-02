@@ -26,12 +26,59 @@ public class FlowNodeFinished implements CriticalEvent {
 
     private String flowNodeDefinitionId;
     private String processDefinitionId;
+    private String processDefinitionKey;
     private String processInstanceId;
+    private String tenantId;
     private String flowNodeType;
+    private String flowNodeName;
+    private String flowNodeDescription;
     private Instant startedAt;
     private String interruptedByNodeDefinitionId;
     private Instant finishedAt;
     private NodeExecutionStatus nodeExecutionStatus;
+    private String errorType;
+    private String errorMessage;
+    private String errorStackTrace;
+
+    public String getFlowNodeName() {
+        return flowNodeName;
+    }
+
+    public void setFlowNodeName(String flowNodeName) {
+        this.flowNodeName = flowNodeName;
+    }
+
+    public String getFlowNodeDescription() {
+        return flowNodeDescription;
+    }
+
+    public void setFlowNodeDescription(String flowNodeDescription) {
+        this.flowNodeDescription = flowNodeDescription;
+    }
+
+    public String getErrorType() {
+        return errorType;
+    }
+
+    public void setErrorType(String errorType) {
+        this.errorType = errorType;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
+    public String getErrorStackTrace() {
+        return errorStackTrace;
+    }
+
+    public void setErrorStackTrace(String errorStackTrace) {
+        this.errorStackTrace = errorStackTrace;
+    }
 
     public String getFlowNodeDefinitionId() {
         return flowNodeDefinitionId;
@@ -57,12 +104,39 @@ public class FlowNodeFinished implements CriticalEvent {
         this.flowNodeType = flowNodeType;
     }
 
+    @Override
+    public String processInstanceId() {
+        return processInstanceId;
+    }
+
+    @Override
+    public String processDefinitionId() {
+        return processDefinitionId;
+    }
+
+    @Override
+    public String tenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
     public String getProcessDefinitionId() {
         return processDefinitionId;
     }
 
     public void setProcessDefinitionId(String processDefinitionId) {
         this.processDefinitionId = processDefinitionId;
+    }
+
+    public String getProcessDefinitionKey() {
+        return processDefinitionKey;
+    }
+
+    public void setProcessDefinitionKey(String processDefinitionKey) {
+        this.processDefinitionKey = processDefinitionKey;
     }
 
     public String getProcessInstanceId() {
@@ -104,12 +178,19 @@ public class FlowNodeFinished implements CriticalEvent {
     public static class Builder {
         private String flowNodeDefinitionId;
         private String processDefinitionId;
+        private String processDefinitionKey;
         private String processInstanceId;
+        private String tenantId;
         private Instant startedAt;
         private Instant finishedAt;
         private String flowNodeType;
+        private String flowNodeName;
+        private String flowNodeDescription;
         private NodeExecutionStatus nodeExecutionStatus;
         private String interruptedByNodeDefinitionId;
+        private String errorType;
+        private String errorMessage;
+        private String errorStackTrace;
 
         private Builder() {}
 
@@ -128,13 +209,48 @@ public class FlowNodeFinished implements CriticalEvent {
             return this;
         }
 
+        public Builder flowNodeName(String flowNodeName) {
+            this.flowNodeName = flowNodeName;
+            return this;
+        }
+
+        public Builder flowNodeDescription(String flowNodeDescription) {
+            this.flowNodeDescription = flowNodeDescription;
+            return this;
+        }
+
+        public Builder errorType(String errorType) {
+            this.errorType = errorType;
+            return this;
+        }
+
+        public Builder errorMessage(String errorMessage) {
+            this.errorMessage = errorMessage;
+            return this;
+        }
+
+        public Builder errorStackTrace(String errorStackTrace) {
+            this.errorStackTrace = errorStackTrace;
+            return this;
+        }
+
         public Builder processDefinitionId(String processDefinitionId) {
             this.processDefinitionId = processDefinitionId;
             return this;
         }
 
+        public Builder processDefinitionKey(String processDefinitionKey) {
+            this.processDefinitionKey = processDefinitionKey;
+            return this;
+        }
+
         public Builder processInstanceId(String processInstanceId) {
             this.processInstanceId = processInstanceId;
+            return this;
+        }
+
+        public Builder tenantId(String tenantId) {
+            this.tenantId = tenantId;
             return this;
         }
 
@@ -157,12 +273,19 @@ public class FlowNodeFinished implements CriticalEvent {
             FlowNodeFinished event = new FlowNodeFinished();
             event.setFlowNodeDefinitionId(this.flowNodeDefinitionId);
             event.setProcessDefinitionId(this.processDefinitionId);
+            event.setProcessDefinitionKey(this.processDefinitionKey);
             event.setProcessInstanceId(this.processInstanceId);
+            event.setTenantId(this.tenantId);
             event.setStartedAt(this.startedAt);
             event.setFinishedAt(this.finishedAt);
             event.setNodeExecutionStatus(this.nodeExecutionStatus);
             event.setFlowNodeType(this.flowNodeType);
+            event.setFlowNodeName(this.flowNodeName);
+            event.setFlowNodeDescription(this.flowNodeDescription);
             event.setInterruptedByNodeDefinitionId(this.interruptedByNodeDefinitionId);
+            event.setErrorType(this.errorType);
+            event.setErrorMessage(this.errorMessage);
+            event.setErrorStackTrace(this.errorStackTrace);
             return event;
         }
     }

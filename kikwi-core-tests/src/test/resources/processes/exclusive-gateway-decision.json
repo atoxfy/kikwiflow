@@ -1,0 +1,79 @@
+{
+  "key": "exclusive-gateway-decision",
+  "name": "Decisão via Gateway Exclusivo",
+  "description": "Fixture de teste: start -> EXECUTABLE_TASK -> EXCLUSIVE_GATEWAY (BEAN) -> ramo aprovado ou ramo fraude, cada ramo com uma tarefa executável distinta para permitir verificar qual foi de fato executada.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-task", "name": "", "targetNodeId": "CALCULATE_RISK_TASK", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALCULATE_RISK_TASK": {
+      "id": "CALCULATE_RISK_TASK",
+      "name": "Calcular Risco",
+      "type": "EXECUTABLE_TASK",
+      "executor": "calculateRisk",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-task-to-gateway", "name": "", "targetNodeId": "RISK_GATEWAY", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "RISK_GATEWAY": {
+      "id": "RISK_GATEWAY",
+      "name": "Qual o resultado da análise de risco?",
+      "type": "EXCLUSIVE_GATEWAY",
+      "commitBefore": false,
+      "commitAfter": false,
+      "providerType": "BEAN",
+      "providerBean": "riskStrategy",
+      "outgoing": [
+        { "id": "flow-gateway-to-approved", "name": "APROVADO", "targetNodeId": "NOTIFY_APPROVED_TASK", "expectedAnswer": "APROVADO", "isDefault": true, "extensionProperties": {} },
+        { "id": "flow-gateway-to-fraud", "name": "FRAUDE", "targetNodeId": "NOTIFY_FRAUD_TASK", "expectedAnswer": "FRAUDE", "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "NOTIFY_APPROVED_TASK": {
+      "id": "NOTIFY_APPROVED_TASK",
+      "name": "Notificar Aprovação",
+      "type": "EXECUTABLE_TASK",
+      "executor": "notifyApproved",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-approved-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "NOTIFY_FRAUD_TASK": {
+      "id": "NOTIFY_FRAUD_TASK",
+      "name": "Notificar Suspeita de Fraude",
+      "type": "EXECUTABLE_TASK",
+      "executor": "notifyFraud",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-fraud-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

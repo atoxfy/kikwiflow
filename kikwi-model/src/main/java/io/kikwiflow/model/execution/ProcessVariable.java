@@ -17,22 +17,8 @@
 
 package io.kikwiflow.model.execution;
 
-import java.util.Set;
-
-public record ProcessVariable(String name, Set<String> readRoles, Set<String> writeRoles, boolean isTransient, Object value) {
+public record ProcessVariable(String name, boolean isTransient, Object value) {
     public ProcessVariable(String name, Object value) {
-        this(name, Set.of(), Set.of(), false, value);
-    }
-
-    public boolean canRead(Set<String> userRoles) {
-        if (readRoles == null || readRoles.isEmpty()) return true;
-        if (userRoles == null) return false;
-        return userRoles.stream().anyMatch(readRoles::contains);
-    }
-
-    public boolean canWrite(Set<String> userRoles) {
-        if (writeRoles == null || writeRoles.isEmpty()) return true;
-        if (userRoles == null) return false;
-        return userRoles.stream().anyMatch(writeRoles::contains);
+        this(name, false, value);
     }
 }

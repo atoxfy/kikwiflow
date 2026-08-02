@@ -18,7 +18,9 @@ package io.kikwiflow.execution;
 
 import io.kikwiflow.exception.ProcessErrorException; // Import da nova exceção
 import io.kikwiflow.execution.api.retry.RetryPolicyEvaluator;
+import io.kikwiflow.execution.event.CriticalEventRecorder;
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
+import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.IncidentStatus;
@@ -37,13 +39,28 @@ public class FailureHandler {
 
     private final KikwiEngineRepository repository;
     private final RetryPolicyEvaluator policyEvaluator;
+    private final CriticalEventRecorder criticalEventRecorder;
 
-    public FailureHandler(KikwiEngineRepository repository, RetryPolicyEvaluator policyEvaluator) {
+    public FailureHandler(KikwiEngineRepository repository, RetryPolicyEvaluator policyEvaluator,
+                          CriticalEventRecorder criticalEventRecorder) {
         this.repository = repository;
         this.policyEvaluator = policyEvaluator;
+        this.criticalEventRecorder = criticalEventRecorder;
     }
 
     public void handleFailure(ExecutableTask task, Exception exception) {
+        handleFailure(task, exception, List.of(), null);
+    }
+
+    /**
+     * @param criticalEvents outbox events já construídos durante a execução que terminou em falha
+     *                       (ex.: o {@code FLOW_NODE_FINISHED(ERROR)} do próprio nó), para que não sejam
+     *                       perdidos apenas porque a execução terminou em exceção em vez de sucesso.
+     * @param tenantId tenant da instância de processo à qual {@code task} pertence — {@code ExecutableTask} não
+     *                carrega esse campo, então o chamador (que já tem o {@code ProcessInstance} em mãos) o
+     *                repassa para que {@code INCIDENT_CREATED}/{@code RETRY_SCHEDULED} não fiquem sem tenant.
+     */
+    public void handleFailure(ExecutableTask task, Exception exception, List<OutboxEventEntity> criticalEvents, String tenantId) {
         List<ExecutableTask> tasksToUpdate = new ArrayList<>();
         List<Incident> incidentsToCreate = new ArrayList<>();
         RetryPolicy retryPolicy = task.retryPolicy();
@@ -60,6 +77,8 @@ public class FailureHandler {
         long currentExecutions = task.executions() != null ? task.executions() : 0L;
         long nextExecutionCount = currentExecutions + 1;
 
+        List<OutboxEventEntity> allCriticalEvents = new ArrayList<>(criticalEvents != null ? criticalEvents : List.of());
+
         if (!evaluation.shouldCreateIncident() && !isUnhandledBusinessError) {
             ExecutableTask updatedTask = task.toBuilder()
                     .retries(evaluation.retriesLeft())
@@ -71,6 +90,8 @@ public class FailureHandler {
                     .build();
 
             tasksToUpdate.add(updatedTask);
+            criticalEventRecorder.recordRetryScheduled(allCriticalEvents, updatedTask, nextExecutionCount,
+                    evaluation.retriesLeft(), evaluation.nextDueDate(), errorMessage, tenantId);
         } else {
             ExecutableTask failedTask = task.toBuilder()
                     .retries(0L)
@@ -96,18 +117,21 @@ public class FailureHandler {
             );
 
             incidentsToCreate.add(incident);
+            criticalEventRecorder.recordIncidentCreated(allCriticalEvents, incident, tenantId);
         }
 
         UnitOfWork uow = new UnitOfWork(
                 null, null, null, null, null, null,
-                tasksToUpdate, null, null, incidentsToCreate,
+                tasksToUpdate, null,
+                allCriticalEvents.isEmpty() ? null : allCriticalEvents,
+                incidentsToCreate,
                 null, null, null, null, null
         );
 
         repository.commitWork(uow);
     }
 
-    public String getStackTrace(Throwable t) {
+    public static String getStackTrace(Throwable t) {
         StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
         return sw.toString();

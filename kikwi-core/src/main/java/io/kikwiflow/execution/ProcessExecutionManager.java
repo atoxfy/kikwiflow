@@ -16,18 +16,16 @@
  */
 package io.kikwiflow.execution;
 
-import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.exception.ProcessErrorException;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
+import io.kikwiflow.execution.event.CriticalEventRecorder;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.event.FlowNodeFinished;
-import io.kikwiflow.model.event.GatewayAnswerResolved;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.FlowNodeExecutionSnapshot;
 import io.kikwiflow.model.execution.enumerated.NodeExecutionStatus;
@@ -52,7 +50,7 @@ public class ProcessExecutionManager {
 
     private final FlowNodeExecutor flowNodeExecutor;
     private final Navigator navigator;
-    private final KikwiflowConfig kikwiflowConfig;
+    private final CriticalEventRecorder criticalEventRecorder;
 
     /**
      * Encapsula o contexto móvel e imutável de uma linha de execução (Branch).
@@ -63,10 +61,10 @@ public class ProcessExecutionManager {
             String joinTaskId
     ) {}
 
-    public ProcessExecutionManager(FlowNodeExecutor flowNodeExecutor, Navigator navigator, KikwiflowConfig kikwiflowConfig) {
+    public ProcessExecutionManager(FlowNodeExecutor flowNodeExecutor, Navigator navigator, CriticalEventRecorder criticalEventRecorder) {
         this.flowNodeExecutor = flowNodeExecutor;
         this.navigator = navigator;
-        this.kikwiflowConfig = kikwiflowConfig;
+        this.criticalEventRecorder = criticalEventRecorder;
     }
 
     /**
@@ -153,7 +151,7 @@ public class ProcessExecutionManager {
                 caughtException = e;
             }
 
-            if (kikwiflowConfig.isStatsEnabled() || kikwiflowConfig.isOutboxEventsEnabled()) {
+            if (criticalEventRecorder.isEnabled()) {
                 final FlowNodeExecutionSnapshot snapshot = FlowNodeExecutionSnapshot.builder()
                         .flowNodeDefinition(currentNode)
                         .processDefinitionSnapshot(processDefinition)
@@ -163,36 +161,15 @@ public class ProcessExecutionManager {
                         .nodeExecutionStatus(status)
                         .build();
 
-                FlowNodeFinished flowNodeFinished = FlowNodeFinished.builder()
-                        .flowNodeDefinitionId(snapshot.flowNodeDefinition().id())
-                        .flowNodeType(snapshot.flowNodeDefinition().type())
-                        .processInstanceId(snapshot.processInstance().id())
-                        .processDefinitionId(snapshot.processDefinition().id())
-                        .nodeExecutionStatus(snapshot.nodeExecutionStatus())
-                        .startedAt(snapshot.startedAt())
-                        .finishedAt(snapshot.finishedAt())
-                        .build();
+                criticalEventRecorder.recordFlowNodeFinished(criticalEvents, snapshot, caughtException);
 
-                criticalEvents.add(new OutboxEventEntity("FLOW_NODE_FINISHED", flowNodeFinished));
-
-                if (currentNode instanceof ExclusiveGatewayDefinition && continuation != null) {
-                    GatewayAnswerResolved answerEvent = new GatewayAnswerResolved(
-                            processInstance.getId(),
-                            processDefinition.id(),
-                            currentNode.id(),
-                            ((ExclusiveGatewayDefinition) currentNode).providerType(),
-                            ((ExclusiveGatewayDefinition) currentNode).providerBean(),
-                            ((ExclusiveGatewayDefinition) currentNode).providerVariable(),
-                            continuation.resolvedAnswer(),
-                            continuation.chosenFlowId(),
-                            Instant.now()
-                    );
-                    criticalEvents.add(new OutboxEventEntity("GATEWAY_ANSWER_RESOLVED", answerEvent));
+                if (currentNode instanceof ExclusiveGatewayDefinition gateway && continuation != null) {
+                    criticalEventRecorder.recordGatewayAnswerResolved(criticalEvents, processInstance, processDefinition, gateway, continuation);
                 }
             }
 
             if (caughtException != null) {
-                throw caughtException;
+                throw new FlowNodeExecutionFailure(caughtException, criticalEvents);
             }
 
             isFirstNodeInLoop = false;

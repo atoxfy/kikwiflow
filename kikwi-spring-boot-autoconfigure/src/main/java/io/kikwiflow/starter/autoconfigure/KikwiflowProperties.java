@@ -90,7 +90,7 @@ public class KikwiflowProperties {
 
     public static class AutoDeploy {
         private boolean enabled = true;
-        private String path = "classpath*:processes/**/*.json";
+        private String path = "classpath*:processes/**/*.kikwi";
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }

@@ -1,0 +1,40 @@
+{
+  "key": "external-task-wait",
+  "name": "Espera de Tarefa Externa",
+  "description": "Fixture de teste: start -> EXTERNAL_TASK -> end.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-wait", "name": "", "targetNodeId": "WAIT_FOR_INPUT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_FOR_INPUT": {
+      "id": "WAIT_FOR_INPUT",
+      "name": "Aguardar Entrada Externa",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-wait-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

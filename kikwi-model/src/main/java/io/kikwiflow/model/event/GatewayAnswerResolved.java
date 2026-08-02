@@ -24,6 +24,8 @@ import java.time.Instant;
 public record GatewayAnswerResolved(
         String processInstanceId,
         String processDefinitionId,
+        String tenantId,
+        String processDefinitionKey,
         String gatewayNodeId,
         AnswerProviderType answerProviderType,
         String providerBean,

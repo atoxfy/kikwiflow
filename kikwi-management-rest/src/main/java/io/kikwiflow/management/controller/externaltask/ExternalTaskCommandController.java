@@ -42,7 +42,7 @@ public class ExternalTaskCommandController implements ExternalTaskOperationsRest
 
     @Override
     public void unclaim(String id, IdentityContext identityContext) {
-        engine.unclaim(id);
+        engine.unclaim(id, identityContext);
     }
 
     @Override
