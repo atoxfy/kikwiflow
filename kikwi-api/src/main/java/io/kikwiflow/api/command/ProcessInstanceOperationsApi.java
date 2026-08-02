@@ -19,12 +19,14 @@ package io.kikwiflow.api.command;
 
 import io.kikwiflow.api.dto.ProcessInstanceStartRequest;
 import io.kikwiflow.api.dto.SetVariablesRequest;
+import io.kikwiflow.api.dto.UnsetVariablesRequest;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.security.IdentityContext;
 
 public interface ProcessInstanceOperationsApi {
     ProcessInstance start(ProcessInstanceStartRequest processInstanceStartRequest, IdentityContext identityContext);
     ProcessInstance setVariables(String processInstanceId, SetVariablesRequest setVariablesRequest, IdentityContext identityContext);
+    ProcessInstance unsetVariables(String processInstanceId, UnsetVariablesRequest unsetVariablesRequest, IdentityContext identityContext);
     void deleteInstance(String processInstanceId, IdentityContext identityContext);
 
 }

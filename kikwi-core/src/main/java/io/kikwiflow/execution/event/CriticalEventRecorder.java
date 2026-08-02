@@ -49,6 +49,7 @@ import io.kikwiflow.model.security.IdentityContext;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Ponto único de construção dos outbox events críticos (ver {@link CriticalEventType}).
@@ -376,7 +377,23 @@ public class CriticalEventRecorder {
         Instant changedAt = Instant.now();
         variables.forEach((name, variable) -> events.add(new OutboxEventEntity(CriticalEventType.PROCESS_VARIABLE_CHANGED,
                 new ProcessVariableChanged(processInstanceId, processDefinitionId, tenantId, name,
-                        variable.isTransient(), variable.value(), actorId, changedAt))));
+                        variable.isTransient(), variable.value(), actorId, changedAt, false))));
+    }
+
+    /**
+     * Registra a remoção de variáveis de processo via {@code KikwiflowEngine.unsetVariables} — mesmo evento
+     * {@code PROCESS_VARIABLE_CHANGED} de {@link #recordProcessVariableChanged}, mas com {@code removed=true}
+     * e sem valor, já que a variável deixa de existir em vez de receber um novo valor.
+     */
+    public void recordVariablesUnset(List<OutboxEventEntity> events, String processInstanceId,
+                                     String processDefinitionId, String tenantId,
+                                     Set<String> variableNames, String actorId) {
+        if (!isEnabled() || variableNames == null || variableNames.isEmpty()) return;
+
+        Instant changedAt = Instant.now();
+        variableNames.forEach(name -> events.add(new OutboxEventEntity(CriticalEventType.PROCESS_VARIABLE_CHANGED,
+                new ProcessVariableChanged(processInstanceId, processDefinitionId, tenantId, name,
+                        false, null, actorId, changedAt, true))));
     }
 
     /**

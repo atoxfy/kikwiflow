@@ -20,6 +20,7 @@ package io.kikwiflow.management.controller.processinstance;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.api.dto.ProcessInstanceStartRequest;
 import io.kikwiflow.api.dto.SetVariablesRequest;
+import io.kikwiflow.api.dto.UnsetVariablesRequest;
 import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.security.IdentityContext;
@@ -53,6 +54,11 @@ public class ProcessInstanceCommandController implements ProcessInstanceOperatio
     @Override
     public ProcessInstance setVariables(String id, SetVariablesRequest setVariablesRequest, IdentityContext identityContext) {
         return engine.setVariables(id, setVariablesRequest.variables(), identityContext);
+    }
+
+    @Override
+    public ProcessInstance unsetVariables(String id, UnsetVariablesRequest unsetVariablesRequest, IdentityContext identityContext) {
+        return engine.unsetVariables(id, unsetVariablesRequest.variableNames(), identityContext);
     }
 
     @Override

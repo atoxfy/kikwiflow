@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -148,6 +149,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables, List<OutboxEventEntity> events) {
         return inMemoryKikwiEngineRepository.addVariables(processInstanceId, variables, events);
+    }
+
+    @Override
+    public ProcessInstance unsetVariables(String processInstanceId, Set<String> variableNames, List<OutboxEventEntity> events) {
+        return inMemoryKikwiEngineRepository.unsetVariables(processInstanceId, variableNames, events);
     }
 
     @Override

@@ -475,6 +475,42 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public ProcessInstance unsetVariables(String processInstanceId, Set<String> variableNames, List<OutboxEventEntity> events) {
+        ProcessInstance stored = processInstanceCollection.get(processInstanceId);
+        if (stored == null) {
+            return null;
+        }
+        if (variableNames == null || variableNames.isEmpty()) {
+            return stored;
+        }
+
+        Map<String, ProcessVariable> remaining = new HashMap<>(stored.variables() != null ? stored.variables() : Map.of());
+        variableNames.forEach(remaining::remove);
+
+        ProcessInstance updated = ProcessInstance.builder()
+                .id(stored.id())
+                .businessKey(stored.businessKey())
+                .businessValue(stored.businessValue())
+                .tenantId(stored.tenantId())
+                .status(stored.status())
+                .processDefinitionId(stored.processDefinitionId())
+                .variables(remaining)
+                .startedAt(stored.startedAt())
+                .endedAt(stored.endedAt())
+                .origin(stored.origin())
+                .version(stored.version())
+                .parentInstanceId(stored.parentInstanceId())
+                .callerTaskId(stored.callerTaskId())
+                .callerBranchId(stored.callerBranchId())
+                .activeNodes(stored.activeNodes())
+                .build();
+
+        processInstanceCollection.put(processInstanceId, updated);
+        writeOutboxEvents(events);
+        return updated;
+    }
+
+    @Override
     public void claim(String externalTaskId, String assignee, List<OutboxEventEntity> events) {
         withAssignee(externalTaskId, assignee, events);
     }

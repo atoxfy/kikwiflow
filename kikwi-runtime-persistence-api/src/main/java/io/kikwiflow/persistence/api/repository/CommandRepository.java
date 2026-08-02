@@ -10,6 +10,7 @@ import io.kikwiflow.persistence.api.data.UnitOfWork;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface CommandRepository {
 
@@ -24,6 +25,13 @@ public interface CommandRepository {
      *               serem persistidos atomicamente junto com a mudança de variáveis. Pode ser {@code null}/vazio.
      */
     ProcessInstance addVariables(String processInstanceId, Map<String, ProcessVariable> variables, List<OutboxEventEntity> events);
+
+    /**
+     * @param events critical events já construídos pelo chamador (ex.: {@code PROCESS_VARIABLE_CHANGED} com
+     *               {@code removed=true}) para serem persistidos atomicamente junto com a remoção. Pode ser
+     *               {@code null}/vazio.
+     */
+    ProcessInstance unsetVariables(String processInstanceId, Set<String> variableNames, List<OutboxEventEntity> events);
 
     /**
      * @param events critical events já construídos pelo chamador (ex.: {@code EXTERNAL_TASK_CLAIMED}) para

@@ -39,7 +39,8 @@ public final class ProcessVariableChangedMapper {
                 .append("tenantId", event.tenantId())
                 .append("variable", ProcessVariableMapper.toDocument(variable))
                 .append("actorId", event.actorId())
-                .append("changedAt", event.changedAt() != null ? java.util.Date.from(event.changedAt()) : null);
+                .append("changedAt", event.changedAt() != null ? java.util.Date.from(event.changedAt()) : null)
+                .append("removed", event.removed());
     }
 
     public static ProcessVariableChanged fromDocument(Document doc) {
@@ -53,7 +54,8 @@ public final class ProcessVariableChangedMapper {
                 variable != null && variable.isTransient(),
                 variable != null ? variable.value() : null,
                 doc.getString("actorId"),
-                InstantMapper.mapToInstant("changedAt", doc)
+                InstantMapper.mapToInstant("changedAt", doc),
+                doc.getBoolean("removed", false)
         );
     }
 }

@@ -20,6 +20,7 @@ package io.kikwiflow.spring.rest.api.command;
 import io.kikwiflow.api.command.ProcessInstanceOperationsApi;
 import io.kikwiflow.api.dto.ProcessInstanceStartRequest;
 import io.kikwiflow.api.dto.SetVariablesRequest;
+import io.kikwiflow.api.dto.UnsetVariablesRequest;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.security.IdentityContext;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,11 @@ public interface ProcessInstanceOperationsRestApi extends ProcessInstanceOperati
     @PutMapping("{id}/variables")
     @ResponseStatus(HttpStatus.OK)
     ProcessInstance setVariables(@PathVariable(value = "id") String id, @RequestBody SetVariablesRequest setVariablesRequest, IdentityContext identityContext);
+
+    @Override
+    @PutMapping("{id}/variables/unset")
+    @ResponseStatus(HttpStatus.OK)
+    ProcessInstance unsetVariables(@PathVariable(value = "id") String id, @RequestBody UnsetVariablesRequest unsetVariablesRequest, IdentityContext identityContext);
 
     @Override
     @PutMapping("{id}")

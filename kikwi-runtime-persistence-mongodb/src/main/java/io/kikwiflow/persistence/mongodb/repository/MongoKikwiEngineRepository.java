@@ -79,6 +79,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.client.model.Filters.and;
@@ -473,6 +474,38 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         for (Map.Entry<String, ProcessVariable> entry : variables.entrySet()) {
             String fieldPath = "variables." + MongoKeyEncoder.encode(entry.getKey());
             updates.add(Updates.set(fieldPath, ProcessVariableMapper.toDocument(entry.getValue())));
+        }
+
+        if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {
+            try (ClientSession clientSession = mongoClient.startSession()) {
+                Document[] updatedDocHolder = new Document[1];
+                clientSession.withTransaction(() -> {
+                    FindOneAndUpdateOptions options = new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER);
+                    updatedDocHolder[0] = collection.findOneAndUpdate(clientSession, eq("_id", processInstanceId), Updates.combine(updates), options);
+                    writeOutboxEvents(clientSession, events);
+                    return "Transaction committed";
+                });
+                return ProcessInstanceMapper.fromDocument(updatedDocHolder[0]);
+            }
+        }
+
+        FindOneAndUpdateOptions options = new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER);
+        Document updatedDoc = collection.findOneAndUpdate(eq("_id", processInstanceId), Updates.combine(updates), options);
+
+        return ProcessInstanceMapper.fromDocument(updatedDoc);
+    }
+
+    @Override
+    public ProcessInstance unsetVariables(String processInstanceId, Set<String> variableNames, List<OutboxEventEntity> events) {
+        if (variableNames == null || variableNames.isEmpty()) {
+            return findProcessInstanceById(processInstanceId).orElse(null);
+        }
+
+        MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
+
+        List<Bson> updates = new ArrayList<>();
+        for (String variableName : variableNames) {
+            updates.add(Updates.unset("variables." + MongoKeyEncoder.encode(variableName)));
         }
 
         if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {

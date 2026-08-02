@@ -60,6 +60,12 @@ public final class HistoryEventSummaryMapper {
             return payload;
         }
 
+        // Uma remoção não carrega valor (já é null), então não há nada a mascarar — só o próprio "removed"
+        // já é a informação completa do evento.
+        if (variableChanged.removed()) {
+            return payload;
+        }
+
         ProcessVariable rawVariable = new ProcessVariable(variableChanged.name(), variableChanged.isTransient(), variableChanged.value());
         Map<String, ProcessVariable> masked = securityPolicyManager.applyReadPoliciesAndMasking(
                 variableChanged.processDefinitionId(), identityContext, Map.of(variableChanged.name(), rawVariable));
@@ -75,7 +81,8 @@ public final class HistoryEventSummaryMapper {
                 variableChanged.isTransient(),
                 maskedVariable != null ? maskedVariable.value() : null,
                 variableChanged.actorId(),
-                variableChanged.changedAt()
+                variableChanged.changedAt(),
+                variableChanged.removed()
         );
     }
 }

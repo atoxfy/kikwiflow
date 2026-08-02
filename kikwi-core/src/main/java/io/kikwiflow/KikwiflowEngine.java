@@ -60,6 +60,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class KikwiflowEngine {
 
@@ -387,6 +388,16 @@ public class KikwiflowEngine {
         String tenantId = processInstance != null ? processInstance.tenantId() : null;
         criticalEventRecorder.recordProcessVariableChanged(events, processInstanceId, processDefinitionId, tenantId, variables, identityContext.actorId());
         return kikwiEngineRepository.addVariables(processInstanceId, variables, events);
+    }
+
+    public ProcessInstance unsetVariables(String processInstanceId, Set<String> variableNames, IdentityContext identityContext){
+        //TODO implement the identity context logic (authorization).
+        List<OutboxEventEntity> events = new ArrayList<>();
+        ProcessInstance processInstance = kikwiEngineRepository.findProcessInstanceById(processInstanceId).orElse(null);
+        String processDefinitionId = processInstance != null ? processInstance.processDefinitionId() : null;
+        String tenantId = processInstance != null ? processInstance.tenantId() : null;
+        criticalEventRecorder.recordVariablesUnset(events, processInstanceId, processDefinitionId, tenantId, variableNames, identityContext.actorId());
+        return kikwiEngineRepository.unsetVariables(processInstanceId, variableNames, events);
     }
 
     public void clearDefinitionCache(){

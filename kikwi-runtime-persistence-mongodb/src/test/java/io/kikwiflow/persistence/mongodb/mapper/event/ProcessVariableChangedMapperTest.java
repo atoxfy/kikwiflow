@@ -38,7 +38,8 @@ class ProcessVariableChangedMapperTest {
                 false,
                 42,
                 "user-42",
-                Instant.now().truncatedTo(ChronoUnit.MILLIS)
+                Instant.now().truncatedTo(ChronoUnit.MILLIS),
+                false
         );
 
         Document doc = ProcessVariableChangedMapper.toDocument(original);
@@ -51,6 +52,27 @@ class ProcessVariableChangedMapperTest {
         assertEquals(original.value(), restored.value());
         assertEquals(original.actorId(), restored.actorId());
         assertEquals(original.changedAt(), restored.changedAt());
+        assertEquals(original.removed(), restored.removed());
+    }
+
+    @Test
+    void roundTripsRemovedVariable() {
+        ProcessVariableChanged original = new ProcessVariableChanged(
+                "proc-instance-3",
+                "proc-def-1",
+                "tenant-a",
+                "riskScore",
+                false,
+                null,
+                "user-42",
+                Instant.now().truncatedTo(ChronoUnit.MILLIS),
+                true
+        );
+
+        Document doc = ProcessVariableChangedMapper.toDocument(original);
+        ProcessVariableChanged restored = ProcessVariableChangedMapper.fromDocument(doc);
+
+        assertEquals(original, restored);
     }
 
     @Test
@@ -63,7 +85,8 @@ class ProcessVariableChangedMapperTest {
                 true,
                 "abc-123",
                 "user-99",
-                Instant.now().truncatedTo(ChronoUnit.MILLIS)
+                Instant.now().truncatedTo(ChronoUnit.MILLIS),
+                false
         );
 
         Document doc = ProcessVariableChangedMapper.toDocument(original);

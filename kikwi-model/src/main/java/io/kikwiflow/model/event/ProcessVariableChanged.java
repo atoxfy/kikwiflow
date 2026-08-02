@@ -20,9 +20,11 @@ package io.kikwiflow.model.event;
 import java.time.Instant;
 
 /**
- * Registrado por variável alterada via {@code KikwiflowEngine.setVariables}. Grava o valor bruto,
- * sem aplicar {@code VariableSecurityPolicyManager} — masking é responsabilidade de quem consumir o
- * outbox (relay/consumer), não do produtor do evento.
+ * Registrado por variável alterada via {@code KikwiflowEngine.setVariables}/{@code unsetVariables}. Grava o
+ * valor bruto, sem aplicar {@code VariableSecurityPolicyManager} — masking é responsabilidade de quem
+ * consumir o outbox (relay/consumer), não do produtor do evento. {@code removed} distingue uma remoção
+ * (via {@code unsetVariables}, {@code value} sempre {@code null}) de um valor setado explicitamente para
+ * {@code null} — sem essa flag as duas situações seriam indistinguíveis no histórico.
  */
 public record ProcessVariableChanged(
         String processInstanceId,
@@ -32,5 +34,6 @@ public record ProcessVariableChanged(
         boolean isTransient,
         Object value,
         String actorId,
-        Instant changedAt
+        Instant changedAt,
+        boolean removed
 ) implements CriticalEvent {}
