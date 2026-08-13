@@ -17,6 +17,8 @@
 package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.execution.enumerated.ExternalTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ExternalTaskType;
+import io.kikwiflow.model.execution.enumerated.MatchPolicy;
 import io.kikwiflow.model.execution.node.AttachedEventReference;
 import io.kikwiflow.model.execution.node.AttachedTaskType;
 import io.kikwiflow.model.execution.node.ExternalTask;
@@ -40,7 +42,7 @@ public final class ExternalTaskMapper {
                 .append("processInstanceId", task.processInstanceId())
                 .append("processDefinitionId", task.processDefinitionId())
                 .append("status", task.status() != null ? task.status().name() : null)
-                .append("createdAt", task.createdAt())
+                .append("createdAt", task.createdAt() != null ? java.util.Date.from(task.createdAt()) : null)
                 .append("topicName", task.topicName())
                 .append("assignee", task.assignee())
                 .append("tenantId", task.tenantId())
@@ -54,7 +56,14 @@ public final class ExternalTaskMapper {
                         task.boundaryEvents().stream()
                                 .map(AttachedEventReferenceMapper::toDocument)
                                 .toList() :
-                        Collections.emptyList());
+                        Collections.emptyList())
+                .append("type", task.type() != null ? task.type().name() : null)
+                .append("correlationKey", task.correlationKey())
+                .append("displayName", task.displayName())
+                .append("pendingCorrelationKeys", task.pendingCorrelationKeys())
+                .append("matchPolicy", task.matchPolicy() != null ? task.matchPolicy().name() : null)
+                .append("coordinatorTaskId", task.coordinatorTaskId())
+                .append("totalCorrelationKeys", task.totalCorrelationKeys());
 
         if (task.attachedToRefDefinitionId() != null) {
             doc.append("attachedToRefDefinitionId", task.attachedToRefDefinitionId());
@@ -79,6 +88,16 @@ public final class ExternalTaskMapper {
         String attachedTypeStr = doc.getString("attachedToRefType");
         AttachedTaskType attachedType = attachedTypeStr != null ? AttachedTaskType.valueOf(attachedTypeStr) : null;
 
+        String typeStr = doc.getString("type");
+        ExternalTaskType type = typeStr != null ? ExternalTaskType.valueOf(typeStr) : null;
+
+        String matchPolicyStr = doc.getString("matchPolicy");
+        MatchPolicy matchPolicy = matchPolicyStr != null ? MatchPolicy.valueOf(matchPolicyStr) : null;
+
+        List<String> pendingCorrelationKeys = doc.get("pendingCorrelationKeys") != null
+                ? doc.getList("pendingCorrelationKeys", String.class, Collections.emptyList())
+                : null;
+
         return ExternalTask.builder()
                 .id(doc.getString("_id"))
                 .name(doc.getString("name"))
@@ -98,6 +117,13 @@ public final class ExternalTaskMapper {
                 .attachedToRefDefinitionId(doc.getString("attachedToRefDefinitionId"))
                 .attachedToRefType(attachedType)
                 .boundaryEvents(boundaryEvents)
+                .type(type)
+                .correlationKey(doc.getString("correlationKey"))
+                .displayName(doc.getString("displayName"))
+                .pendingCorrelationKeys(pendingCorrelationKeys)
+                .matchPolicy(matchPolicy)
+                .coordinatorTaskId(doc.getString("coordinatorTaskId"))
+                .totalCorrelationKeys(doc.getInteger("totalCorrelationKeys"))
                 .build();
     }
 }

@@ -31,6 +31,14 @@ public interface ProcessInstanceQuery {
 
     ProcessInstanceQuery activeNodeId(String activeNodeId);
 
+    /**
+     * Filtra pelas instâncias filhas diretas de um {@code CALL_ACTIVITY_COORDINATOR} — o "quais subprocessos
+     * pertencem à instância X" que antes só dava pra responder buscando cada instância filha individualmente
+     * por id. Ver {@code ProcessInstance.parentInstanceId()} e
+     * docs/engine/21-revisao-observabilidade-e-performance-monitor.md item 11.
+     */
+    ProcessInstanceQuery parentInstanceId(String parentInstanceId);
+
     ProcessInstanceQuery tenantId(String tenantId);
     ProcessInstanceQuery tenantIdIn(List<String> tenantIds);
 

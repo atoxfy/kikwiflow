@@ -171,27 +171,34 @@
           ]
         }
       ],
-      "boundaryEvents": [
+      "boundaryEventIds": ["interruptive-timer-317a0ef1-7c2f-4e1b-9d5b-a74a51a73589"],
+      "layout": {
+        "x": 1182,
+        "y": 1036
+      },
+      "extensionProperties": {}
+    },
+    "interruptive-timer-317a0ef1-7c2f-4e1b-9d5b-a74a51a73589": {
+      "id": "interruptive-timer-317a0ef1-7c2f-4e1b-9d5b-a74a51a73589",
+      "name": "SLA de Solicitação de Dados Expirado",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "providerType": "STATIC",
+      "staticValue": "PT1M",
+      "attachedToRef": "solicitar-dados-task",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
         {
-          "id": "interruptive-timer-317a0ef1-7c2f-4e1b-9d5b-a74a51a73589",
-          "type": "BOUNDARY_INTERRUPTIVE_TIMER",
-          "providerType": "STATIC",
-          "staticValue": "PT1M",
-          "attachedToRef": "solicitar-dados-task",
-          "outgoing": [
-            {
-              "id": "flow-c13be68a-afc0-437e-8a59-05f5befac2dc",
-              "name": "",
-              "targetNodeId": "bdc49e41-7c10-4756-8b17-14ce916144d4",
-              "isDefault": false,
-              "extensionProperties": {}
-            }
-          ]
+          "id": "flow-c13be68a-afc0-437e-8a59-05f5befac2dc",
+          "name": "",
+          "targetNodeId": "bdc49e41-7c10-4756-8b17-14ce916144d4",
+          "isDefault": false,
+          "extensionProperties": {}
         }
       ],
       "layout": {
         "x": 1182,
-        "y": 1036
+        "y": 1096
       },
       "extensionProperties": {}
     },

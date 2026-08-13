@@ -18,6 +18,7 @@
 package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.execution.node.AttachedEventReference;
+import io.kikwiflow.model.execution.node.AttachedTaskType;
 import org.bson.Document;
 
 public final class AttachedEventReferenceMapper {
@@ -28,15 +29,24 @@ public final class AttachedEventReferenceMapper {
         if (reference == null) return null;
 
         return new Document("instanceId", reference.instanceId())
-                .append("definitionId", reference.definitionId());
+                .append("definitionId", reference.definitionId())
+                .append("instanceType", reference.instanceType() != null ? reference.instanceType().name() : null);
     }
 
     public static AttachedEventReference fromDocument(Document doc) {
         if (doc == null) return null;
 
+        // Documentos gravados antes de instanceType existir só continham timers (sempre EXECUTABLE_TASK) —
+        // ver o construtor de compatibilidade em AttachedEventReference.
+        String instanceTypeStr = doc.getString("instanceType");
+        AttachedTaskType instanceType = instanceTypeStr != null
+                ? AttachedTaskType.valueOf(instanceTypeStr)
+                : AttachedTaskType.EXECUTABLE_TASK;
+
         return new AttachedEventReference(
                 doc.getString("instanceId"),
-                doc.getString("definitionId")
+                doc.getString("definitionId"),
+                instanceType
         );
     }
 }

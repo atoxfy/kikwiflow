@@ -28,6 +28,7 @@ public record ProcessInstanceSearchRequest(
         List<String> processDefinitionIds,
         List<String> processDefinitionKeys,
         String activeNodeId,
+        String parentInstanceId,
         String tenantId,
         List<String> tenantIds,
         List<ProcessInstanceStatus> statuses,
@@ -43,12 +44,16 @@ public record ProcessInstanceSearchRequest(
         Integer size
 ) {
 
+    /** Documentado em docs/apis/process-instances/search/api-guide.md como o tamanho máximo de página. */
+    public static final int MAX_SIZE = 100;
+
     public int getOrDefaultPage() {
         return page != null ? page : 0;
     }
 
     public int getOrDefaultSize() {
-        return size != null ? size : 20;
+        int requestedSize = size != null ? size : 20;
+        return requestedSize > 0 ? Math.min(requestedSize, MAX_SIZE) : 20;
     }
 
     public boolean isAscending() {

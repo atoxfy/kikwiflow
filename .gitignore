@@ -3,7 +3,9 @@
 *.jar
 *.war
 *.ear
+docs/
 
+CLAUDE.md
 # Diretório de output do Maven
 target/
 

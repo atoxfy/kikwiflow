@@ -32,7 +32,8 @@ public record ProcessInstanceSnapshot(
         ProcessInstance instance,
         List<ExecutableTask> executableTasks,
         List<ExternalTask> externalTasks,
-        List<Incident> incidents
+        List<Incident> incidents,
+        List<KKFEventCatcherWaitStatus> eventCatcherWaitStatus
 ) {
 
 }

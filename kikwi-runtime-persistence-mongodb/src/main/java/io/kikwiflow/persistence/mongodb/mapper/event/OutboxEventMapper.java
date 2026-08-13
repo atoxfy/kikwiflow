@@ -26,6 +26,7 @@ import io.kikwiflow.model.event.FlowNodeFinished;
 import io.kikwiflow.model.event.GatewayAnswerResolved;
 import io.kikwiflow.model.event.IncidentCreated;
 import io.kikwiflow.model.event.IncidentResolved;
+import io.kikwiflow.model.event.OrphanedChildCompletion;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.model.event.ProcessInstanceStarted;
@@ -60,7 +61,8 @@ public final class OutboxEventMapper {
             Map.entry(CriticalEventType.EXTERNAL_TASK_COMPLETED.name(), ExternalTaskCompletedMapper::fromDocument),
             Map.entry(CriticalEventType.RETRY_SCHEDULED.name(), RetryScheduledMapper::fromDocument),
             Map.entry(CriticalEventType.PROCESS_VARIABLE_CHANGED.name(), ProcessVariableChangedMapper::fromDocument),
-            Map.entry(CriticalEventType.TIMER_FIRED.name(), TimerFiredMapper::fromDocument)
+            Map.entry(CriticalEventType.TIMER_FIRED.name(), TimerFiredMapper::fromDocument),
+            Map.entry(CriticalEventType.ORPHANED_CHILD_COMPLETION.name(), OrphanedChildCompletionMapper::fromDocument)
     );
 
     private OutboxEventMapper() {}
@@ -79,6 +81,7 @@ public final class OutboxEventMapper {
             case RetryScheduled e -> RetryScheduledMapper.toDocument(e);
             case ProcessVariableChanged e -> ProcessVariableChangedMapper.toDocument(e);
             case TimerFired e -> TimerFiredMapper.toDocument(e);
+            case OrphanedChildCompletion e -> OrphanedChildCompletionMapper.toDocument(e);
             default -> throw new IllegalArgumentException(
                     "Kikwiflow Outbox: payload de evento crítico desconhecido: " + entity.getPayload().getClass());
         };

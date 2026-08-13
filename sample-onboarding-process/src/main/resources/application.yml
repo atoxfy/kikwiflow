@@ -8,28 +8,42 @@ spring:
       enabled: true
   data:
     mongodb:
-      uri: mongodb+srv://kikwiflow:{PASS}@onboarding-sample.9um3zkc.mongodb.net/?appName=onboarding-sample
+      uri: mongodb+srv://kikwiflow:pZ8PAv4MULbHazlJ@onboarding-sample.9um3zkc.mongodb.net/?appName=onboarding-sample
       database: kikwiflow_db
       auto-index-creation: true
 kikwiflow:
+  process-definition:
+    auto-deploy-enabled: true
+  security:
+    deploy-enabled: true
+
   execution:
-    task-acquisition-interval-millis: 5000
+    task-acquisition-interval-millis: 1000
     task-acquisition-max-tasks: 12
     max-concurrent-tasks: 200
     shutdown-grace-period-seconds: 30
     lock-timeout-millis: 1200
+  retry:
+    default-retry-interval: PT1M
+    fatal-exceptions:
+      - java.lang.NullPointerException
+      - java.lang.IllegalArgumentException
   rest:
    # base-path: "engine/teste"
+    process-definition:
+      deploy:
+        enabled: true
     cors:
-      allowed-origins: "http://localhost:3000"
+      allowed-origins: "http://localhost:3001"
   stats:
     enabled: false
   outbox:
-    events-enabled: false
+    events-enabled: true
   pulse:
     sse-endpoints:
       enabled: true #Default true
       interval: 5000 # default 5000
+
 
 
 

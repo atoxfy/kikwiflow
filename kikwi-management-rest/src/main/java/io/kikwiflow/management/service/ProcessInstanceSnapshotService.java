@@ -17,8 +17,10 @@
 
 package io.kikwiflow.management.service;
 
+import io.kikwiflow.management.dtos.KKFEventCatcherWaitStatus;
 import io.kikwiflow.management.dtos.ProcessInstanceSnapshot;
 import io.kikwiflow.management.exception.NotFoundException;
+import io.kikwiflow.management.mapper.EventCatcherWaitStatusMapper;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
@@ -62,11 +64,15 @@ public class ProcessInstanceSnapshotService {
         ProcessInstance instance = instanceFuture.join()
                 .orElseThrow(() -> new NotFoundException("Process Instance Not Found: " + processInstanceId));
 
+        List<ExternalTask> externalTasks = extTasksFuture.join();
+        List<KKFEventCatcherWaitStatus> eventCatcherWaitStatus = EventCatcherWaitStatusMapper.compute(externalTasks);
+
         return new ProcessInstanceSnapshot(
                 instance,
                 execTasksFuture.join(),
-                extTasksFuture.join(),
-                incidentsFuture.join()
+                externalTasks,
+                incidentsFuture.join(),
+                eventCatcherWaitStatus
         );
     }
 }

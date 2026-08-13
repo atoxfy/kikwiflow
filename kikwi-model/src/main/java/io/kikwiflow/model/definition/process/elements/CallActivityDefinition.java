@@ -18,12 +18,20 @@
 package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
-import io.kikwiflow.model.execution.node.Executable;
+import io.kikwiflow.model.execution.enumerated.CallActivityIterationMode;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Nó {@code CALL_ACTIVITY_COORDINATOR} — não implementa {@link io.kikwiflow.model.execution.node.Executable}:
+ * não tem handler de negócio próprio (como {@link JoinGatewayDefinition}/{@link ParallelGatewayDefinition}),
+ * o fan-out (coordenadora + N iniciadoras) é montado inteiramente em {@code ContinuationService}, e a
+ * retomada da própria coordenadora (após {@code pendingBranchIds} esvaziar) segue pelo caminho genérico de
+ * {@code ProcessExecutionManager}/{@code Navigator} sem executar handler nenhum — mesmo motivo de
+ * {@code TimerTaskDefinition} não ser {@code WaitState} (ver seu Javadoc).
+ */
 public record CallActivityDefinition(String id,
                                      String name,
                                      String type,
@@ -36,7 +44,8 @@ public record CallActivityDefinition(String id,
                                      LayoutCoordinates layout,
                                      String calledElement,
                                      String collectionVariable,
-                                     String elementVariable) implements FlowNodeDefinition, Executable {
+                                     String elementVariable,
+                                     CallActivityIterationMode iterationMode) implements FlowNodeDefinition {
 
 
     public static Builder builder() {
@@ -57,6 +66,7 @@ public record CallActivityDefinition(String id,
         private String calledElement;
         private String collectionVariable;
         private String elementVariable;
+        private CallActivityIterationMode iterationMode;
 
         private Builder() {}
 
@@ -77,6 +87,11 @@ public record CallActivityDefinition(String id,
 
         public Builder elementVariable(String elementVariable) {
             this.elementVariable = elementVariable;
+            return this;
+        }
+
+        public Builder iterationMode(CallActivityIterationMode iterationMode) {
+            this.iterationMode = iterationMode;
             return this;
         }
 
@@ -128,7 +143,7 @@ public record CallActivityDefinition(String id,
         public CallActivityDefinition build() {
             return new CallActivityDefinition(id,
                     name,
-                    "CALL_ACTIVITY",
+                    "CALL_ACTIVITY_COORDINATOR",
                     description,
                     commitAfter,
                     commitBefore,
@@ -138,7 +153,8 @@ public record CallActivityDefinition(String id,
                     layout,
                     calledElement,
                     collectionVariable,
-                    elementVariable);
+                    elementVariable,
+                    iterationMode);
         }
     }
 }

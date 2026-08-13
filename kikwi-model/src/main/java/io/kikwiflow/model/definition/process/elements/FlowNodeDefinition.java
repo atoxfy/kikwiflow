@@ -33,7 +33,11 @@ public sealed interface FlowNodeDefinition permits StartEventDefinition,
         JoinGatewayDefinition,
         NonInterruptiveTimerEventDefinition,
         ErrorHandlerDefinition,
-        CallActivityDefinition {
+        CallActivityDefinition,
+        EventCatcherDefinition,
+        InterruptiveCatchEventDefinition,
+        TimerTaskDefinition,
+        EventThrowerDefinition {
 
     String id();
     String name();

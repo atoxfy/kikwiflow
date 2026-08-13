@@ -17,28 +17,38 @@
 package io.kikwiflow.persistence.mongodb.mapper.definition;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
+import io.kikwiflow.model.definition.process.elements.EventCatcherDefinition;
+import io.kikwiflow.model.definition.process.elements.EventThrowerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.InterruptiveCatchEventDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.elements.JoinGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
+import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
+import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.CallActivityDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.DefaultEndEventDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.DefaultStartEventDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ErrorHandlerDefinitionMapper;
+import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.EventCatcherDefinitionMapper;
+import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.EventThrowerDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ExclusiveGatewayDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ExecutableTaskDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ExternalTaskDefinitionMapper;
+import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.InterruptiveCatchEventDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.InterruptiveTimerEventDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.JoinGatewayDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.NonInterruptiveTimerEventDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ParallelGatewayDefinitionMapper;
+import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.TimerTaskDefinitionMapper;
 import org.bson.Document;
 
 import java.util.Collections;
@@ -53,17 +63,23 @@ public final class ProcessDefinitionMapper {
 
     static {
 
-        fromDocMappers = Map.of(
-                StartEventDefinition.class.getName(), DefaultStartEventDefinitionMapper::mapToDefinition,
-                EndEventDefinition.class.getName(), DefaultEndEventDefinitionMapper::mapToDefinition,
-                ExecutableTaskDefinition.class.getName(), ExecutableTaskDefinitionMapper::mapToDefinition,
-                ExternalTaskDefinition.class.getName(), ExternalTaskDefinitionMapper::mapToDefinition,
-                ExclusiveGatewayDefinition.class.getName(), ExclusiveGatewayDefinitionMapper::mapToDefinition,
-                JoinGatewayDefinition.class.getName(), JoinGatewayDefinitionMapper::mapToDefinition,
-                ParallelGatewayDefinition.class.getName(), ParallelGatewayDefinitionMapper::mapToDefinition,
-                InterruptiveTimerEventDefinition.class.getName(), InterruptiveTimerEventDefinitionMapper::mapToDefinition,
-                NonInterruptiveTimerEventDefinition.class.getName(), NonInterruptiveTimerEventDefinitionMapper::mapToDefinition,
-                ErrorHandlerDefinition.class.getName(), ErrorHandlerDefinitionMapper::mapToDefinition
+        // Map.of() vai só até 10 pares chave/valor — com 12 tipos de nó, precisa de Map.ofEntries(...).
+        fromDocMappers = Map.ofEntries(
+                Map.entry(StartEventDefinition.class.getName(), DefaultStartEventDefinitionMapper::mapToDefinition),
+                Map.entry(EndEventDefinition.class.getName(), DefaultEndEventDefinitionMapper::mapToDefinition),
+                Map.entry(ExecutableTaskDefinition.class.getName(), ExecutableTaskDefinitionMapper::mapToDefinition),
+                Map.entry(ExternalTaskDefinition.class.getName(), ExternalTaskDefinitionMapper::mapToDefinition),
+                Map.entry(ExclusiveGatewayDefinition.class.getName(), ExclusiveGatewayDefinitionMapper::mapToDefinition),
+                Map.entry(JoinGatewayDefinition.class.getName(), JoinGatewayDefinitionMapper::mapToDefinition),
+                Map.entry(ParallelGatewayDefinition.class.getName(), ParallelGatewayDefinitionMapper::mapToDefinition),
+                Map.entry(InterruptiveTimerEventDefinition.class.getName(), InterruptiveTimerEventDefinitionMapper::mapToDefinition),
+                Map.entry(NonInterruptiveTimerEventDefinition.class.getName(), NonInterruptiveTimerEventDefinitionMapper::mapToDefinition),
+                Map.entry(ErrorHandlerDefinition.class.getName(), ErrorHandlerDefinitionMapper::mapToDefinition),
+                Map.entry(EventCatcherDefinition.class.getName(), EventCatcherDefinitionMapper::mapToDefinition),
+                Map.entry(InterruptiveCatchEventDefinition.class.getName(), InterruptiveCatchEventDefinitionMapper::mapToDefinition),
+                Map.entry(TimerTaskDefinition.class.getName(), TimerTaskDefinitionMapper::mapToDefinition),
+                Map.entry(EventThrowerDefinition.class.getName(), EventThrowerDefinitionMapper::mapToDefinition),
+                Map.entry(CallActivityDefinition.class.getName(), CallActivityDefinitionMapper::mapToDefinition)
         );
     }
 
@@ -147,6 +163,21 @@ public final class ProcessDefinitionMapper {
             }
             case ErrorHandlerDefinition te -> {
                 ErrorHandlerDefinitionMapper.mapToDocument(doc, te);
+            }
+            case EventCatcherDefinition ec -> {
+                EventCatcherDefinitionMapper.mapToDocument(doc, ec);
+            }
+            case InterruptiveCatchEventDefinition ice -> {
+                InterruptiveCatchEventDefinitionMapper.mapToDocument(doc, ice);
+            }
+            case TimerTaskDefinition tt -> {
+                TimerTaskDefinitionMapper.mapToDocument(doc, tt);
+            }
+            case EventThrowerDefinition et -> {
+                EventThrowerDefinitionMapper.mapToDocument(doc, et);
+            }
+            case CallActivityDefinition ca -> {
+                CallActivityDefinitionMapper.mapToDocument(doc, ca);
             }
 
             default -> {

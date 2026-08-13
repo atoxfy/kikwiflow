@@ -31,7 +31,8 @@ public class SchedulePolicyMapper {
             schedulePolicy = new SchedulePolicy(
                     ScheduleType.valueOf(schedulePolicyDoc.getString("type")),
                     schedulePolicyDoc.getString("expression"),
-                    schedulePolicyDoc.getList("fixedDates", String.class)
+                    schedulePolicyDoc.getList("fixedDates", String.class),
+                    schedulePolicyDoc.getInteger("maxOccurrences")
             );
         }
 
@@ -42,7 +43,8 @@ public class SchedulePolicyMapper {
         if(schedulePolicy != null){
             Document schedulePolicyDoc = new Document("expression", schedulePolicy.expression())
                     .append("type", schedulePolicy.type().name())
-                    .append("fixedDates", schedulePolicy.fixedDates());
+                    .append("fixedDates", schedulePolicy.fixedDates())
+                    .append("maxOccurrences", schedulePolicy.maxOccurrences());
 
             doc.append("schedulePolicy", schedulePolicyDoc);
         }

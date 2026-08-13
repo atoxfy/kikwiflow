@@ -17,15 +17,22 @@
 package io.kikwiflow.persistence;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.event.CriticalEventType;
+import io.kikwiflow.model.event.OrphanedChildCompletion;
 import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessInstanceSummary;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
+import io.kikwiflow.model.execution.enumerated.ExternalTaskStatus;
 import io.kikwiflow.model.execution.enumerated.IncidentStatus;
+import io.kikwiflow.model.execution.enumerated.MatchPolicy;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.model.execution.node.AttachedTaskType;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.shared.PageResult;
@@ -131,8 +138,10 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
     @Override
     public long countExternalTasksByDefinitionId(String taskDefinitionId) {
+        // Exclui CORRELATED — mesma razão do MongoKikwiEngineRepository: uma filha de EVENT_CATCHER GROUP já
+        // correlacionada, aguardando só a limpeza em cascata quando a mãe concluir, não é "ativa".
         return externalTaskCollection.values().stream()
-                .filter(t -> taskDefinitionId.equals(t.taskDefinitionId()))
+                .filter(t -> taskDefinitionId.equals(t.taskDefinitionId()) && t.status() != ExternalTaskStatus.CORRELATED)
                 .count();
     }
 
@@ -246,6 +255,39 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     @Override
     public void commitWork(UnitOfWork unitOfWork) {
 
+        // Guard de finalização (ver Javadoc de UnitOfWork.finalizingNodeId) — precisa ser a primeiríssima
+        // coisa que roda: como este repositório não tem transação real cobrindo o método inteiro (é um duplo
+        // de teste single-JVM), "abortar sem escrever nada" só é verdade se o guard falhar antes de qualquer
+        // outra mutação. Cobre tanto "pai concluiu normalmente enquanto um boundary event disparava" quanto
+        // "dois boundary events interruptivos dispararam ao mesmo tempo": só quem primeiro remover esta
+        // entrada específica do mapa vence.
+        // cancelledChildEvents só é populado dentro do guard abaixo, quando o nó finalizado é um
+        // EXECUTABLE_TASK — única forma de ser um CALL_ACTIVITY_COORDINATOR. Não é gatilhado por
+        // executableTasksToDelete genérico (populado em praticamente toda conclusão de tarefa do motor,
+        // qualquer tipo) — ver Javadoc de cancelActiveChildSubtrees.
+        List<OutboxEventEntity> cancelledChildEvents = new ArrayList<>();
+
+        if (unitOfWork.finalizingNodeId() != null) {
+            Object removed = unitOfWork.finalizingNodeType() == AttachedTaskType.EXECUTABLE_TASK
+                    ? executableTaskCollection.remove(unitOfWork.finalizingNodeId())
+                    : externalTaskCollection.remove(unitOfWork.finalizingNodeId());
+
+            if (removed == null) {
+                throw new OptimisticLockingFailureException(
+                        "O nó " + unitOfWork.finalizingNodeId() + " já foi finalizado por um evento concorrente (boundary event ou conclusão normal).");
+            }
+
+            executableTaskCollection.values().removeIf(t -> unitOfWork.finalizingNodeId().equals(t.attachedToRefId()));
+            externalTaskCollection.values().removeIf(t -> unitOfWork.finalizingNodeId().equals(t.attachedToRefId()));
+
+            // Cancelamento recursivo de instâncias filhas já iniciadas — só pode ser relevante quando o nó
+            // finalizado é um EXECUTABLE_TASK (um EXTERNAL_TASK nunca é CALL_ACTIVITY_COORDINATOR). Ver
+            // docs/engine/20-subprocessos-call-activity-especificacao.md, §5.
+            if (unitOfWork.finalizingNodeType() == AttachedTaskType.EXECUTABLE_TASK) {
+                cancelActiveChildSubtrees(unitOfWork.finalizingNodeId(), cancelledChildEvents);
+            }
+        }
+
         if (unitOfWork.instanceToCreate() != null) {
             ProcessInstance incoming = unitOfWork.instanceToCreate();
             Map<String, Integer> activeNodes = new HashMap<>();
@@ -319,16 +361,32 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
             unitOfWork.executableTasksToUpdate().forEach(t -> executableTaskCollection.put(t.id(), t));
         }
 
-        if (unitOfWork.executableTasksToDelete() != null) {
+        if (unitOfWork.executableTasksToDelete() != null && !unitOfWork.executableTasksToDelete().isEmpty()) {
             unitOfWork.executableTasksToDelete().forEach(executableTaskCollection::remove);
+            // Cascata análoga à de ExternalTask/coordinatorTaskId acima, mas para CALL_ACTIVITY_STARTER:
+            // quando a coordenadora é apagada (timeout do boundary event na coordenadora — ver
+            // docs/engine/20-subprocessos-call-activity-especificacao.md, §5), qualquer iniciadora ainda
+            // pendente (que aponta para a coordenadora via joinTaskId) também é removida. Escopo restrito ao
+            // tipo CALL_ACTIVITY_STARTER (não um cascade genérico por joinTaskId) para não arriscar tocar
+            // ramificações de PARALLEL_GATEWAY/JOIN_GATEWAY ainda em andamento.
+            executableTaskCollection.values().removeIf(t ->
+                    t.type() == ExecutableTaskType.CALL_ACTIVITY_STARTER
+                            && t.joinTaskId() != null
+                            && unitOfWork.executableTasksToDelete().contains(t.joinTaskId()));
         }
 
         if (unitOfWork.externalTasksToCreate() != null) {
             unitOfWork.externalTasksToCreate().forEach(this::createExternalTask);
         }
 
-        if (unitOfWork.externalTasksToDelete() != null) {
+        if (unitOfWork.externalTasksToDelete() != null && !unitOfWork.externalTasksToDelete().isEmpty()) {
             unitOfWork.externalTasksToDelete().forEach(externalTaskCollection::remove);
+            // Cascata genérica: qualquer ExternalTask filha (EVENT_CATCHER GROUP) cujo coordinatorTaskId
+            // aponte para uma tarefa apagada nesta mesma transação também é removida — cobre timeout de
+            // boundary timer na mãe e limpeza de irmãs remanescentes na política ANY, sem lógica específica
+            // de EVENT_CATCHER em ContinuationService.
+            externalTaskCollection.values().removeIf(t ->
+                    t.coordinatorTaskId() != null && unitOfWork.externalTasksToDelete().contains(t.coordinatorTaskId()));
         }
 
         if (unitOfWork.incidentsToCreate() != null) {
@@ -342,16 +400,98 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         // unitOfWork.incidentsToResolve() (List<String> de ids) não é populado em lugar nenhum do motor
         // hoje — nem mesmo MongoKikwiEngineRepository o trata. Nenhum comportamento é implementado para ele.
 
+        List<OutboxEventEntity> orphanEvents = new ArrayList<>();
         if (unitOfWork.branchPullIntentions() != null) {
             for (BranchPullIntention intention : unitOfWork.branchPullIntentions()) {
-                resolveBranchPull(intention);
+                resolveBranchPull(intention, unitOfWork, orphanEvents);
             }
         }
 
-        if(outboxPersistenceEnabled && unitOfWork.events() != null && !unitOfWork.events().isEmpty()){
-            this.outboxEventQueue.addAll(unitOfWork.events());
-            this.eventHistory.addAll(unitOfWork.events());
+        List<OutboxEventEntity> allEvents = new ArrayList<>();
+        if (unitOfWork.events() != null) {
+            allEvents.addAll(unitOfWork.events());
         }
+        allEvents.addAll(orphanEvents);
+        allEvents.addAll(cancelledChildEvents);
+
+        if (outboxPersistenceEnabled && !allEvents.isEmpty()) {
+            this.outboxEventQueue.addAll(allEvents);
+            this.eventHistory.addAll(allEvents);
+        }
+    }
+
+    /**
+     * Cancelamento recursivo de subárvore(s) de {@code ProcessInstance} spawnada(s) por uma coordenadora
+     * {@code CALL_ACTIVITY_COORDINATOR} apagada nesta transação via o guard de finalização (ver
+     * docs/engine/20-subprocessos-call-activity-especificacao.md, §5). BFS em duas fases:
+     * <p>
+     * 1. Nível 0: toda instância ACTIVE cujo {@code callerTaskId} é {@code coordinatorTaskId} — os filhos
+     * diretos desta coordenadora especificamente ({@code callerTaskId} escopa por coordenadora, nunca confunde
+     * call activities irmãs no mesmo processo).
+     * <p>
+     * 2. Níveis seguintes: toda instância ACTIVE cujo {@code parentInstanceId} está no nível anterior — cobre
+     * netos/bisnetos de call activities aninhadas dentro do filho, independente de qual coordenadora interna os
+     * gerou.
+     * <p>
+     * Cada instância cancelada tem suas tasks apagadas (mesmo escopo de {@link #removeInstanceAndTasks}),
+     * a própria linha apagada (nunca mantida com {@code status=CANCELLED} — a coleção de runtime é estado
+     * operacional, não histórico, mesma decisão já aplicada a {@code instanceToDelete}), e um evento
+     * {@code PROCESS_INSTANCE_FINISHED} com {@code status=CANCELLED} é acumulado em {@code out} para entrar no
+     * mesmo commit — nunca a exclusão sem o evento correspondente. Incidentes não são tocados (histórico).
+     * <p>
+     * <b>Nota de performance</b> (relevante sobretudo no equivalente Mongo, {@code MongoKikwiEngineRepository}):
+     * o chamador só invoca este método dentro do guard de {@code UnitOfWork.finalizingNodeId} — nunca a partir
+     * de {@code executableTasksToDelete} genérico, que é populado em praticamente toda conclusão de
+     * {@code ExecutableTask} do motor (qualquer tipo, não só coordenadora). {@code finalizingNodeId} só existe
+     * para finalizações por boundary event, ordens de magnitude mais raro.
+     */
+    private void cancelActiveChildSubtrees(String coordinatorTaskId, List<OutboxEventEntity> out) {
+        List<String> frontier = processInstanceCollection.values().stream()
+                .filter(pi -> pi.status() == ProcessInstanceStatus.ACTIVE
+                        && coordinatorTaskId.equals(pi.callerTaskId()))
+                .map(ProcessInstance::id)
+                .toList();
+
+        while (!frontier.isEmpty()) {
+            List<String> nextFrontier = new ArrayList<>();
+
+            for (String instanceId : frontier) {
+                ProcessInstance instance = processInstanceCollection.get(instanceId);
+                if (instance == null) {
+                    continue;
+                }
+
+                nextFrontier.addAll(processInstanceCollection.values().stream()
+                        .filter(pi -> pi.status() == ProcessInstanceStatus.ACTIVE && instanceId.equals(pi.parentInstanceId()))
+                        .map(ProcessInstance::id)
+                        .toList());
+
+                out.add(buildCancelledEvent(instance));
+                removeInstanceAndTasks(instanceId);
+            }
+
+            frontier = nextFrontier;
+        }
+    }
+
+    private OutboxEventEntity buildCancelledEvent(ProcessInstance instance) {
+        ProcessInstanceFinished event = ProcessInstanceFinished.builder()
+                .id(instance.id())
+                .businessKey(instance.businessKey())
+                .status(ProcessInstanceStatus.CANCELLED)
+                .processDefinitionId(instance.processDefinitionId())
+                .variables(instance.variables())
+                .startedAt(instance.startedAt())
+                .endedAt(Instant.now())
+                .businessValue(instance.businessValue())
+                .tenantId(instance.tenantId())
+                .origin(instance.origin())
+                .parentInstanceId(instance.parentInstanceId())
+                .callerTaskId(instance.callerTaskId())
+                .callerBranchId(instance.callerBranchId())
+                .build();
+
+        return new OutboxEventEntity(CriticalEventType.PROCESS_INSTANCE_FINISHED, event);
     }
 
     /**
@@ -380,9 +520,30 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         }
     }
 
-    private void resolveBranchPull(BranchPullIntention intention) {
+    /**
+     * {@code orphanEvents} recebe um {@link OrphanedChildCompletion} (ver
+     * docs/engine/20-subprocessos-call-activity-especificacao.md, §4.4) quando {@code joinTaskId} não é
+     * encontrado — cenário normal apenas para {@code CALL_ACTIVITY_COORDINATOR}: a coordenadora já foi
+     * apagada (timeout do boundary event) antes de um filho tentar liberar sua branch. A identidade da
+     * instância filha vem do próprio {@code unitOfWork} (é o commit da sua própria conclusão): {@code
+     * instanceToDelete} quando ela completou, {@code instanceToUpdate} nos demais casos.
+     */
+    private void resolveBranchPull(BranchPullIntention intention, UnitOfWork unitOfWork, List<OutboxEventEntity> orphanEvents) {
         ExecutableTask joinTask = executableTaskCollection.get(intention.joinTaskId());
         if (joinTask == null) {
+            ProcessInstance childInstance = unitOfWork.instanceToDelete() != null
+                    ? unitOfWork.instanceToDelete()
+                    : unitOfWork.instanceToUpdate();
+
+            orphanEvents.add(new OutboxEventEntity(CriticalEventType.ORPHANED_CHILD_COMPLETION,
+                    new OrphanedChildCompletion(
+                            childInstance != null ? childInstance.id() : null,
+                            childInstance != null ? childInstance.processDefinitionId() : null,
+                            childInstance != null ? childInstance.tenantId() : null,
+                            childInstance != null ? childInstance.parentInstanceId() : null,
+                            intention.joinTaskId(),
+                            intention.branchId(),
+                            Instant.now())));
             return;
         }
 
@@ -526,27 +687,59 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
             return;
         }
 
-        ExternalTask updated = ExternalTask.builder()
-                .id(task.id())
-                .name(task.name())
-                .description(task.description())
-                .taskDefinitionId(task.taskDefinitionId())
-                .processInstanceId(task.processInstanceId())
-                .processDefinitionId(task.processDefinitionId())
-                .status(task.status())
-                .createdAt(task.createdAt())
-                .topicName(task.topicName())
-                .assignee(assignee)
-                .tenantId(task.tenantId())
-                .boundaryEvents(task.boundaryEvents())
-                .attachedToRefType(task.attachedToRefType())
-                .attachedToRefId(task.attachedToRefId())
-                .attachedToRefDefinitionId(task.attachedToRefDefinitionId())
-                .joinTaskId(task.joinTaskId())
-                .build();
+        // toBuilder() preserva todos os campos (inclui os de EVENT_CATCHER) — a reconstrução manual anterior
+        // (campo a campo) já vinha silenciosamente descartando branchId/pendingBranchIds antes desta mudança.
+        ExternalTask updated = task.toBuilder().assignee(assignee).build();
 
         externalTaskCollection.put(externalTaskId, updated);
         writeOutboxEvents(events);
+    }
+
+    @Override
+    public Optional<ExternalTask> findExternalTaskByCorrelationKey(String correlationKey, String tenantId) {
+        // status=CREATED exclui tarefas já correlacionadas (CORRELATED) — uma segunda correlação para a
+        // mesma chave não encontra nada, preservando a proteção de idempotência sem apagar a linha.
+        return externalTaskCollection.values().stream()
+                .filter(t -> correlationKey.equals(t.correlationKey())
+                        && Objects.equals(tenantId, t.tenantId())
+                        && t.status() == ExternalTaskStatus.CREATED)
+                .findFirst();
+    }
+
+    @Override
+    public boolean resolveCorrelationChild(String childTaskId, String parentTaskId, MatchPolicy matchPolicy) {
+        ExternalTask child = externalTaskCollection.get(childTaskId);
+        String correlationKey = child != null ? child.correlationKey() : null;
+
+        // Não apaga a filha aqui — só marca CORRELATED. A limpeza real acontece via cascata por
+        // coordinatorTaskId em commitWork, junto com a tarefa-mãe (ver ExternalTaskStatus.CORRELATED).
+        if (child != null) {
+            externalTaskCollection.put(childTaskId, child.toBuilder().status(ExternalTaskStatus.CORRELATED).build());
+        }
+
+        ExternalTask parent = externalTaskCollection.get(parentTaskId);
+        if (parent == null) {
+            // mãe já não existe mais (ex.: corrida perdida contra outra chave em ANY, ou timeout de boundary
+            // timer) — nada a satisfazer.
+            return false;
+        }
+
+        if (matchPolicy == MatchPolicy.ANY) {
+            if (parent.status() == ExternalTaskStatus.CREATED) {
+                externalTaskCollection.put(parentTaskId, parent.toBuilder().status(ExternalTaskStatus.COMPLETED).build());
+                return true;
+            }
+            return false;
+        }
+
+        // ALL
+        List<String> remaining = new ArrayList<>(parent.pendingCorrelationKeys() != null ? parent.pendingCorrelationKeys() : List.of());
+        remaining.remove(correlationKey);
+
+        ExternalTask updatedParent = parent.toBuilder().pendingCorrelationKeys(remaining).build();
+        externalTaskCollection.put(parentTaskId, updatedParent);
+
+        return remaining.isEmpty();
     }
 
     /**
@@ -656,7 +849,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
 
         Map<String, Long> externalAgg = new HashMap<>();
         for (ExternalTask t : externalTaskCollection.values()) {
-            if (!processDefinitionId.equals(t.processDefinitionId())) {
+            if (!processDefinitionId.equals(t.processDefinitionId()) || t.status() == ExternalTaskStatus.CORRELATED) {
                 continue;
             }
             externalAgg.merge(t.taskDefinitionId(), 1L, Long::sum);
@@ -827,6 +1020,14 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         }
 
         @Override
+        public ProcessInstanceQuery parentInstanceId(String parentInstanceId) {
+            if (parentInstanceId != null && !parentInstanceId.isBlank()) {
+                predicates.add(pi -> parentInstanceId.equals(pi.parentInstanceId()));
+            }
+            return this;
+        }
+
+        @Override
         public ProcessInstanceQuery tenantId(String tenantId) {
             if (tenantId != null && !tenantId.isBlank()) {
                 predicates.add(pi -> tenantId.equals(pi.tenantId()));
@@ -945,7 +1146,8 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                     .limit(size)
                     .map(pi -> new ProcessInstanceSummary(
                             pi.id(), pi.businessKey(), pi.status(), pi.processDefinitionId(),
-                            pi.startedAt(), pi.endedAt(), pi.activeNodes()))
+                            pi.startedAt(), pi.endedAt(), pi.activeNodes(),
+                            pi.parentInstanceId(), pi.callerTaskId(), pi.callerBranchId()))
                     .toList();
 
             return new PageResult<>(content, totalElements, totalPages, page, size);

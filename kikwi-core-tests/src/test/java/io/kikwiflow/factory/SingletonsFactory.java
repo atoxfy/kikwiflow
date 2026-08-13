@@ -23,6 +23,7 @@ import io.kikwiflow.assertion.AssertableKikwiEngine;
 import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.execution.ContinuationService;
+import io.kikwiflow.execution.EventThrowExecutor;
 import io.kikwiflow.execution.FailureHandler;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
@@ -32,7 +33,9 @@ import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.execution.api.handler.TaskHandler;
 import io.kikwiflow.execution.api.parser.ProcessDefinitionParser;
 import io.kikwiflow.execution.api.provider.AnswerProvider;
+import io.kikwiflow.execution.api.provider.CorrelationKeysProvider;
 import io.kikwiflow.execution.api.provider.DueDateProvider;
+import io.kikwiflow.execution.evaluator.CorrelationKeyResolver;
 import io.kikwiflow.execution.evaluator.TimerDueDateEvaluator;
 import io.kikwiflow.execution.policy.DefaultRetryPolicyEvaluator;
 import io.kikwiflow.navigation.Navigator;
@@ -83,6 +86,7 @@ public class SingletonsFactory {
         private final MapTaskHandlerResolver taskHandlerResolver = new MapTaskHandlerResolver();
         private final MapAnswerProviderResolver answerProviderResolver = new MapAnswerProviderResolver();
         private final MapDueDateProviderResolver dueDateProviderResolver = new MapDueDateProviderResolver();
+        private final MapCorrelationKeysProviderResolver correlationKeysProviderResolver = new MapCorrelationKeysProviderResolver();
         private final KikwiflowConfig config = new KikwiflowConfig();
 
         private EngineHarness() {}
@@ -102,6 +106,11 @@ public class SingletonsFactory {
             return this;
         }
 
+        public EngineHarness withCorrelationKeysProvider(String beanName, CorrelationKeysProvider provider) {
+            correlationKeysProviderResolver.register(beanName, provider);
+            return this;
+        }
+
         public EngineHarness withConfig(Consumer<KikwiflowConfig> customizer) {
             customizer.accept(config);
             return this;
@@ -109,7 +118,7 @@ public class SingletonsFactory {
 
         public TestEngine build() {
             DefaultDeploymentSecurityManager deploymentSecurityManager = new DefaultDeploymentSecurityManager(true);
-            DeployValidator deployValidator = new DeployValidator(taskHandlerResolver, answerProviderResolver);
+            DeployValidator deployValidator = new DeployValidator(taskHandlerResolver, answerProviderResolver, correlationKeysProviderResolver);
 
             // FAIL_ON_UNKNOWN_PROPERTIES desligado para casar com o ObjectMapper auto-configurado do Spring Boot
             // em produção (que desliga essa feature por padrão) — fixtures .kikwi reais trazem campos que o
@@ -124,11 +133,13 @@ public class SingletonsFactory {
 
             Navigator navigator = new Navigator(answerProviderResolver);
             CriticalEventRecorder criticalEventRecorder = new CriticalEventRecorder(config);
+            CorrelationKeyResolver correlationKeyResolver = new CorrelationKeyResolver(correlationKeysProviderResolver);
+            EventThrowExecutor eventThrowExecutor = new EventThrowExecutor(correlationKeyResolver);
             ProcessExecutionManager processExecutionManager = new ProcessExecutionManager(
-                    new FlowNodeExecutor(new TaskExecutor(taskHandlerResolver)), navigator, criticalEventRecorder);
+                    new FlowNodeExecutor(new TaskExecutor(taskHandlerResolver), eventThrowExecutor), navigator, criticalEventRecorder);
 
             TimerDueDateEvaluator timerDueDateEvaluator = new TimerDueDateEvaluator(dueDateProviderResolver);
-            ContinuationService continuationService = new ContinuationService(assertableKikwiEngine, timerDueDateEvaluator, config, criticalEventRecorder);
+            ContinuationService continuationService = new ContinuationService(assertableKikwiEngine, timerDueDateEvaluator, correlationKeyResolver, config, criticalEventRecorder);
 
             DefaultRetryPolicyEvaluator retryPolicyEvaluator = new DefaultRetryPolicyEvaluator(config);
             FailureHandler failureHandler = new FailureHandler(assertableKikwiEngine, retryPolicyEvaluator, criticalEventRecorder);
@@ -139,6 +150,7 @@ public class SingletonsFactory {
             KikwiflowEngine kikwiflowEngine = new KikwiflowEngine(
                     processDefinitionService, navigator, processExecutionManager, assertableKikwiEngine,
                     config, eventPublisher, continuationService, failureHandler, taskAcquirer, criticalEventRecorder);
+            eventThrowExecutor.setEngine(kikwiflowEngine);
 
             return new TestEngine(kikwiflowEngine, assertableKikwiEngine, processDefinitionService);
         }

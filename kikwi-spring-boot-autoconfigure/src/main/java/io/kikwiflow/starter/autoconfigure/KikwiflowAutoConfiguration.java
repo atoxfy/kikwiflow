@@ -22,6 +22,7 @@ import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.execution.ContinuationService;
+import io.kikwiflow.execution.EventThrowExecutor;
 import io.kikwiflow.execution.FailureHandler;
 import io.kikwiflow.execution.FlowNodeExecutor;
 import io.kikwiflow.execution.ProcessExecutionManager;
@@ -31,8 +32,10 @@ import io.kikwiflow.execution.TaskExecutor;
 import io.kikwiflow.execution.TaskHandlerResolver;
 import io.kikwiflow.execution.api.parser.ProcessDefinitionParser;
 import io.kikwiflow.execution.api.resolver.AnswerProviderResolver;
+import io.kikwiflow.execution.api.resolver.CorrelationKeysProviderResolver;
 import io.kikwiflow.execution.api.resolver.DueDateProviderResolver;
 import io.kikwiflow.execution.api.retry.RetryPolicyEvaluator;
+import io.kikwiflow.execution.evaluator.CorrelationKeyResolver;
 import io.kikwiflow.execution.evaluator.TimerDueDateEvaluator;
 import io.kikwiflow.execution.policy.DefaultRetryPolicyEvaluator;
 import io.kikwiflow.navigation.Navigator;
@@ -45,6 +48,7 @@ import io.kikwiflow.security.DefaultVariableSecurityPolicyManager;
 import io.kikwiflow.security.api.DeploymentSecurityManager;
 import io.kikwiflow.security.api.VariableSecurityPolicyManager;
 import io.kikwiflow.starter.autoconfigure.resolvers.SpringAnswerProviderResolver;
+import io.kikwiflow.starter.autoconfigure.resolvers.SpringCorrelationKeysProviderResolver;
 import io.kikwiflow.starter.autoconfigure.resolvers.SpringDueDateProviderResolver;
 import io.kikwiflow.starter.autoconfigure.resolvers.SpringTaskHandlerResolver;
 import io.kikwiflow.validation.DeployValidator;
@@ -109,8 +113,9 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public DeployValidator deployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderResolver answerProviderResolver){
-        return new DeployValidator(taskHandlerResolver, answerProviderResolver);
+    public DeployValidator deployValidator(TaskHandlerResolver taskHandlerResolver, AnswerProviderResolver answerProviderResolver,
+                                            CorrelationKeysProviderResolver correlationKeysProviderResolver){
+        return new DeployValidator(taskHandlerResolver, answerProviderResolver, correlationKeysProviderResolver);
     }
 
     @Bean
@@ -178,14 +183,35 @@ public class KikwiflowAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ProcessExecutionManager processExecutionManager(TaskHandlerResolver taskHandlerResolver, Navigator navigator, CriticalEventRecorder criticalEventRecorder) {
-        return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(taskHandlerResolver)), navigator, criticalEventRecorder);
+    public EventThrowExecutor eventThrowExecutor(CorrelationKeyResolver correlationKeyResolver) {
+        return new EventThrowExecutor(correlationKeyResolver);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config, TimerDueDateEvaluator dueDateResolver, CriticalEventRecorder criticalEventRecorder) {
-        return new ContinuationService(repository, dueDateResolver, config, criticalEventRecorder);
+    public ProcessExecutionManager processExecutionManager(TaskHandlerResolver taskHandlerResolver, Navigator navigator,
+            CriticalEventRecorder criticalEventRecorder, EventThrowExecutor eventThrowExecutor) {
+        return new ProcessExecutionManager(new FlowNodeExecutor(new TaskExecutor(taskHandlerResolver), eventThrowExecutor), navigator, criticalEventRecorder);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ContinuationService continuationService(KikwiEngineRepository repository, KikwiflowConfig config,
+            TimerDueDateEvaluator dueDateResolver, CorrelationKeyResolver correlationKeyResolver,
+            CriticalEventRecorder criticalEventRecorder) {
+        return new ContinuationService(repository, dueDateResolver, correlationKeyResolver, config, criticalEventRecorder);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CorrelationKeysProviderResolver correlationKeysProviderResolver(ApplicationContext applicationContext) {
+        return new SpringCorrelationKeysProviderResolver(applicationContext);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CorrelationKeyResolver correlationKeyResolver(CorrelationKeysProviderResolver correlationKeysProviderResolver) {
+        return new CorrelationKeyResolver(correlationKeysProviderResolver);
     }
 
     @Bean
@@ -251,9 +277,10 @@ public class KikwiflowAutoConfiguration {
             ContinuationService continuationService,
             FailureHandler failureHandler,
             TaskAcquirer taskAcquirer,
-            CriticalEventRecorder criticalEventRecorder) {
+            CriticalEventRecorder criticalEventRecorder,
+            EventThrowExecutor eventThrowExecutor) {
 
-        return new KikwiflowEngine(
+        KikwiflowEngine engine = new KikwiflowEngine(
                 processDefinitionService,
                 navigator,
                 processExecutionManager,
@@ -265,5 +292,12 @@ public class KikwiflowAutoConfiguration {
                 taskAcquirer,
                 criticalEventRecorder
         );
+
+        // Quebra o ciclo construtor KikwiflowEngine -> ProcessExecutionManager -> FlowNodeExecutor ->
+        // EventThrowExecutor -> KikwiflowEngine: atribuído depois que o engine já existe, mesmo padrão de
+        // TaskAcquirer.start(engine) logo abaixo.
+        eventThrowExecutor.setEngine(engine);
+
+        return engine;
     }
 }

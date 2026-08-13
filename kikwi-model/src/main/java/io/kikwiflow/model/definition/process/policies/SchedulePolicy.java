@@ -24,5 +24,11 @@ import java.util.List;
 public record SchedulePolicy(
         ScheduleType type,
         String expression,
-        List<String> fixedDates
+        List<String> fixedDates,
+        // Teto opcional de ciclos do laço de recorrência de um BOUNDARY_NON_INTERRUPTIVE_TIMER (ver
+        // TimerDueDateEvaluator.calculateNextSchedule). Null = comportamento legado, recorrência indefinida
+        // (bounded só por RATE_DURATION vencer/FIXED_DATES esgotar, se aplicável). Contagem 1-based: com
+        // maxOccurrences = 3, o timer dispara nos ciclos 1, 2 e 3, e o 4º nunca é agendado — útil para réguas
+        // de cobrança/lembrete com um número fixo de tentativas, independente de quando o nó pai terminar.
+        Integer maxOccurrences
 ) {}

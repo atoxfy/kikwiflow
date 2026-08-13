@@ -23,9 +23,12 @@ import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.event.CriticalEventRecorder;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
+import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.FlowNodeExecutionSnapshot;
 import io.kikwiflow.model.execution.enumerated.NodeExecutionStatus;
@@ -70,6 +73,15 @@ public class ProcessExecutionManager {
     /**
      * Executa a agenda de nós em memória até atingir uma fronteira transacional,
      * um WaitState ou uma divisão paralela (Split).
+     *
+     * @param guardSynchronousHandlers quando {@code true}, força uma parada antes do primeiro
+     *        {@code ExecutableTaskDefinition} encontrado nesta chamada, mesmo sem {@code commitBefore}
+     *        declarado — usado exclusivamente pela saída de um boundary event interruptivo (timer ou catch
+     *        event) disparando, para impedir que um handler com efeito colateral real rode antes do guard de
+     *        finalização em {@code commitWork} decidir quem venceu a corrida contra um irmão ou o próprio pai
+     *        concluindo normalmente (ver docs/engine/19-guard-de-finalizacao-boundary-events.md, seção "fluxo
+     *        fantasma"). Nós de controle puro no caminho (gateways, join, end event) continuam avaliados
+     *        normalmente — só o handler em si é adiado. {@code false} em todo o resto do motor.
      */
     public ExecutionResult executeFlow(
             FlowNodeDefinition startPoint,
@@ -77,7 +89,8 @@ public class ProcessExecutionManager {
             String initialJoinTaskId,
             ProcessInstanceExecution processInstance,
             ProcessDefinition processDefinition,
-            boolean isResumingFromAsyncBefore) {
+            boolean isResumingFromAsyncBefore,
+            boolean guardSynchronousHandlers) {
 
         Queue<ExecutionFrame> agenda = new LinkedList<>();
         agenda.add(new ExecutionFrame(startPoint, initialBranchId, initialJoinTaskId));
@@ -94,7 +107,9 @@ public class ProcessExecutionManager {
             String currentJoinTaskId = currentFrame.joinTaskId();
 
 
-            final boolean shouldStopForCommitBefore = isCommitBefore(currentNode) && !(isFirstNodeInLoop && isResumingFromAsyncBefore);
+            boolean mustGuardThisHandler = guardSynchronousHandlers && currentNode instanceof ExecutableTaskDefinition;
+            final boolean shouldStopForCommitBefore = (isCommitBefore(currentNode) || mustGuardThisHandler)
+                    && !(isFirstNodeInLoop && isResumingFromAsyncBefore);
 
             if (isWaitState(currentNode) || shouldStopForCommitBefore) {
                 return new ExecutionResult(
@@ -197,7 +212,22 @@ public class ProcessExecutionManager {
         return flowNodeDefinition instanceof WaitState;
     }
 
+    /**
+     * {@code TimerTaskDefinition} e {@code CallActivityDefinition} são sempre tratados como
+     * {@code commitBefore: true}, independente do valor declarado no {@code .kikwi}. Um timer não pode, por
+     * natureza, ser executado de forma síncrona (não há como "bloquear a thread" até o dueDate); um
+     * {@code CALL_ACTIVITY_COORDINATOR} precisa de uma transação própria para materializar a coordenadora + N
+     * iniciadoras (ver {@code ContinuationService.generateNextTasksWithContext}) — nunca pode rodar inline.
+     * Ambos reaproveitam a mesma checagem de {@code isResumingFromAsyncBefore} já usada para
+     * {@code ExecutableTaskDefinition} assíncrona, que corretamente distingue "primeira vez" (pausa) de
+     * "retomando após o disparo" (segue para as arestas de saída) — ao contrário de {@code WaitState}, que
+     * pausaria de novo indefinidamente numa {@code ExecutableTask} retomada. É essa distinção que faz a
+     * retomada da própria coordenadora (após liberada de {@code AWAITING_BRANCHES}) cair direto no caminho
+     * genérico de navegação, sem dispatch dedicado nenhum.
+     */
     private boolean isCommitBefore(FlowNodeDefinition flowNodeDefinition) {
-        return Boolean.TRUE.equals(flowNodeDefinition.commitBefore());
+        return Boolean.TRUE.equals(flowNodeDefinition.commitBefore())
+                || flowNodeDefinition instanceof TimerTaskDefinition
+                || flowNodeDefinition instanceof CallActivityDefinition;
     }
 }

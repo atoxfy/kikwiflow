@@ -21,10 +21,20 @@ import io.kikwiflow.management.dtos.ProcessInstanceSearchRequest;
 import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
 
 import java.util.Map;
+import java.util.Set;
 
 public final class ProcessInstanceQueryMapper {
 
     private ProcessInstanceQueryMapper() {}
+
+    // Campos de ProcessInstanceSummary (o que listSummary() realmente projeta e devolve) que fazem sentido como
+    // ordenação — nomes de domínio, não de armazenamento. Sem esta whitelist, orderBy ia direto para
+    // Sorts.ascending/descending com qualquer valor vindo do cliente. Tradução para detalhes de storage (ex.:
+    // "id" -> "_id" no Mongo) é responsabilidade de cada implementação de ProcessInstanceQuery, não deste
+    // mapper — o backend in-memory usado pelos testes do motor espera o nome de campo literal "id".
+    private static final Set<String> ALLOWED_ORDER_BY_FIELDS = Set.of(
+            "id", "businessKey", "status", "processDefinitionId", "startedAt", "endedAt"
+    );
 
     public static ProcessInstanceQuery applyRequest(ProcessInstanceQuery query, ProcessInstanceSearchRequest request) {
         if (request == null) {
@@ -35,6 +45,7 @@ public final class ProcessInstanceQueryMapper {
                 .processDefinitionIdIn(request.processDefinitionIds())
                 .processDefinitionKeyIn(request.processDefinitionKeys())
                 .activeNodeId(request.activeNodeId())
+                .parentInstanceId(request.parentInstanceId())
                 .tenantId(request.tenantId())
                 .tenantIdIn(request.tenantIds())
                 .statusIn(request.statuses())
@@ -55,10 +66,21 @@ public final class ProcessInstanceQueryMapper {
             }
         }
 
-        query.orderBy(request.orderBy(), request.isAscending())
+        query.orderBy(resolveOrderByField(request.orderBy()), request.isAscending())
                 .page(request.getOrDefaultPage())
                 .size(request.getOrDefaultSize());
 
         return query;
+    }
+
+    private static String resolveOrderByField(String orderBy) {
+        if (orderBy == null || orderBy.isBlank()) {
+            return null;
+        }
+        if (!ALLOWED_ORDER_BY_FIELDS.contains(orderBy)) {
+            throw new IllegalArgumentException(
+                    "Campo de ordenação inválido: '" + orderBy + "'. Valores aceitos: " + ALLOWED_ORDER_BY_FIELDS);
+        }
+        return orderBy;
     }
 }

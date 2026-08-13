@@ -25,6 +25,7 @@ import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.enumerated.MatchPolicy;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.stats.KKFMetrics;
@@ -172,6 +173,16 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public Optional<ExternalTask> findExternalTaskByCorrelationKey(String correlationKey, String tenantId) {
+        return inMemoryKikwiEngineRepository.findExternalTaskByCorrelationKey(correlationKey, tenantId);
+    }
+
+    @Override
+    public boolean resolveCorrelationChild(String childTaskId, String parentTaskId, MatchPolicy matchPolicy) {
+        return inMemoryKikwiEngineRepository.resolveCorrelationChild(childTaskId, parentTaskId, matchPolicy);
+    }
+
+    @Override
     public Optional<ExternalTask> findExternalTaskById(String externalTaskId) {
         return inMemoryKikwiEngineRepository.findExternalTaskById(externalTaskId);
     }
@@ -274,6 +285,49 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
         List<ExternalTask> tasks = inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
         assertTrue(tasks.stream().noneMatch(task -> task.taskDefinitionId().equals(taskDefinitionId)),
                 "Expected to not find an active external task with definition ID '" + taskDefinitionId + "' but one was found.");
+    }
+
+    /**
+     * Conta as tarefas-filhas (EVENT_CATCHER_CHILD) ainda pendentes (status CREATED) para o nó GROUP com o
+     * {@code taskDefinitionId} informado. Filhas já correlacionadas (status CORRELATED) não contam como
+     * pendentes — elas continuam na coleção até a tarefa-mãe concluir, mas não estão mais aguardando nada
+     * (ver {@code assertHasCorrelatedEventCatcherChildren}).
+     */
+    public void assertHasPendingEventCatcherChildren(String processInstanceId, String taskDefinitionId, int expectedCount) {
+        List<ExternalTask> tasks = inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
+        long matching = tasks.stream()
+                .filter(t -> taskDefinitionId.equals(t.taskDefinitionId())
+                        && t.coordinatorTaskId() != null
+                        && t.status() == io.kikwiflow.model.execution.enumerated.ExternalTaskStatus.CREATED)
+                .count();
+        assertEquals(expectedCount, matching,
+                "Expected " + expectedCount + " pending EVENT_CATCHER children for '" + taskDefinitionId + "', but found " + matching);
+    }
+
+    /**
+     * Conta as tarefas-filhas já correlacionadas (status CORRELATED, ainda não limpas pela cascata) para o nó
+     * GROUP com o {@code taskDefinitionId} informado — usado para confirmar que displayName/correlationKey
+     * sobrevivem à correlação em vez de serem apagados imediatamente.
+     */
+    public void assertHasCorrelatedEventCatcherChildren(String processInstanceId, String taskDefinitionId, int expectedCount) {
+        List<ExternalTask> tasks = inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
+        long matching = tasks.stream()
+                .filter(t -> taskDefinitionId.equals(t.taskDefinitionId())
+                        && t.coordinatorTaskId() != null
+                        && t.status() == io.kikwiflow.model.execution.enumerated.ExternalTaskStatus.CORRELATED)
+                .count();
+        assertEquals(expectedCount, matching,
+                "Expected " + expectedCount + " correlated (not-yet-cleaned-up) EVENT_CATCHER children for '" + taskDefinitionId + "', but found " + matching);
+    }
+
+    /**
+     * Confirma que nem a tarefa-mãe nem nenhuma tarefa-filha do EVENT_CATCHER GROUP com o {@code taskDefinitionId}
+     * informado restam ativas (a mãe foi completada/interrompida e a cascata de limpeza apagou as filhas).
+     */
+    public void assertEventCatcherResolved(String processInstanceId, String taskDefinitionId) {
+        List<ExternalTask> tasks = inMemoryKikwiEngineRepository.findExternalTasksByProcessInstanceId(processInstanceId);
+        assertTrue(tasks.stream().noneMatch(t -> taskDefinitionId.equals(t.taskDefinitionId())),
+                "Expected no remaining EVENT_CATCHER tasks (parent or children) for '" + taskDefinitionId + "', but some were found.");
     }
 
     public void assertThatProcessInstanceIsActive(String processInstanceId) {

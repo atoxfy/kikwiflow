@@ -17,6 +17,7 @@
 
 package io.kikwiflow.management.exception;
 
+import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.management.annotation.KikwiRestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,15 @@ public class KikwiflowExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
+    // KikwiflowEngine.correlateMessage lança essa exceção (kikwi-core) para todos os casos de "nenhum
+    // EVENT_CATCHER ativo aguardando essa chave" — chave nunca existiu, já consumida, corrida ANY já decidida,
+    // cancelada por boundary, ou tenant errado. Sem este handler, virava 500 genérico.
+    @ExceptionHandler(TaskNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTaskNotFound(TaskNotFoundException ex) {
+        var error = new ErrorResponse("NOT_FOUND", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
     @ExceptionHandler(NotImplementedException.class)
     public ResponseEntity<ErrorResponse> handleNotImplemented(NotImplementedException ex) {
         var error = new ErrorResponse("NOT_IMPLEMENTED", ex.getMessage());
@@ -42,6 +52,14 @@ public class KikwiflowExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
         var error = new ErrorResponse("CONFLICT", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    // Ex.: ProcessInstanceQueryMapper rejeitando um campo de orderBy fora da whitelist. Sem este handler, virava
+    // 500 genérico em vez de sinalizar um erro de entrada do cliente.
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        var error = new ErrorResponse("BAD_REQUEST", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     public record ErrorResponse(String code, String message) {}

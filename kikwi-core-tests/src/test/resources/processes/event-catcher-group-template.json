@@ -1,0 +1,65 @@
+{
+  "key": "event-catcher-group-template",
+  "name": "Espera de Correlacao em Grupo via Template",
+  "description": "Fixture de teste: start -> EVENT_CATCHER (GROUP, TEMPLATE, ALL) -> end. Lista de eventos fixa, declarada no .kikwi, nao depende de nenhuma variavel de lista em runtime.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-catcher", "name": "", "targetNodeId": "WAIT_PRODUCTS_EFFECTIVATED", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_PRODUCTS_EFFECTIVATED": {
+      "id": "WAIT_PRODUCTS_EFFECTIVATED",
+      "name": "Aguardar Efetivacao dos Produtos",
+      "type": "EVENT_CATCHER",
+      "catchType": "GROUP",
+      "providerType": "TEMPLATE",
+      "matchPolicy": "ALL",
+      "correlationTemplates": [
+        {
+          "keySegments": [
+            { "type": "LITERAL", "value": "CONTA_CORRENTE_" },
+            { "type": "VARIABLE", "value": "cpf" },
+            { "type": "LITERAL", "value": "_EFETIVADA" }
+          ],
+          "displayNameSegments": [
+            { "type": "LITERAL", "value": "Efetivacao: Conta Corrente" }
+          ]
+        },
+        {
+          "keySegments": [
+            { "type": "LITERAL", "value": "CARTAO_CREDITO_" },
+            { "type": "VARIABLE", "value": "cpf" },
+            { "type": "LITERAL", "value": "_EFETIVADA" }
+          ],
+          "displayNameSegments": [
+            { "type": "LITERAL", "value": "Efetivacao: Cartao de Credito" }
+          ]
+        }
+      ],
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-catcher-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

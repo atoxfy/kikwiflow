@@ -4,12 +4,15 @@ import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.model.execution.enumerated.MatchPolicy;
 import io.kikwiflow.model.execution.node.ExecutableTask;
+import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public interface CommandRepository {
@@ -46,4 +49,20 @@ public interface CommandRepository {
     void unclaim(String externalTaskId, List<OutboxEventEntity> events);
 
     void deleteProcessInstanceById(String processInstanceId);
+
+    /**
+     * Localiza uma ExternalTask ativa (EVENT_CATCHER standalone ou filha de um grupo) pela sua chave de
+     * correlação externa, restrita ao tenant informado.
+     */
+    Optional<ExternalTask> findExternalTaskByCorrelationKey(String correlationKey, String tenantId);
+
+    /**
+     * Apaga atomicamente a tarefa-filha {@code childTaskId} e resolve a pendência na tarefa-mãe
+     * {@code parentTaskId} de acordo com a {@code matchPolicy} (ALL: remove a chave da lista de pendências e
+     * verifica se zerou; ANY: tenta transicionar o status da mãe para COMPLETED via CAS).
+     *
+     * @return {@code true} se esta chamada foi responsável por satisfazer a matchPolicy — o chamador deve, em
+     *         seguida, completar a tarefa-mãe normalmente (ex.: via {@code completeExternalTask}).
+     */
+    boolean resolveCorrelationChild(String childTaskId, String parentTaskId, MatchPolicy matchPolicy);
 }

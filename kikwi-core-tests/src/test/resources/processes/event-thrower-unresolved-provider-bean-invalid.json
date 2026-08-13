@@ -1,0 +1,42 @@
+{
+  "key": "event-thrower-unresolved-provider-bean-invalid",
+  "name": "Fixture Negativa: EVENT_THROWER BEAN com bean nao registrado",
+  "description": "Fixture de teste: EVENT_THROWER com providerType BEAN apontando para um bean que nao foi registrado no CorrelationKeysProviderResolver — rejeitado por DeployValidator.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-thrower", "name": "", "targetNodeId": "NOTIFY_ORDER_PAID", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "NOTIFY_ORDER_PAID": {
+      "id": "NOTIFY_ORDER_PAID",
+      "name": "Notificar Pagamento do Pedido",
+      "type": "EVENT_THROWER",
+      "providerType": "BEAN",
+      "providerBean": "beanQueNaoExiste",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-thrower-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "Fim",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

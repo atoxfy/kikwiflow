@@ -38,7 +38,7 @@ public record InterruptiveTimerEventDefinition(String id,
                                                String providerBean,
                                                String staticValue,
                                                Map<String, String> extensionProperties,
-                                               LayoutCoordinates layout) implements BoundaryEventDefinition, FlowNodeDefinition {
+                                               LayoutCoordinates layout) implements BoundaryEventDefinition, FlowNodeDefinition, TimerDueDateSource {
 
     public static InterruptiveTimerEventDefinition.Builder builder() {
         return new InterruptiveTimerEventDefinition.Builder();

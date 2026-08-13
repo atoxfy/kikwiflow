@@ -1,0 +1,55 @@
+{
+  "key": "call-activity-multi-child-parent",
+  "name": "Coordenador Call Activity - Multiplos Filhos",
+  "description": "Fixture de teste: start -> CALL_CHILD (CALL_ACTIVITY_COORDINATOR, collectionVariable=documents, elementVariable=document) -> AFTER_CALL (EXECUTABLE_TASK) -> end. Usada para provar o fan-out paralelo sobre uma lista em runtime.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-call", "name": "", "targetNodeId": "CALL_CHILD", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALL_CHILD": {
+      "id": "CALL_CHILD",
+      "name": "Chamar Processos Filhos",
+      "type": "CALL_ACTIVITY_COORDINATOR",
+      "calledElement": "call-activity-child-process",
+      "collectionVariable": "documents",
+      "elementVariable": "document",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-call-to-after", "name": "", "targetNodeId": "AFTER_CALL", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_CALL": {
+      "id": "AFTER_CALL",
+      "name": "Depois da Call Activity",
+      "type": "EXECUTABLE_TASK",
+      "executor": "afterCallHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

@@ -1,0 +1,80 @@
+{
+  "key": "event-catcher-standalone-timeout-followup",
+  "name": "Espera de Correlacao Unica com Timeout e Continuacao",
+  "description": "Fixture de teste: start -> EVENT_CATCHER (STANDALONE, VARIABLE) com timer de borda interruptivo -> EXTERNAL_TASK (mantem o processo ativo) -> end. Usada para provar que a correlacao normal limpa o timer de borda sem depender do wipe em bloco de uma instancia concluida.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-catcher", "name": "", "targetNodeId": "WAIT_ORDER_PAID", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_ORDER_PAID": {
+      "id": "WAIT_ORDER_PAID",
+      "name": "Aguardar Pagamento do Pedido",
+      "type": "EVENT_CATCHER",
+      "catchType": "STANDALONE",
+      "providerType": "VARIABLE",
+      "providerVariable": "orderId",
+      "keyPrefix": "ORDER_",
+      "keySuffix": "_PAID",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["TIMER_SLA_TIMEOUT"],
+      "outgoing": [
+        { "id": "flow-catcher-to-followup", "name": "", "targetNodeId": "AFTER_PAYMENT_TASK", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "TIMER_SLA_TIMEOUT": {
+      "id": "TIMER_SLA_TIMEOUT",
+      "name": "Timeout de SLA",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "attachedToRef": "WAIT_ORDER_PAID",
+      "providerType": "STATIC",
+      "staticValue": "PT24H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-timeout-to-end", "name": "", "targetNodeId": "END_EVENT_TIMEOUT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_PAYMENT_TASK": {
+      "id": "AFTER_PAYMENT_TASK",
+      "name": "Confirmar Recebimento (tarefa externa)",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-followup-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Pedido Pago",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_TIMEOUT": {
+      "id": "END_EVENT_TIMEOUT",
+      "name": "Cancelado por Timeout",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

@@ -38,16 +38,24 @@ import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.WriteModel;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.event.CriticalEventType;
+import io.kikwiflow.model.event.OrphanedChildCompletion;
 import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.event.ProcessInstanceFinished;
 import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessInstanceSummary;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
+import io.kikwiflow.model.execution.enumerated.ExternalTaskStatus;
+import io.kikwiflow.model.execution.enumerated.MatchPolicy;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.model.execution.node.AttachedTaskType;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.shared.PageResult;
@@ -86,6 +94,7 @@ import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.in;
 import static com.mongodb.client.model.Filters.lte;
+import static com.mongodb.client.model.Filters.ne;
 import static com.mongodb.client.model.Filters.or;
 
 public class MongoKikwiEngineRepository implements KikwiEngineRepository {
@@ -96,6 +105,10 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     private final String EXECUTABLE_TASK_COLLECTION = "executable_tasks";
     private final String INCIDENTS_COLLECTION = "incidents";
     private final String OUTBOX_EVENTS_COLLECTION = "outbox_events";
+
+    // Documentado como máximo em docs/apis/process-instances/search/api-guide.md — antes desta constante, nada
+    // no código impedia um `size` maior que este.
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final MongoClient mongoClient;
     private final String databaseName;
@@ -143,8 +156,10 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     public long countExternalTasksByDefinitionId(String id){
+        // Exclui CORRELATED: uma filha de EVENT_CATCHER GROUP já correlacionada, mas ainda não limpa (aguarda
+        // a mãe concluir) não deveria contar como "ativa" numa métrica genérica de contagem.
         return getDatabase().getCollection(EXTERNAL_TASK_COLLECTION).countDocuments(
-                eq("taskDefinitionId", id)
+                and(eq("taskDefinitionId", id), ne("status", ExternalTaskStatus.CORRELATED.name()))
         );
     }
 
@@ -223,6 +238,44 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
                 MongoCollection<Document> executableTasks = getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION);
                 MongoCollection<Document> incidents = getDatabase().getCollection(INCIDENTS_COLLECTION);
+
+                // Guard de finalização (ver Javadoc de UnitOfWork.finalizingNodeId) — roda antes de qualquer
+                // outra escrita desta transação. Cobre tanto "pai concluiu normalmente enquanto um boundary
+                // event disparava" quanto "dois boundary events interruptivos (timer + catch event) dispararam
+                // ao mesmo tempo": um `deleteOne` por _id é atômico por natureza no Mongo, então só quem
+                // primeiro apagar esta linha específica vence e prossegue — a outra transação, ao tentar a
+                // mesma operação, apaga zero documentos, e abortamos ela inteira sem escrever nada. A cascata
+                // dos irmãos (attachedToRefId) só roda no caminho vencedor, depois do guard.
+                // cancelledChildEvents é preenchido abaixo, só quando o nó finalizado é um EXECUTABLE_TASK —
+                // única forma de ser um CALL_ACTIVITY_COORDINATOR (ver justificativa de performance no Javadoc
+                // de cancelActiveChildSubtrees). Declarado aqui porque precisa estar em escopo para o merge em
+                // allEvents mais abaixo, mas populado dentro do guard, não do bloco de executableTasksToDelete
+                // (que roda em praticamente toda conclusão de tarefa do motor — gatilho errado para isto).
+                List<OutboxEventEntity> cancelledChildEvents = new ArrayList<>();
+
+                if (unitOfWork.finalizingNodeId() != null) {
+                    MongoCollection<Document> guardedCollection = unitOfWork.finalizingNodeType() == AttachedTaskType.EXECUTABLE_TASK
+                            ? executableTasks : externalTasks;
+
+                    DeleteResult guardResult = guardedCollection.deleteOne(clientSession, eq("_id", unitOfWork.finalizingNodeId()));
+
+                    if (guardResult.getDeletedCount() == 0) {
+                        throw new OptimisticLockingFailureException(
+                                "O nó " + unitOfWork.finalizingNodeId() + " já foi finalizado por um evento concorrente (boundary event ou conclusão normal).");
+                    }
+
+                    executableTasks.deleteMany(clientSession, eq("attachedToRefId", unitOfWork.finalizingNodeId()));
+                    externalTasks.deleteMany(clientSession, eq("attachedToRefId", unitOfWork.finalizingNodeId()));
+
+                    // Cancelamento recursivo de instâncias filhas já iniciadas — só pode ser relevante quando o
+                    // nó finalizado é um EXECUTABLE_TASK (todo CALL_ACTIVITY_COORDINATOR é um; um EXTERNAL_TASK
+                    // nunca é). Ver docs/engine/20-subprocessos-call-activity-especificacao.md, §5.
+                    if (unitOfWork.finalizingNodeType() == AttachedTaskType.EXECUTABLE_TASK) {
+                        cancelledChildEvents.addAll(cancelActiveChildSubtrees(
+                                clientSession, processInstances, executableTasks, externalTasks,
+                                unitOfWork.finalizingNodeId()));
+                    }
+                }
 
                 if (unitOfWork.instanceToCreate() != null) {
                     Document instanceDoc = ProcessInstanceMapper.toDocument(unitOfWork.instanceToCreate());
@@ -358,6 +411,14 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     externalTasks.bulkWrite(clientSession, externalTaskWrites);
                 }
 
+                if (unitOfWork.externalTasksToDelete() != null && !unitOfWork.externalTasksToDelete().isEmpty()) {
+                    // Cascata genérica: qualquer ExternalTask filha (EVENT_CATCHER GROUP) cujo coordinatorTaskId
+                    // aponte para uma tarefa apagada nesta mesma transação também é removida — cobre timeout de
+                    // boundary timer na mãe e limpeza de irmãs remanescentes na política ANY, sem lógica
+                    // específica de EVENT_CATCHER em ContinuationService.
+                    externalTasks.deleteMany(clientSession, in("coordinatorTaskId", unitOfWork.externalTasksToDelete()));
+                }
+
                 List<WriteModel<Document>> executableTaskWrites = new ArrayList<>();
                 if (unitOfWork.executableTasksToCreate() != null && !unitOfWork.executableTasksToCreate().isEmpty()) {
                     unitOfWork.executableTasksToCreate().forEach(task ->
@@ -366,6 +427,15 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 }
                 if (unitOfWork.executableTasksToDelete() != null && !unitOfWork.executableTasksToDelete().isEmpty()) {
                     executableTaskWrites.add(new DeleteManyModel<>(in("_id", unitOfWork.executableTasksToDelete())));
+                    // Cascata análoga à de ExternalTask/coordinatorTaskId acima, mas para CALL_ACTIVITY_STARTER:
+                    // quando a coordenadora é apagada (timeout do boundary event na coordenadora — ver
+                    // docs/engine/20-subprocessos-call-activity-especificacao.md, §5), qualquer iniciadora
+                    // ainda pendente (que aponta para a coordenadora via joinTaskId) também é removida. Escopo
+                    // restrito ao tipo CALL_ACTIVITY_STARTER (não um cascade genérico por joinTaskId) para não
+                    // arriscar tocar ramificações de PARALLEL_GATEWAY/JOIN_GATEWAY ainda em andamento.
+                    executableTaskWrites.add(new DeleteManyModel<>(and(
+                            in("joinTaskId", unitOfWork.executableTasksToDelete()),
+                            eq("type", ExecutableTaskType.CALL_ACTIVITY_STARTER.name()))));
                 }
 
                 if (unitOfWork.executableTasksToUpdate() != null && !unitOfWork.executableTasksToUpdate().isEmpty()) {
@@ -379,6 +449,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     executableTasks.bulkWrite(clientSession, executableTaskWrites);
                 }
 
+                List<OutboxEventEntity> orphanEvents = new ArrayList<>();
                 if (unitOfWork.branchPullIntentions() != null && !unitOfWork.branchPullIntentions().isEmpty()) {
                     for (BranchPullIntention intention : unitOfWork.branchPullIntentions()) {
                         org.bson.conversions.Bson filter = com.mongodb.client.model.Filters.eq("_id", intention.joinTaskId());
@@ -395,13 +466,41 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                                                 .append("else", "$status"))))
                         );
 
-                        executableTasks.updateOne(clientSession, filter, updatePipeline);
+                        UpdateResult result = executableTasks.updateOne(clientSession, filter, updatePipeline);
+
+                        // Ver docs/engine/20-subprocessos-call-activity-especificacao.md, §4.4: se a
+                        // coordenadora já não existe mais (timeout do boundary event apagou-a antes), o
+                        // updateOne casa zero documentos sem erro — em vez de deixar passar silencioso,
+                        // registra ORPHANED_CHILD_COMPLETION. A identidade da instância filha vem do próprio
+                        // unitOfWork (é o commit da sua própria conclusão).
+                        if (result.getMatchedCount() == 0) {
+                            ProcessInstance childInstance = unitOfWork.instanceToDelete() != null
+                                    ? unitOfWork.instanceToDelete()
+                                    : unitOfWork.instanceToUpdate();
+
+                            orphanEvents.add(new OutboxEventEntity(CriticalEventType.ORPHANED_CHILD_COMPLETION,
+                                    new OrphanedChildCompletion(
+                                            childInstance != null ? childInstance.id() : null,
+                                            childInstance != null ? childInstance.processDefinitionId() : null,
+                                            childInstance != null ? childInstance.tenantId() : null,
+                                            childInstance != null ? childInstance.parentInstanceId() : null,
+                                            intention.joinTaskId(),
+                                            intention.branchId(),
+                                            Instant.now())));
+                        }
                     }
                 }
 
-                if (outboxPersistenceEnabled && unitOfWork.events() != null && !unitOfWork.events().isEmpty()) {
+                List<OutboxEventEntity> allEvents = new ArrayList<>();
+                if (unitOfWork.events() != null) {
+                    allEvents.addAll(unitOfWork.events());
+                }
+                allEvents.addAll(orphanEvents);
+                allEvents.addAll(cancelledChildEvents);
+
+                if (outboxPersistenceEnabled && !allEvents.isEmpty()) {
                     MongoCollection<Document> outboxEvents = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
-                    List<InsertOneModel<Document>> eventWrites = unitOfWork.events().stream()
+                    List<InsertOneModel<Document>> eventWrites = allEvents.stream()
                             .map(OutboxEventMapper::toDocument)
                             .map(InsertOneModel::new)
                             .toList();
@@ -411,6 +510,84 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 return "Transaction committed";
             });
         }
+    }
+
+    /**
+     * Cancelamento recursivo de subárvore(s) de {@code ProcessInstance} spawnada(s) por uma coordenadora
+     * {@code CALL_ACTIVITY_COORDINATOR} apagada nesta transação via o guard de finalização (ver
+     * docs/engine/20-subprocessos-call-activity-especificacao.md, §5). BFS por nível, todo dentro do mesmo
+     * {@code clientSession}/transação do commit que apagou a coordenadora:
+     * <p>
+     * Nível 0: toda instância ACTIVE cujo {@code callerTaskId} é {@code coordinatorTaskId} — os filhos diretos
+     * desta coordenadora especificamente ({@code callerTaskId} escopa por coordenadora, nunca confunde call
+     * activities irmãs no mesmo processo). Níveis seguintes: toda instância ACTIVE cujo {@code parentInstanceId}
+     * está no nível anterior — cobre netos/bisnetos de call activities aninhadas dentro do filho, independente
+     * de qual coordenadora interna os gerou.
+     * <p>
+     * Cada instância do fechamento tem suas tasks apagadas (mesmo escopo de {@code instanceToDelete} acima), a
+     * própria linha apagada (nunca mantida com {@code status=CANCELLED} — a coleção de runtime é estado
+     * operacional, não histórico, mesma decisão já aplicada a {@code instanceToDelete}), e um evento
+     * {@code PROCESS_INSTANCE_FINISHED} com {@code status=CANCELLED} é acumulado no retorno para entrar no
+     * mesmo commit — nunca a exclusão sem o evento correspondente. Incidentes não são tocados (histórico).
+     * <p>
+     * <b>Nota de performance</b>: o chamador só invoca este método dentro do guard de
+     * {@code UnitOfWork.finalizingNodeId} (boundary event interruptivo finalizando um nó) — nunca a partir de
+     * {@code executableTasksToDelete} genérico, que é populado em praticamente toda conclusão de
+     * {@code ExecutableTask} do motor (qualquer tipo, não só coordenadora). Rodar esta consulta ali faria um
+     * `find` em {@code process_instances} por {@code callerTaskId} em cada conclusão de tarefa do sistema
+     * inteiro — a esmagadora maioria sem nenhum call activity envolvido. `finalizingNodeId` é populado só para
+     * finalizações por boundary event, ordens de magnitude mais raro. A consulta do nível 0 usa o índice
+     * {@code caller_task_idx} (ver {@code ensureIndexes}); sem ele seria um COLLSCAN a cada chamada.
+     */
+    private List<OutboxEventEntity> cancelActiveChildSubtrees(ClientSession clientSession,
+                                                               MongoCollection<Document> processInstances,
+                                                               MongoCollection<Document> executableTasks,
+                                                               MongoCollection<Document> externalTasks,
+                                                               String coordinatorTaskId) {
+        List<OutboxEventEntity> cancelledEvents = new ArrayList<>();
+
+        List<Document> currentLevel = processInstances.find(clientSession, and(
+                        eq("status", ProcessInstanceStatus.ACTIVE.name()),
+                        eq("callerTaskId", coordinatorTaskId)))
+                .into(new ArrayList<>());
+
+        while (!currentLevel.isEmpty()) {
+            List<String> currentIds = currentLevel.stream().map(doc -> doc.getString("_id")).toList();
+
+            executableTasks.deleteMany(clientSession, in("processInstanceId", currentIds));
+            externalTasks.deleteMany(clientSession, in("processInstanceId", currentIds));
+            processInstances.deleteMany(clientSession, in("_id", currentIds));
+
+            currentLevel.forEach(doc ->
+                    cancelledEvents.add(buildCancelledEvent(ProcessInstanceMapper.fromDocument(doc))));
+
+            currentLevel = processInstances.find(clientSession, and(
+                            eq("status", ProcessInstanceStatus.ACTIVE.name()),
+                            in("parentInstanceId", currentIds)))
+                    .into(new ArrayList<>());
+        }
+
+        return cancelledEvents;
+    }
+
+    private OutboxEventEntity buildCancelledEvent(ProcessInstance instance) {
+        ProcessInstanceFinished event = ProcessInstanceFinished.builder()
+                .id(instance.id())
+                .businessKey(instance.businessKey())
+                .status(ProcessInstanceStatus.CANCELLED)
+                .processDefinitionId(instance.processDefinitionId())
+                .variables(instance.variables())
+                .startedAt(instance.startedAt())
+                .endedAt(Instant.now())
+                .businessValue(instance.businessValue())
+                .tenantId(instance.tenantId())
+                .origin(instance.origin())
+                .parentInstanceId(instance.parentInstanceId())
+                .callerTaskId(instance.callerTaskId())
+                .callerBranchId(instance.callerBranchId())
+                .build();
+
+        return new OutboxEventEntity(CriticalEventType.PROCESS_INSTANCE_FINISHED, event);
     }
 
     @Override
@@ -693,6 +870,69 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public Optional<ExternalTask> findExternalTaskByCorrelationKey(String correlationKey, String tenantId) {
+        MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+
+        // status=CREATED exclui tarefas já correlacionadas (CORRELATED, aguardando só a limpeza em cascata
+        // quando a mãe concluir) — uma segunda correlação para a mesma chave não encontra nada, preservando a
+        // proteção de idempotência mesmo sem apagar a linha imediatamente.
+        Document doc = collection.find(and(
+                eq("correlationKey", correlationKey),
+                eq("tenantId", tenantId),
+                eq("status", ExternalTaskStatus.CREATED.name())
+        )).first();
+
+        return Optional.ofNullable(doc).map(ExternalTaskMapper::fromDocument);
+    }
+
+    @Override
+    public boolean resolveCorrelationChild(String childTaskId, String parentTaskId, MatchPolicy matchPolicy) {
+        MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+        boolean[] satisfied = {false};
+
+        try (ClientSession clientSession = mongoClient.startSession()) {
+            clientSession.withTransaction(() -> {
+                Document childDoc = externalTasks.find(clientSession, eq("_id", childTaskId)).first();
+                String correlationKey = childDoc != null ? childDoc.getString("correlationKey") : null;
+
+                // Não apaga a filha aqui — só marca CORRELATED. A limpeza real acontece via cascata por
+                // coordinatorTaskId em commitWork, junto com a tarefa-mãe, preservando displayName/correlationKey
+                // para o Monitor até lá (ver ExternalTaskStatus.CORRELATED).
+                externalTasks.updateOne(clientSession, eq("_id", childTaskId),
+                        Updates.set("status", ExternalTaskStatus.CORRELATED.name()));
+
+                if (matchPolicy == MatchPolicy.ANY) {
+                    // CAS: só quem primeiro flipar CREATED->COMPLETED "ganha" a corrida por essa tarefa-mãe.
+                    Document winner = externalTasks.findOneAndUpdate(clientSession,
+                            and(eq("_id", parentTaskId), eq("status", ExternalTaskStatus.CREATED.name())),
+                            Updates.set("status", ExternalTaskStatus.COMPLETED.name()),
+                            new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER));
+                    satisfied[0] = winner != null;
+                    return "resolveCorrelationChild(ANY)";
+                }
+
+                // ALL: mesmo padrão de $filter + $cond já usado para pendingBranchIds via BranchPullIntention
+                // (ver bloco unitOfWork.branchPullIntentions() acima), agora sobre pendingCorrelationKeys.
+                List<Bson> pipeline = List.of(
+                        new Document("$set", new Document("pendingCorrelationKeys",
+                                new Document("$filter", new Document("input", "$pendingCorrelationKeys")
+                                        .append("as", "k")
+                                        .append("cond", new Document("$ne", List.of("$$k", correlationKey)))))));
+
+                Document after = externalTasks.findOneAndUpdate(clientSession,
+                        eq("_id", parentTaskId), pipeline,
+                        new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER));
+
+                satisfied[0] = after != null
+                        && after.getList("pendingCorrelationKeys", String.class, Collections.emptyList()).isEmpty();
+                return "resolveCorrelationChild(ALL)";
+            });
+        }
+
+        return satisfied[0];
+    }
+
+    @Override
     public List<ProcessInstance> findProcessInstanceByProcessDefinitionId(String processDefinitionId, String tenantId) {
         MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
         List<ProcessInstance> instances = new ArrayList<>();
@@ -799,6 +1039,13 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 new IndexOptions().name("exec_task_proc_inst_idx")
         );
 
+        // usado por getMetricsByNodeForProcessDefinition (SSE de /pulse) — antes deste índice, o $match inicial
+        // da agregação por definição era COLLSCAN, repetido a cada tick do stream. Ver docs/engine/21-...md §4.7.
+        getDatabase().getCollection(EXECUTABLE_TASK_COLLECTION).createIndex(
+                Indexes.ascending("processDefinitionId"),
+                new IndexOptions().name("exec_task_proc_def_idx")
+        );
+
         getDatabase().getCollection(INCIDENTS_COLLECTION).createIndex(
                 Indexes.ascending("processInstanceId"),
                 new IndexOptions().name("inc_proc_inst_idx")
@@ -820,6 +1067,82 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         externalTaskCollection.createIndex(
                 Indexes.compoundIndex(Indexes.ascending("assignee"), Indexes.ascending("tenantId")),
                 new IndexOptions().name("assignee_tenant_idx")
+        );
+
+        // EVENT_CATCHER: busca O(1) por chave de correlação (correlateMessage) — sparse porque a maioria das
+        // ExternalTasks não é um EVENT_CATCHER e não tem esse campo.
+        externalTaskCollection.createIndex(
+                Indexes.compoundIndex(Indexes.ascending("correlationKey"), Indexes.ascending("tenantId")),
+                new IndexOptions().name("correlation_key_tenant_idx").sparse(true)
+        );
+
+        // EVENT_CATCHER GROUP: usado pela cascata de limpeza de filhas em commitWork (deleteMany por
+        // coordinatorTaskId) quando a tarefa-mãe é apagada.
+        externalTaskCollection.createIndex(
+                Indexes.ascending("coordinatorTaskId"),
+                new IndexOptions().name("event_catcher_coordinator_idx").sparse(true)
+        );
+
+        // PROCESS_INSTANCE: sustenta POST /process-instances/search, o endpoint mais usado do monitor de
+        // instâncias — até aqui a coleção não tinha nenhum índice, então todo filtro era COLLSCAN. Ver
+        // docs/engine/21-revisao-observabilidade-e-performance-monitor.md §4.1.
+        MongoCollection<Document> processInstanceCollection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
+
+        // combinação de filtro mais comum do monitor (tenant + status), já ordenado por startedAt (sort padrão
+        // de listSummary()) para cobrir o caso mais frequente sem SORT em memória.
+        processInstanceCollection.createIndex(
+                Indexes.compoundIndex(
+                        Indexes.ascending("tenantId"),
+                        Indexes.ascending("status"),
+                        Indexes.descending("startedAt")
+                ),
+                new IndexOptions().name("tenant_status_started_idx")
+        );
+
+        // filtro parentInstanceId (item 11 do doc de observabilidade) — "quais filhas tem essa instância" via
+        // /process-instances/search. Sparse porque a maioria das instâncias não é filha de subprocesso.
+        processInstanceCollection.createIndex(
+                Indexes.ascending("parentInstanceId"),
+                new IndexOptions().name("parent_instance_idx").sparse(true)
+        );
+
+        // callerTaskId — nível 0 da cascata de cancelamento recursivo de CALL_ACTIVITY_COORDINATOR (ver
+        // docs/engine/20-subprocessos-call-activity-especificacao.md, §5, e o Javadoc de
+        // cancelActiveChildSubtrees). Sparse pelo mesmo motivo de parentInstanceId — só instâncias filhas de
+        // call activity têm esse campo.
+        processInstanceCollection.createIndex(
+                Indexes.ascending("callerTaskId"),
+                new IndexOptions().name("caller_task_idx").sparse(true)
+        );
+
+        processInstanceCollection.createIndex(
+                Indexes.ascending("businessKey"),
+                new IndexOptions().name("business_key_idx").sparse(true)
+        );
+
+        processInstanceCollection.createIndex(
+                Indexes.ascending("processDefinitionId"),
+                new IndexOptions().name("proc_def_id_idx")
+        );
+
+        processInstanceCollection.createIndex(
+                Indexes.descending("startedAt"),
+                new IndexOptions().name("started_at_idx")
+        );
+
+        // activeNodeId filtra em activeNodes.<nodeId> — chave dinâmica (um nó de processo diferente por query).
+        // Índice wildcard cobre qualquer nodeId sem precisar de um índice fixo por chave.
+        processInstanceCollection.createIndex(
+                Indexes.ascending("activeNodes.$**"),
+                new IndexOptions().name("active_nodes_wildcard_idx")
+        );
+
+        // variableEquals/variableExists filtram em variables.<chave>.value — chave definida pelo usuário do
+        // processo, mesmo motivo do índice acima. Não elimina o COLLSCAN de buscas parciais/deep search (essas
+        // nunca existiram aqui), só cobre o match exato hoje suportado.
+        processInstanceCollection.createIndex(
+                Indexes.ascending("variables.$**"),
+                new IndexOptions().name("variables_wildcard_idx")
         );
 
         // indices da coleção de outbox/histórico de eventos
@@ -901,7 +1224,13 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 });
 
         List<Bson> externalPipeline = Arrays.asList(
-                Aggregates.match(Filters.eq("processDefinitionId", processDefinitionId)),
+                // Exclui CORRELATED pelo mesmo motivo de countExternalTasksByDefinitionId: uma filha de
+                // EVENT_CATCHER GROUP já correlacionada, aguardando só a limpeza em cascata quando a mãe
+                // concluir, não é mais trabalho "em execução".
+                Aggregates.match(Filters.and(
+                        Filters.eq("processDefinitionId", processDefinitionId),
+                        Filters.ne("status", ExternalTaskStatus.CORRELATED.name())
+                )),
                 Aggregates.group("$taskDefinitionId",
                         Accumulators.sum("running", 1)
                 )
@@ -1021,6 +1350,14 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         }
 
         @Override
+        public ProcessInstanceQuery parentInstanceId(String parentInstanceId) {
+            if (parentInstanceId != null && !parentInstanceId.isBlank()) {
+                filters.add(Filters.eq("parentInstanceId", parentInstanceId));
+            }
+            return this;
+        }
+
+        @Override
         public ProcessInstanceQuery tenantId(String tenantId) {
             if (tenantId != null && !tenantId.isBlank()) {
                 filters.add(Filters.eq("tenantId", tenantId));
@@ -1098,7 +1435,11 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         @Override
         public ProcessInstanceQuery orderBy(String field, boolean ascending) {
             if (field != null && !field.isBlank()) {
-                this.sort = ascending ? Sorts.ascending(field) : Sorts.descending(field);
+                // "id" é o nome de domínio (ProcessInstanceSummary.id()); "_id" é o detalhe de armazenamento do
+                // Mongo. Essa tradução é responsabilidade desta implementação, não do chamador — o backend
+                // in-memory usado pelos testes do motor não precisa dela, porque seu campo já se chama "id".
+                String resolvedField = "id".equals(field) ? "_id" : field;
+                this.sort = ascending ? Sorts.ascending(resolvedField) : Sorts.descending(resolvedField);
             }
             return this;
         }
@@ -1111,13 +1452,17 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
 
         @Override
         public ProcessInstanceQuery size(int size) {
-            this.size = size > 0 ? size : 20;
+            // Defesa em profundidade: o mesmo limite já é aplicado em ProcessInstanceSearchRequest.
+            // getOrDefaultSize() do lado do REST, mas qualquer outro chamador desta API (atual ou futuro)
+            // também fica protegido de pedir uma página sem limite. Ver docs/engine/21-...md §4.5.
+            this.size = size > 0 ? Math.min(size, MAX_PAGE_SIZE) : 20;
             return this;
         }
 
         @Override
         public PageResult<ProcessInstanceSummary> listSummary() {
-            MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION);
+            MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION)
+                    .withReadPreference(ReadPreference.secondaryPreferred());
             Bson finalFilter = filters.isEmpty() ? new Document() : Filters.and(filters);
 
             long totalElements = collection.countDocuments(finalFilter);
@@ -1130,7 +1475,10 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     "processDefinitionId",
                     "startedAt",
                     "endedAt",
-                    "activeNodes"
+                    "activeNodes",
+                    "parentInstanceId",
+                    "callerTaskId",
+                    "callerBranchId"
             );
 
             List<ProcessInstanceSummary> content = new ArrayList<>();
@@ -1156,7 +1504,10 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                                 doc.getString("processDefinitionId"),
                                 InstantMapper.mapToInstant("startedAt", doc),
                                 InstantMapper.mapToInstant("endedAt", doc),
-                                activeNodesMap
+                                activeNodesMap,
+                                doc.getString("parentInstanceId"),
+                                doc.getString("callerTaskId"),
+                                doc.getString("callerBranchId")
                         ));
                     });
 

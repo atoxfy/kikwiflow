@@ -19,16 +19,21 @@ package io.kikwiflow.parser.jackson;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
+import io.kikwiflow.model.definition.process.elements.EventCatcherDefinition;
+import io.kikwiflow.model.definition.process.elements.EventThrowerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.InterruptiveCatchEventDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.elements.JoinGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
+import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
@@ -46,7 +51,12 @@ import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
         @JsonSubTypes.Type(value = ExclusiveGatewayDefinition.class, name = "EXCLUSIVE_GATEWAY"),
         @JsonSubTypes.Type(value = InterruptiveTimerEventDefinition.class, name = "BOUNDARY_INTERRUPTIVE_TIMER"),
         @JsonSubTypes.Type(value = NonInterruptiveTimerEventDefinition.class, name = "BOUNDARY_NON_INTERRUPTIVE_TIMER"),
-        @JsonSubTypes.Type(value = ErrorHandlerDefinition.class, name = "BOUNDARY_ERROR_HANDLER")
+        @JsonSubTypes.Type(value = ErrorHandlerDefinition.class, name = "BOUNDARY_ERROR_HANDLER"),
+        @JsonSubTypes.Type(value = EventCatcherDefinition.class, name = "EVENT_CATCHER"),
+        @JsonSubTypes.Type(value = InterruptiveCatchEventDefinition.class, name = "BOUNDARY_INTERRUPTIVE_CATCH_EVENT"),
+        @JsonSubTypes.Type(value = TimerTaskDefinition.class, name = "TIMER_TASK"),
+        @JsonSubTypes.Type(value = EventThrowerDefinition.class, name = "EVENT_THROWER"),
+        @JsonSubTypes.Type(value = CallActivityDefinition.class, name = "CALL_ACTIVITY_COORDINATOR")
 
 })
 public interface FlowNodeDefinitionMixin {

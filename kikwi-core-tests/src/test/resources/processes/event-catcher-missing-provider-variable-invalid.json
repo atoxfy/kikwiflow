@@ -1,0 +1,42 @@
+{
+  "key": "event-catcher-missing-provider-variable-invalid",
+  "name": "Fixture Negativa: VARIABLE sem providerVariable",
+  "description": "Fixture de teste: EVENT_CATCHER com providerType VARIABLE mas sem providerVariable — rejeitado por DeployValidator.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-catcher", "name": "", "targetNodeId": "WAIT_ORDER_PAID", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_ORDER_PAID": {
+      "id": "WAIT_ORDER_PAID",
+      "name": "Aguardar Pagamento do Pedido",
+      "type": "EVENT_CATCHER",
+      "catchType": "STANDALONE",
+      "providerType": "VARIABLE",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-catcher-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "Fim",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

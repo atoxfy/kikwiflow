@@ -1,0 +1,70 @@
+{
+  "key": "event-catcher-group-all",
+  "name": "Espera de Correlacao em Grupo (ALL)",
+  "description": "Fixture de teste: start -> EVENT_CATCHER (GROUP, VARIABLE, ALL) com timer de borda interruptivo -> end.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-catcher", "name": "", "targetNodeId": "WAIT_ALL_PRODUCTS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_ALL_PRODUCTS": {
+      "id": "WAIT_ALL_PRODUCTS",
+      "name": "Aguardar Ativacao de Todos os Produtos",
+      "type": "EVENT_CATCHER",
+      "catchType": "GROUP",
+      "providerType": "VARIABLE",
+      "providerVariable": "productIds",
+      "keyPrefix": "PROD_",
+      "keySuffix": "_ACTIVATED",
+      "matchPolicy": "ALL",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["TIMER_SLA_TIMEOUT"],
+      "outgoing": [
+        { "id": "flow-catcher-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "TIMER_SLA_TIMEOUT": {
+      "id": "TIMER_SLA_TIMEOUT",
+      "name": "Timeout de SLA",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "attachedToRef": "WAIT_ALL_PRODUCTS",
+      "providerType": "STATIC",
+      "staticValue": "PT24H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-timeout-to-end", "name": "", "targetNodeId": "END_EVENT_TIMEOUT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Todos os Produtos Ativados",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_TIMEOUT": {
+      "id": "END_EVENT_TIMEOUT",
+      "name": "Cancelado por Timeout",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

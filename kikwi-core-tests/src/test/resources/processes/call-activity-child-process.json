@@ -1,0 +1,41 @@
+{
+  "key": "call-activity-child-process",
+  "name": "Processo Filho de Call Activity",
+  "description": "Fixture de teste: start -> CHILD_TASK (EXECUTABLE_TASK, commitBefore=true) -> end. Processo filho minimo, deployado independentemente do pai, usado pelos testes de CALL_ACTIVITY_COORDINATOR.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-task", "name": "", "targetNodeId": "CHILD_TASK", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CHILD_TASK": {
+      "id": "CHILD_TASK",
+      "name": "Tarefa do Filho",
+      "type": "EXECUTABLE_TASK",
+      "executor": "childTaskHandler",
+      "commitBefore": true,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-task-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

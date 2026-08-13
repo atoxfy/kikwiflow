@@ -34,7 +34,8 @@ public enum CriticalEventType {
     EXTERNAL_TASK_COMPLETED(ExternalTaskCompleted.class),
     RETRY_SCHEDULED(RetryScheduled.class),
     PROCESS_VARIABLE_CHANGED(ProcessVariableChanged.class),
-    TIMER_FIRED(TimerFired.class);
+    TIMER_FIRED(TimerFired.class),
+    ORPHANED_CHILD_COMPLETION(OrphanedChildCompletion.class);
 
     private final Class<? extends CriticalEvent> payloadType;
 

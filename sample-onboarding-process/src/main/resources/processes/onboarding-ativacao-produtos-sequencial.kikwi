@@ -1,0 +1,123 @@
+{
+  "key": "onboarding-ativacao-produtos-sequencial",
+  "name": "Ativação de Produtos - Sequencial (CALL_ACTIVITY_COORDINATOR)",
+  "version": 1,
+  "description": "Demonstra iterationMode SEQUENTIAL de CALL_ACTIVITY_COORDINATOR: ativa cada produto da lista 'produtos' como uma ProcessInstance filha independente (product-activation-process.kikwi), um de cada vez — só inicia o próximo depois que o anterior conclui. Narrativa: alguns produtos têm dependência regulatória de ordem (ex.: conta-corrente precisa existir antes de cartao-credito ser emitido vinculado a ela). Ver TUTORIAL.md, seção 'CALL_ACTIVITY_COORDINATOR'.",
+  "sla": "",
+  "extensionProperties": {
+    "sla.target": "PT10M"
+  },
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Início da Ativação Sequencial",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-start-call",
+          "name": "",
+          "targetNodeId": "CALL_ATIVAR_PRODUTOS",
+          "extensionProperties": {}
+        }
+      ],
+      "layout": {
+        "x": 6,
+        "y": 144
+      },
+      "extensionProperties": {}
+    },
+    "CALL_ATIVAR_PRODUTOS": {
+      "id": "CALL_ATIVAR_PRODUTOS",
+      "name": "Ativar Produtos (um por vez)",
+      "type": "CALL_ACTIVITY_COORDINATOR",
+      "commitBefore": false,
+      "commitAfter": false,
+      "calledElement": "product-activation-process",
+      "collectionVariable": "produtos",
+      "elementVariable": "produto",
+      "iterationMode": "SEQUENTIAL",
+      "outgoing": [
+        {
+          "id": "flow-call-after",
+          "name": "",
+          "targetNodeId": "AFTER_ATIVACAO",
+          "extensionProperties": {}
+        }
+      ],
+      "boundaryEventIds": [
+        "TIMER_ATIVACAO_TIMEOUT"
+      ],
+      "layout": {
+        "x": 70,
+        "y": 130
+      },
+      "extensionProperties": {}
+    },
+    "TIMER_ATIVACAO_TIMEOUT": {
+      "id": "TIMER_ATIVACAO_TIMEOUT",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "name": "Timeout da Ativação Sequencial",
+      "providerType": "STATIC",
+      "staticValue": "PT2M",
+      "attachedToRef": "CALL_ATIVAR_PRODUTOS",
+      "outgoing": [
+        {
+          "id": "flow-timeout-end",
+          "name": "",
+          "targetNodeId": "END_EVENT_TIMEOUT",
+          "extensionProperties": {}
+        }
+      ]
+    },
+    "AFTER_ATIVACAO": {
+      "id": "AFTER_ATIVACAO",
+      "name": "Depois da Ativação",
+      "type": "EXECUTABLE_TASK",
+      "executor": "afterProductActivationTaskHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {
+          "id": "flow-after-end",
+          "name": "",
+          "targetNodeId": "END_EVENT_SUCCESS",
+          "extensionProperties": {}
+        }
+      ],
+      "layout": {
+        "x": 404,
+        "y": 130
+      },
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Todos os Produtos Ativados",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "layout": {
+        "x": 734,
+        "y": 142
+      },
+      "extensionProperties": {}
+    },
+    "END_EVENT_TIMEOUT": {
+      "id": "END_EVENT_TIMEOUT",
+      "name": "Ativação Cancelada por Timeout",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "layout": {
+        "x": 404,
+        "y": 314
+      },
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

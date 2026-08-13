@@ -17,6 +17,7 @@
 
 package io.kikwiflow.rest.autoconfigure;
 
+import io.kikwiflow.management.controller.event.EventCorrelationCommandController;
 import io.kikwiflow.management.controller.externaltask.ExternalTaskCommandController;
 import io.kikwiflow.management.controller.externaltask.ExternalTaskQueryController;
 import io.kikwiflow.management.controller.history.EventHistoryQueryController;
@@ -69,7 +70,8 @@ import java.util.concurrent.ScheduledExecutorService;
         IncidentsCommandController.class,
         ProcessDefinitionCommandController.class,
         ProcessInstanceCommandController.class,
-        ExternalTaskCommandController.class
+        ExternalTaskCommandController.class,
+        EventCorrelationCommandController.class
 })
 public class KikwiRestAutoConfiguration {
 

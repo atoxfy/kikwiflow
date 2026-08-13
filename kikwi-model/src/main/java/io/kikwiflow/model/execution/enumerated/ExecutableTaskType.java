@@ -22,5 +22,26 @@ public enum ExecutableTaskType {
     INTERRUPTIVE_TIMER,
     JOIN_GATEWAY,
     NON_INTERRUPTIVE_TIMER,
-    CALL_ACTIVITY_COORDINATOR
+    CALL_ACTIVITY_COORDINATOR,
+    /**
+     * A "iniciadora" gerada uma por elemento (ou uma única, sem {@code collectionVariable}) quando um
+     * {@code CALL_ACTIVITY_COORDINATOR} é alcançado. Ao ser adquirida, chama {@code KikwiflowEngine.startProcess()}
+     * para o {@code calledElement} e se auto-apaga — nunca gera continuação no fluxo do pai (ver
+     * {@code KikwiflowEngine.executeFromTask}). {@code joinTaskId} aponta para a coordenadora, {@code branchId}
+     * é {@code coordinatorTaskId + ":" + loopIndex}.
+     */
+    CALL_ACTIVITY_STARTER,
+    /**
+     * {@code TimerTaskDefinition} — nó de fluxo principal (não um evento de borda) que pausa até um
+     * {@code dueDate} calculado e então continua pelas próprias arestas de saída.
+     */
+    TIMER_TASK,
+    /**
+     * {@code EventThrowerDefinition} — nó de fluxo principal que lança um evento correlacionado. Só existe
+     * como {@code ExecutableTask} persistida quando o nó é alcançado de forma assíncrona (ex.: {@code
+     * commitBefore: true} nele ou no nó anterior); nesse caso o efeito de lançar é executado quando esta
+     * tarefa é retomada via {@code KikwiflowEngine.executeFromTask}, com o mesmo retry/incident de qualquer
+     * outra {@code ExecutableTask} em falha.
+     */
+    EVENT_THROW
 }

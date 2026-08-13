@@ -20,8 +20,24 @@ package io.kikwiflow.model.execution.node;
 /**
  * Representa a referência de um evento anexado a um nó (como um Boundary Event).
  * Mantém a coesão entre a instância em execução e a sua definição original.
+ *
+ * @param instanceType Em qual coleção {@code instanceId} vive — {@code EXECUTABLE_TASK} para timers de borda,
+ *                     {@code EXTERNAL_TASK} para um {@code InterruptiveCatchEventDefinition} anexado. Necessário
+ *                     porque, ao contrário de timers, um catch event de borda é uma espera de correlação
+ *                     (ExternalTask), não uma tarefa executável — sem essa distinção, a limpeza genérica em
+ *                     {@code ContinuationService} não saberia de qual coleção apagar a referência.
  */
 public record AttachedEventReference(
         String instanceId,
-        String definitionId
-) {}
+        String definitionId,
+        AttachedTaskType instanceType
+) {
+    /**
+     * Compatibilidade com todo código anterior a {@code instanceType}: até a introdução de
+     * {@code InterruptiveCatchEventDefinition}, todo boundary event de borda era um timer (sempre
+     * {@code EXECUTABLE_TASK}).
+     */
+    public AttachedEventReference(String instanceId, String definitionId) {
+        this(instanceId, definitionId, AttachedTaskType.EXECUTABLE_TASK);
+    }
+}

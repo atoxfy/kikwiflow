@@ -22,6 +22,14 @@ import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * {@code parentInstanceId}/{@code callerTaskId}/{@code callerBranchId} espelham os campos homônimos de
+ * {@link ProcessInstance} — {@code null} numa instância "raiz" (não iniciada por um {@code
+ * CALL_ACTIVITY_COORDINATOR}), preenchidos numa instância filha de subprocesso. Expostos aqui (e não só na
+ * {@code ProcessInstance} completa) para que o monitor veja a relação pai/filho já na tela de lista/busca
+ * ({@code POST /process-instances/search}), sem precisar buscar cada instância individualmente — ver
+ * docs/engine/21-revisao-observabilidade-e-performance-monitor.md item 11.
+ */
 public record ProcessInstanceSummary(
         String id,
         String businessKey,
@@ -29,5 +37,8 @@ public record ProcessInstanceSummary(
         String processDefinitionId,
         Instant startedAt,
         Instant endedAt,
-        Map<String, Integer> activeNodes
+        Map<String, Integer> activeNodes,
+        String parentInstanceId,
+        String callerTaskId,
+        String callerBranchId
 ) {}

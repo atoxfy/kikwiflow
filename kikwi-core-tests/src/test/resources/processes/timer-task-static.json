@@ -1,0 +1,53 @@
+{
+  "key": "timer-task-static",
+  "name": "Espera de SLA por Timer Task",
+  "description": "Fixture de teste: start -> WAIT_SLA (TIMER_TASK, STATIC) -> AFTER_TIMER (EXTERNAL_TASK) -> end. commitBefore=false deliberado no WAIT_SLA para provar que o motor forca a pausa mesmo assim.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-wait", "name": "", "targetNodeId": "WAIT_SLA", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_SLA": {
+      "id": "WAIT_SLA",
+      "name": "Aguardar SLA",
+      "type": "TIMER_TASK",
+      "providerType": "STATIC",
+      "staticValue": "PT1H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-wait-to-after", "name": "", "targetNodeId": "AFTER_TIMER", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_TIMER": {
+      "id": "AFTER_TIMER",
+      "name": "Depois do Timer (tarefa externa)",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

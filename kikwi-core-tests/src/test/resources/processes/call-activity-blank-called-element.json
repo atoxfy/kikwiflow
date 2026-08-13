@@ -1,0 +1,40 @@
+{
+  "key": "call-activity-blank-called-element",
+  "name": "Call Activity Invalida - calledElement em branco",
+  "description": "Fixture de teste: CALL_CHILD sem calledElement. Deploy deve ser rejeitado por DeployValidator.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-call", "name": "", "targetNodeId": "CALL_CHILD", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALL_CHILD": {
+      "id": "CALL_CHILD",
+      "name": "Chamar Processo Filho",
+      "type": "CALL_ACTIVITY_COORDINATOR",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-call-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

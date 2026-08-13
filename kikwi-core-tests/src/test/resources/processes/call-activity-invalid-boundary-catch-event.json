@@ -1,0 +1,58 @@
+{
+  "key": "call-activity-invalid-boundary-catch-event",
+  "name": "CALL_ACTIVITY_COORDINATOR com BOUNDARY_INTERRUPTIVE_CATCH_EVENT anexado (invalido)",
+  "description": "Fixture de teste: CALL_CHILD (CALL_ACTIVITY_COORDINATOR) com um boundary BOUNDARY_INTERRUPTIVE_CATCH_EVENT anexado. Usada para provar que o deploy agora rejeita essa combinacao em deploy-time — antes desta validacao, so falhava em runtime (NotImplementedException) quando o coordenador era de fato alcancado.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-call", "name": "", "targetNodeId": "CALL_CHILD", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALL_CHILD": {
+      "id": "CALL_CHILD",
+      "name": "Chamar Processo Filho",
+      "type": "CALL_ACTIVITY_COORDINATOR",
+      "calledElement": "call-activity-child-process",
+      "collectionVariable": null,
+      "elementVariable": null,
+      "boundaryEventIds": ["CANCEL_CATCH"],
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-call-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CANCEL_CATCH": {
+      "id": "CANCEL_CATCH",
+      "name": "Cancelamento Externo (nao suportado aqui)",
+      "type": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT",
+      "attachedToRef": "CALL_CHILD",
+      "providerType": "STATIC",
+      "staticKey": "cancelar-call-activity-invalida",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-cancel-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

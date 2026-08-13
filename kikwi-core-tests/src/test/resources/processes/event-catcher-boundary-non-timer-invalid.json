@@ -1,0 +1,67 @@
+{
+  "key": "event-catcher-boundary-non-timer-invalid",
+  "name": "Fixture Negativa: boundary nao-timer em EVENT_CATCHER",
+  "description": "Fixture de teste: EVENT_CATCHER com um BOUNDARY_INTERRUPTIVE_CATCH_EVENT anexado — hoje so os dois tipos de timer sao reconhecidos como boundary de um EVENT_CATCHER, combinacao rejeitada por DeployValidator.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-catcher", "name": "", "targetNodeId": "WAIT_ORDER_PAID", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_ORDER_PAID": {
+      "id": "WAIT_ORDER_PAID",
+      "name": "Aguardar Pagamento do Pedido",
+      "type": "EVENT_CATCHER",
+      "catchType": "STANDALONE",
+      "providerType": "VARIABLE",
+      "providerVariable": "orderId",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["CANCEL_CATCH"],
+      "outgoing": [
+        { "id": "flow-catcher-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CANCEL_CATCH": {
+      "id": "CANCEL_CATCH",
+      "name": "Cancelamento Externo",
+      "type": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT",
+      "attachedToRef": "WAIT_ORDER_PAID",
+      "providerType": "STATIC",
+      "staticKey": "cancelar-pedido",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-cancel-to-end", "name": "", "targetNodeId": "END_EVENT_CANCELLED", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Pedido Pago",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_CANCELLED": {
+      "id": "END_EVENT_CANCELLED",
+      "name": "Cancelado",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

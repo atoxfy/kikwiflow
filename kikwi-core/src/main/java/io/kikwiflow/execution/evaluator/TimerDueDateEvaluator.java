@@ -20,7 +20,7 @@ import io.kikwiflow.exception.BadImplementationException;
 import io.kikwiflow.execution.ProcessInstanceExecution;
 import io.kikwiflow.execution.api.context.EvaluationContext;
 import io.kikwiflow.execution.api.resolver.DueDateProviderResolver;
-import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
+import io.kikwiflow.model.definition.process.elements.TimerDueDateSource;
 import io.kikwiflow.model.definition.process.policies.SchedulePolicy;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.navigation.MapEvaluationContextAdapter;
@@ -38,10 +38,19 @@ public class TimerDueDateEvaluator {
 
     /**
      * Calcula a próxima data de disparo com base na política de agendamento (SchedulePolicy).
-     * Retorna null se a política tiver se esgotado (ex: passou de todas as FIXED_DATES).
+     * Retorna null se a política tiver se esgotado (ex: passou de todas as FIXED_DATES, ou o ciclo prestes a
+     * ser agendado ultrapassaria {@code maxOccurrences}).
+     *
+     * @param occurrenceAboutToFire número (1-based) do ciclo que este cálculo está prestes a agendar — 1 para
+     *                              o primeiro disparo do timer, N+1 para o reagendamento após o N-ésimo ciclo
+     *                              (ver {@code ContinuationService}).
      */
-    public Instant calculateNextSchedule(SchedulePolicy policy) {
+    public Instant calculateNextSchedule(SchedulePolicy policy, int occurrenceAboutToFire) {
         if (policy == null) return null;
+
+        if (policy.maxOccurrences() != null && occurrenceAboutToFire > policy.maxOccurrences()) {
+            return null; // laço de recorrência esgotado por contagem — mesmo sinal que FIXED_DATES esgotada
+        }
 
         return switch (policy.type()) {
             case RATE_DURATION ->
@@ -66,7 +75,7 @@ public class TimerDueDateEvaluator {
         };
     }
 
-    public Instant resolveDueDate(InterruptiveTimerEventDefinition timerDef, ProcessInstanceExecution execution) {
+    public Instant resolveDueDate(TimerDueDateSource timerDef, ProcessInstanceExecution execution) {
         String timeValue = null;
 
         switch (timerDef.providerType()) {

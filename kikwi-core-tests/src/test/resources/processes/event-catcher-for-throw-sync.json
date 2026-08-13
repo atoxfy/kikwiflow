@@ -1,0 +1,57 @@
+{
+  "key": "event-catcher-for-throw-sync",
+  "name": "Espera de Correlacao Completada Por Throw (sincrono)",
+  "description": "Fixture de teste: start -> EVENT_CATCHER (commitAfter=false) -> EXECUTABLE_TASK -> end. A continuacao apos a correlacao roda inline na mesma chamada de quem completou a tarefa.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-catcher", "name": "", "targetNodeId": "WAIT_ORDER_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_ORDER_EVENT": {
+      "id": "WAIT_ORDER_EVENT",
+      "name": "Aguardar Evento do Pedido",
+      "type": "EVENT_CATCHER",
+      "catchType": "STANDALONE",
+      "providerType": "VARIABLE",
+      "providerVariable": "orderId",
+      "keyPrefix": "ORDER_",
+      "keySuffix": "_THROWN",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-catcher-to-after", "name": "", "targetNodeId": "AFTER_CATCH_TASK", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_CATCH_TASK": {
+      "id": "AFTER_CATCH_TASK",
+      "name": "Depois da Correlacao",
+      "type": "EXECUTABLE_TASK",
+      "executor": "afterCatchHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

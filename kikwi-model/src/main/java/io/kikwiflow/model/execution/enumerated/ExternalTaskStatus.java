@@ -19,5 +19,12 @@ package io.kikwiflow.model.execution.enumerated;
 
 public enum ExternalTaskStatus {
     CREATED,
+    /**
+     * Exclusivo de tarefas-filhas de um EVENT_CATCHER em modo GROUP: a chave já foi correlacionada, mas a
+     * linha é mantida (em vez de apagada) até a tarefa-mãe concluir/ser interrompida — permite ao Monitor
+     * mostrar displayName/correlationKey de itens já concluídos sem precisar de nenhum campo de snapshot
+     * separado. A limpeza acontece via a cascata por coordinatorTaskId em commitWork, junto com a mãe.
+     */
+    CORRELATED,
     COMPLETED
 }

@@ -1,0 +1,56 @@
+{
+  "key": "timer-task-boundary-error-handler-invalid",
+  "name": "TIMER_TASK com BOUNDARY_ERROR_HANDLER anexado (invalido)",
+  "description": "Fixture de teste: WAIT_SLA (TIMER_TASK) com um boundary BOUNDARY_ERROR_HANDLER anexado. Usada para provar que o deploy rejeita essa combinacao — TIMER_TASK nao roda handler sincrono nenhum, entao nao ha try/catch pra resolver.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-wait", "name": "", "targetNodeId": "WAIT_SLA", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_SLA": {
+      "id": "WAIT_SLA",
+      "name": "Aguardar SLA",
+      "type": "TIMER_TASK",
+      "providerType": "STATIC",
+      "staticValue": "PT24H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["SLA_ERROR"],
+      "outgoing": [
+        { "id": "flow-wait-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "SLA_ERROR": {
+      "id": "SLA_ERROR",
+      "name": "Handler de Erro Invalido",
+      "type": "BOUNDARY_ERROR_HANDLER",
+      "attachedToRef": "WAIT_SLA",
+      "errorCode": "QUALQUER_ERRO",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-error-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

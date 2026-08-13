@@ -1,0 +1,66 @@
+{
+  "key": "boundary-catch-event-executable-task",
+  "name": "Processamento Cancelavel por Correlacao",
+  "description": "Fixture de teste: start -> PROCESSAR_DADOS (EXECUTABLE_TASK, commitBefore=true) com boundary interruptivo BOUNDARY_INTERRUPTIVE_CATCH_EVENT (VARIABLE) -> end. commitBefore=true mantem PROCESSAR_DADOS como ExecutableTask PENDING (nao executada inline), dando janela para correlacionar o cancelamento antes de qualquer worker pegar a tarefa.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-processar", "name": "", "targetNodeId": "PROCESSAR_DADOS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "PROCESSAR_DADOS": {
+      "id": "PROCESSAR_DADOS",
+      "name": "Processar Dados",
+      "type": "EXECUTABLE_TASK",
+      "executor": "processDataTaskHandler",
+      "commitBefore": true,
+      "commitAfter": false,
+      "boundaryEventIds": ["CANCEL_CATCH"],
+      "outgoing": [
+        { "id": "flow-processar-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CANCEL_CATCH": {
+      "id": "CANCEL_CATCH",
+      "name": "Cancelamento Externo",
+      "type": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT",
+      "attachedToRef": "PROCESSAR_DADOS",
+      "providerType": "VARIABLE",
+      "providerVariable": "taskId",
+      "keyPrefix": "CANCELAR_TASK_",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-cancel-to-end", "name": "", "targetNodeId": "END_EVENT_CANCELLED", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Dados Processados",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_CANCELLED": {
+      "id": "END_EVENT_CANCELLED",
+      "name": "Cancelado Externamente",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

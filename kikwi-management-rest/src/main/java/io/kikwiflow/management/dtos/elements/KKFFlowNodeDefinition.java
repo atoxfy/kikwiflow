@@ -42,10 +42,15 @@ import java.util.Map;
         @JsonSubTypes.Type(value = KKFExecutableTaskDefinition.class, name = "EXECUTABLE_TASK"),
         @JsonSubTypes.Type(value = KKFInterruptiveTimerEventDefinition.class, name = "INTERRUPTIVE_TIMER"),
         @JsonSubTypes.Type(value = KKFNonInterruptiveTimerEventDefinition.class, name = "NON_INTERRUPTIVE_TIMER"),
-        @JsonSubTypes.Type(value = KKFErrorHandlerDefinition.class, name = "ERROR_HANDLER")
+        @JsonSubTypes.Type(value = KKFErrorHandlerDefinition.class, name = "ERROR_HANDLER"),
+        @JsonSubTypes.Type(value = KKFEventCatcherDefinition.class, name = "EVENT_CATCHER"),
+        @JsonSubTypes.Type(value = KKFInterruptiveCatchEventDefinition.class, name = "BOUNDARY_INTERRUPTIVE_CATCH_EVENT"),
+        @JsonSubTypes.Type(value = KKFEventThrowerDefinition.class, name = "EVENT_THROWER"),
+        @JsonSubTypes.Type(value = KKFCallActivityDefinition.class, name = "CALL_ACTIVITY_COORDINATOR"),
+        @JsonSubTypes.Type(value = KKFTimerTaskDefinition.class, name = "TIMER_TASK")
 
 })
-public sealed interface KKFFlowNodeDefinition permits KKFStartEventDefinition, KKFExternalTaskDefinition, KKFExecutableTaskDefinition, KKFEndEventDefinition, KKFExclusiveGatewayDefinition, KKFInterruptiveTimerEventDefinition, KKFJoinGatewayDefinition, KKFParallelGatewayDefinition, KKFNonInterruptiveTimerEventDefinition, KKFErrorHandlerDefinition, KKFBoundaryEventDefinition {
+public sealed interface KKFFlowNodeDefinition permits KKFStartEventDefinition, KKFExternalTaskDefinition, KKFExecutableTaskDefinition, KKFEndEventDefinition, KKFExclusiveGatewayDefinition, KKFInterruptiveTimerEventDefinition, KKFJoinGatewayDefinition, KKFParallelGatewayDefinition, KKFNonInterruptiveTimerEventDefinition, KKFErrorHandlerDefinition, KKFBoundaryEventDefinition, KKFEventCatcherDefinition, KKFInterruptiveCatchEventDefinition, KKFEventThrowerDefinition, KKFCallActivityDefinition, KKFTimerTaskDefinition {
     String id();
     String name();
     String type();

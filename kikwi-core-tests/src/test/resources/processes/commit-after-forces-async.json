@@ -1,0 +1,53 @@
+{
+  "key": "commit-after-forces-async",
+  "name": "commitAfter forca continuacao assincrona",
+  "description": "Fixture de teste: start -> TASK_A (commitBefore=false, commitAfter=true) -> TASK_B (commitBefore=false, commitAfter=false) -> end. Usada para provar que commitAfter=true no proprio no forca o motor a parar depois de executa-lo, mesmo o proximo no nao declarando commitBefore.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-a", "name": "", "targetNodeId": "TASK_A", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "TASK_A": {
+      "id": "TASK_A",
+      "name": "Tarefa A (commitAfter=true)",
+      "type": "EXECUTABLE_TASK",
+      "executor": "taskAHandler",
+      "commitBefore": false,
+      "commitAfter": true,
+      "outgoing": [
+        { "id": "flow-a-to-b", "name": "", "targetNodeId": "TASK_B", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "TASK_B": {
+      "id": "TASK_B",
+      "name": "Tarefa B (sem commitBefore)",
+      "type": "EXECUTABLE_TASK",
+      "executor": "taskBHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-b-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}
