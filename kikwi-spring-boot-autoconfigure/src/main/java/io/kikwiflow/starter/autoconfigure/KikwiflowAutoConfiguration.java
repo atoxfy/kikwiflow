@@ -165,7 +165,7 @@ public class KikwiflowAutoConfiguration {
         return new KikwiflowAutoDeployer(
                 processDefinitionService ,
                 resourcePatternResolver,
-                properties.getAutoDeploy().getPath()
+                properties.getProcessDefinition().getAutoDeploy().getPath()
         );
     }
 

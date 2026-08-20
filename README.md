@@ -116,10 +116,12 @@ public class EnrichCustomerHandler implements TaskHandler {
 Start your Spring Boot application:
 
 ```bash
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
-The auto-deployer automatically detects and registers all `.kikwi` workflow files from `classpath*:processes/**/*.json` on application startup!
+*(There is no Maven wrapper in this project — `mvn` must be on your `PATH`.)*
+
+The auto-deployer automatically detects and registers all `.kikwi` workflow files from `classpath*:processes/**/*.kikwi` on application startup!
 
 ### Step 4: Monitor
 If you included the management REST starter and web-monitor open **Kikwiflow Monitor** to watch process tokens flow in real time, inspect context variables, and interact with pending tasks.

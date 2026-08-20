@@ -30,7 +30,7 @@ public class KikwiflowProperties {
 
     private final Stats stats = new Stats();
     private final Outbox outbox = new Outbox();
-    private final AutoDeploy autoDeploy = new AutoDeploy();
+    private final ProcessDefinition processDefinition = new ProcessDefinition();
     private final Execution execution = new Execution();
     private final Retry retry = new Retry();
     private final Security security = new Security();
@@ -55,7 +55,7 @@ public class KikwiflowProperties {
         return security;
     }
 
-    public AutoDeploy getAutoDeploy() { return autoDeploy; }
+    public ProcessDefinition getProcessDefinition() { return processDefinition; }
 
     public Outbox getOutbox() {
         return outbox;
@@ -86,6 +86,22 @@ public class KikwiflowProperties {
 
         public boolean isEventsEnabled() { return eventsEnabled; }
         public void setEventsEnabled(boolean eventsEnabled) { this.eventsEnabled = eventsEnabled; }
+    }
+
+    /**
+     * Prefixo {@code kikwiflow.process-definition.*} — hoje só agrupa {@link AutoDeploy}, mas fica como classe
+     * própria (em vez de {@code autoDeploy} solto na raiz) para casar com o prefixo que
+     * {@code KikwiflowAutoConfiguration} já usa em {@code @ConditionalOnProperty} para ligar/desligar o bean
+     * {@code KikwiflowAutoDeployer} ({@code kikwiflow.process-definition.auto-deploy.enabled}). Antes desta
+     * classe existir, {@code autoDeploy} vivia solto em {@code kikwiflow.auto-deploy.*} — um prefixo diferente
+     * do que o {@code @ConditionalOnProperty} checava, o que deixava {@code AutoDeploy.path} sem nenhum jeito
+     * de ser configurado de fato (só o campo {@code enabled}, nunca lido diretamente, "funcionava" — por
+     * coincidência com seu próprio default Java já ser {@code true}).
+     */
+    public static class ProcessDefinition {
+        private final AutoDeploy autoDeploy = new AutoDeploy();
+
+        public AutoDeploy getAutoDeploy() { return autoDeploy; }
     }
 
     public static class AutoDeploy {
@@ -125,7 +141,10 @@ public class KikwiflowProperties {
         private int taskAcquisitionMaxTasks = 10;
         private int maxConcurrentTasks = 200;
         private int shutdownGracePeriodSeconds = 20;
-        private long lockTimeoutMillis = 12;
+        // Antes 12 (quase certamente pensado como "12 segundos" e nunca corrigido) — um lock que expira em
+        // 12ms é inútil contra dois workers na mesma tarefa. Realinhado com o default de fábrica que
+        // KikwiflowConfig já usa quando não há Spring Boot no caminho (kikwi-core, sem este módulo).
+        private long lockTimeoutMillis = 5000;
 
         public void setTaskAcquisitionIntervalMillis(long taskAcquisitionIntervalMillis) {
             this.taskAcquisitionIntervalMillis = taskAcquisitionIntervalMillis;

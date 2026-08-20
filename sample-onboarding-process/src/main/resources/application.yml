@@ -8,12 +8,13 @@ spring:
       enabled: true
   data:
     mongodb:
-      uri: mongodb+srv://kikwiflow:pZ8PAv4MULbHazlJ@onboarding-sample.9um3zkc.mongodb.net/?appName=onboarding-sample
+      uri: {YOUR_MONGO_URI}
       database: kikwiflow_db
       auto-index-creation: true
 kikwiflow:
   process-definition:
-    auto-deploy-enabled: true
+    auto-deploy:
+      enabled: true
   security:
     deploy-enabled: true
 
@@ -30,9 +31,6 @@ kikwiflow:
       - java.lang.IllegalArgumentException
   rest:
    # base-path: "engine/teste"
-    process-definition:
-      deploy:
-        enabled: true
     cors:
       allowed-origins: "http://localhost:3001"
   stats:
