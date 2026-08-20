@@ -1,0 +1,43 @@
+{
+  "key": "event-catcher-group-static-invalid",
+  "name": "Fixture Negativa: GROUP com STATIC",
+  "description": "Fixture de teste: EVENT_CATCHER com catchType GROUP e providerType STATIC — STATIC sempre resolve exatamente 1 chave, combinação rejeitada por DeployValidator.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-catcher", "name": "", "targetNodeId": "WAIT_PRODUCTS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_PRODUCTS": {
+      "id": "WAIT_PRODUCTS",
+      "name": "Aguardar Ativacao dos Produtos",
+      "type": "EVENT_CATCHER",
+      "catchType": "GROUP",
+      "providerType": "STATIC",
+      "staticKey": "PRODUCT_ACTIVATED",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-catcher-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "Fim",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

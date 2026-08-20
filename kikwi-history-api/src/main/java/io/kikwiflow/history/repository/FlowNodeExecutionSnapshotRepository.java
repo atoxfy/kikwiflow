@@ -17,8 +17,8 @@
 
 package io.kikwiflow.history.repository;
 
-import io.kikwiflow.model.event.FlowNodeExecuted;
+import io.kikwiflow.model.event.FlowNodeFinished;
 
 public interface FlowNodeExecutionSnapshotRepository {
-    public void save(FlowNodeExecuted flowNodeExecutionSnapshot);
+    public void save(FlowNodeFinished flowNodeExecutionSnapshot);
 }

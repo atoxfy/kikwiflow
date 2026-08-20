@@ -1,0 +1,69 @@
+{
+  "key": "boundary-error-handler-unmatched-becomes-incident",
+  "name": "Pagamento com Boundary Error Handler Sem Catch-All",
+  "description": "Fixture de teste: start -> PAGAMENTO (EXECUTABLE_TASK, commitBefore=true, RetryPolicy maxRetries=2) com um unico BOUNDARY_ERROR_HANDLER especifico (errorCode=SALDO_INSUFICIENTE), sem catch-all. Usada para provar que uma ProcessErrorException com um errorCode que nao casa com nenhum boundary handler vira incidente UNHANDLED_BUSINESS_ERROR imediatamente, sem consumir o orcamento de retries da RetryPolicy do no.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-pagamento", "name": "", "targetNodeId": "PAGAMENTO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "PAGAMENTO": {
+      "id": "PAGAMENTO",
+      "name": "Processar Pagamento",
+      "type": "EXECUTABLE_TASK",
+      "executor": "pagamentoSemCatchAllTaskHandler",
+      "commitBefore": true,
+      "commitAfter": false,
+      "retryPolicy": {
+        "strategy": "LINEAR",
+        "maxRetries": 2,
+        "intervals": ["PT0S", "PT0S"]
+      },
+      "boundaryEventIds": ["SALDO_INSUFICIENTE_HANDLER"],
+      "outgoing": [
+        { "id": "flow-pagamento-to-end", "name": "", "targetNodeId": "END_EVENT_SUCESSO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "SALDO_INSUFICIENTE_HANDLER": {
+      "id": "SALDO_INSUFICIENTE_HANDLER",
+      "name": "Saldo Insuficiente",
+      "type": "BOUNDARY_ERROR_HANDLER",
+      "attachedToRef": "PAGAMENTO",
+      "errorCode": "SALDO_INSUFICIENTE",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-saldo-to-end", "name": "", "targetNodeId": "END_EVENT_SALDO_INSUFICIENTE", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCESSO": {
+      "id": "END_EVENT_SUCESSO",
+      "name": "Pagamento Concluido",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SALDO_INSUFICIENTE": {
+      "id": "END_EVENT_SALDO_INSUFICIENTE",
+      "name": "Rejeitado por Saldo Insuficiente",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

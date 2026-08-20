@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.42</version>
+        <version>0.1.68</version>
     </parent>
 
     <artifactId>kikwi-management-rest-spring-boot-starter</artifactId>
@@ -39,6 +39,11 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-management-rest-spring-boot-autoconfigure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-security-spring-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

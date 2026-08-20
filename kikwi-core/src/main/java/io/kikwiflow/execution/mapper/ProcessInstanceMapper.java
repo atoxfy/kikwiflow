@@ -31,19 +31,6 @@ public final class ProcessInstanceMapper {
         // Utility class
     }
 
-    //TODO REVISAR
-    public static ProcessInstanceFinished maoToFinishedEvent(final ProcessInstance processInstance) {
-        ProcessInstanceFinished processInstanceEntity = new ProcessInstanceFinished();
-        processInstanceEntity.setId(processInstance.id());
-        processInstanceEntity.setBusinessKey(processInstance.businessKey());
-        processInstanceEntity.setStatus(processInstance.status());
-        processInstanceEntity.setProcessDefinitionId(processInstance.processDefinitionId());
-        processInstanceEntity.setVariables(new HashMap<>(processInstance.variables()));
-        processInstanceEntity.setStartedAt(processInstance.startedAt());
-        processInstanceEntity.setEndedAt(processInstance.endedAt());
-        return processInstanceEntity;
-    }
-
     public static ProcessInstance mapToRecord(final ProcessInstanceExecution instance) {
 
         Map<String, ProcessVariable> persistentVariables = instance.getVariables().entrySet().stream()
@@ -60,8 +47,12 @@ public final class ProcessInstanceMapper {
             persistentVariables,
             instance.getStartedAt(),
             instance.getEndedAt(),
-            instance.getOrigin()
-
+            instance.getOrigin(),
+            instance.getVersion(),
+            instance.getParentInstanceId(),
+            instance.getCallerTaskId(),
+            instance.getCallerBranchId(),
+            instance.getActiveNodes()
         );
     }
 
@@ -76,6 +67,15 @@ public final class ProcessInstanceMapper {
         processInstanceEntity.setOrigin(processInstance.origin());
         processInstanceEntity.setTenantId(processInstance.tenantId());
         processInstanceEntity.setBusinessValue(processInstance.businessValue());
+        processInstanceEntity.setPersisted(true);
+        processInstanceEntity.setVersion(processInstance.version());
+        processInstanceEntity.setParentInstanceId(processInstance.parentInstanceId());
+        processInstanceEntity.setCallerTaskId(processInstance.callerTaskId());
+        processInstanceEntity.setCallerBranchId(processInstance.callerBranchId());
+        processInstanceEntity.setActiveNodes(
+                processInstance.activeNodes() != null ? new java.util.HashMap<>(processInstance.activeNodes()) : new java.util.HashMap<>()
+        );
+
         return processInstanceEntity;
     }
 }

@@ -18,6 +18,7 @@
 package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.execution.node.Executable;
 
 import java.util.Collections;
@@ -32,9 +33,10 @@ public record ExecutableTaskDefinition(String id,
                                        Boolean commitAfter,
                                        Boolean commitBefore,
                                        List<SequenceFlowDefinition> outgoing,
-                                       List<BoundaryEventDefinition> boundaryEvents,
+                                       List<String> boundaryEventIds,
                                        Map<String, String> extensionProperties,
-                                       LayoutCoordinates layout) implements FlowNodeDefinition, Executable {
+                                       LayoutCoordinates layout,
+                                       RetryPolicy retryPolicy) implements FlowNodeDefinition, Executable {
 
 
     public static Builder builder() {
@@ -50,8 +52,9 @@ public record ExecutableTaskDefinition(String id,
         private Boolean commitBefore;
         private LayoutCoordinates layout;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
-        private List<BoundaryEventDefinition> boundaryEvents = Collections.emptyList();
+        private List<String> boundaryEventIds = Collections.emptyList();
         private Map<String, String> extensionProperties;
+        private RetryPolicy retryPolicy;
 
         private Builder() {}
 
@@ -62,6 +65,11 @@ public record ExecutableTaskDefinition(String id,
 
         public Builder layout(LayoutCoordinates layout) {
             this.layout = layout;
+            return this;
+        }
+
+        public Builder retryPolicy(RetryPolicy retryPolicy) {
+            this.retryPolicy = retryPolicy;
             return this;
         }
 
@@ -97,9 +105,9 @@ public record ExecutableTaskDefinition(String id,
             return this;
         }
 
-        public Builder boundaryEvents(List<BoundaryEventDefinition> boundaryEventDefinitions) {
-            if (boundaryEventDefinitions != null) {
-                this.boundaryEvents = boundaryEventDefinitions;
+        public Builder boundaryEventIds(List<String> boundaryEventIds) {
+            if (boundaryEventIds != null) {
+                this.boundaryEventIds = boundaryEventIds;
             }
             return this;
         }
@@ -111,7 +119,7 @@ public record ExecutableTaskDefinition(String id,
         }
 
         public ExecutableTaskDefinition build() {
-            return new ExecutableTaskDefinition(id, name, description, "SERVICE_TASK", executor,  commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
+            return new ExecutableTaskDefinition(id, name, "EXECUTABLE_TASK", description, executor,  commitAfter, commitBefore, outgoing, boundaryEventIds, extensionProperties, layout, retryPolicy);
         }
     }
 }

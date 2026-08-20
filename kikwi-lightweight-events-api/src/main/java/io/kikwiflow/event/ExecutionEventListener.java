@@ -17,6 +17,8 @@
 
 package io.kikwiflow.event;
 
+import io.kikwiflow.model.event.lightweight.LightweightEvent;
+
 import java.util.List;
 
 @FunctionalInterface

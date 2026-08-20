@@ -20,4 +20,9 @@ public class InvalidProcessDefinitionException extends RuntimeException {
     public InvalidProcessDefinitionException(String message, Throwable cause) {
         super(message, cause);
     }
+
+    public InvalidProcessDefinitionException(String message) {
+        super(message);
+    }
+
 }

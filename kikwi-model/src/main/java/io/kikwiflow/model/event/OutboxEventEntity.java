@@ -18,16 +18,31 @@
 package io.kikwiflow.model.event;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public class OutboxEventEntity {
+    private String id;
     private Instant timestamp;
     private String event;
     private CriticalEvent payload;
 
     public OutboxEventEntity(String event, CriticalEvent payload) {
+        this.id = UUID.randomUUID().toString();
         this.timestamp = Instant.now();
         this.event = event;
         this.payload = payload;
+    }
+
+    public OutboxEventEntity(CriticalEventType type, CriticalEvent payload) {
+        this(type.name(), payload);
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public Instant getTimestamp() {

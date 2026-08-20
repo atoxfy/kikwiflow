@@ -30,5 +30,8 @@ public record Incident(
         String processInstanceId,
         String executionId,
         Instant createdAt,
-        IncidentStatus status) {
+        IncidentStatus status,
+        String taskDefinitionId) {
+
+
 }

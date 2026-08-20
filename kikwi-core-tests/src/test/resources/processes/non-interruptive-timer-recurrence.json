@@ -1,0 +1,74 @@
+{
+  "key": "non-interruptive-timer-recurrence",
+  "name": "Timer nao-interruptivo com recorrencia",
+  "description": "Fixture de teste: start -> PARENT_WAIT (EXTERNAL_TASK) com um boundary RECURRING_PING (BOUNDARY_NON_INTERRUPTIVE_TIMER, RATE_DURATION PT1H) -> AFTER_WAIT (EXTERNAL_TASK) -> end. Usada para provar que disparar o timer nao-interruptivo reagenda a si mesmo (novo ciclo, novo branchId) sem cancelar/tocar o PARENT_WAIT.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-wait", "name": "", "targetNodeId": "PARENT_WAIT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "PARENT_WAIT": {
+      "id": "PARENT_WAIT",
+      "name": "Aguardar Confirmacao (tarefa externa)",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["RECURRING_PING"],
+      "outgoing": [
+        { "id": "flow-wait-to-after", "name": "", "targetNodeId": "AFTER_WAIT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "RECURRING_PING": {
+      "id": "RECURRING_PING",
+      "name": "Ping Periodico de SLA",
+      "type": "BOUNDARY_NON_INTERRUPTIVE_TIMER",
+      "attachedToRef": "PARENT_WAIT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "schedulePolicy": { "type": "RATE_DURATION", "expression": "PT1H" },
+      "outgoing": [
+        { "id": "flow-ping-to-end", "name": "", "targetNodeId": "END_EVENT_PING_CYCLE", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_PING_CYCLE": {
+      "id": "END_EVENT_PING_CYCLE",
+      "name": "Fim de um Ciclo de Ping",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "AFTER_WAIT": {
+      "id": "AFTER_WAIT",
+      "name": "Depois da Confirmacao (tarefa externa)",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-to-end", "name": "", "targetNodeId": "END_EVENT_MAIN", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_MAIN": {
+      "id": "END_EVENT_MAIN",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

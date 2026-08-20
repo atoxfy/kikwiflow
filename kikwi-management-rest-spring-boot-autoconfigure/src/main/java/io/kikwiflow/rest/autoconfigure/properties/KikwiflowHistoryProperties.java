@@ -1,0 +1,32 @@
+/*
+ * Copyright 2026 Atoxfy and/or licensed to Atoxfy
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Atoxfy licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.kikwiflow.rest.autoconfigure.properties;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+
+/**
+ * Controla se os endpoints de histórico de eventos ({@code GET /process-instances/{id}/events}) são
+ * registrados. Nem todo player quer expor esse histórico — desligar aqui evita o endpoint inteiro, mesmo que
+ * {@code kikwiflow.outbox.events-enabled} esteja ligado (que controla se o dado *existe*, não se é servido).
+ */
+@ConfigurationProperties(prefix = "kikwiflow.history")
+public record KikwiflowHistoryProperties(
+        @DefaultValue("true") boolean enabled
+) {
+}

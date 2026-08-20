@@ -1,0 +1,44 @@
+{
+  "key": "call-activity-nested-middle-process",
+  "name": "Processo Filho com Call Activity Propria (gera neto)",
+  "description": "Fixture de teste: start -> CALL_GRANDCHILD (CALL_ACTIVITY_COORDINATOR, filho unico, calledElement=call-activity-child-process, sem boundary) -> end. Deployado independentemente, usado pelo teste de cancelamento recursivo de CALL_ACTIVITY_COORDINATOR (o neto e gerado por ESTA call activity, nao pelo pai).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-call", "name": "", "targetNodeId": "CALL_GRANDCHILD", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALL_GRANDCHILD": {
+      "id": "CALL_GRANDCHILD",
+      "name": "Chamar Processo Neto",
+      "type": "CALL_ACTIVITY_COORDINATOR",
+      "calledElement": "call-activity-child-process",
+      "collectionVariable": null,
+      "elementVariable": null,
+      "boundaryEventIds": [],
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-call-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

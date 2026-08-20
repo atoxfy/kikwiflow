@@ -18,6 +18,7 @@
 package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,10 +32,13 @@ public record InterruptiveTimerEventDefinition(String id,
                                                Boolean commitAfter,
                                                Boolean commitBefore,
                                                List<SequenceFlowDefinition> outgoing,
-                                               String attachedToRef, 
-                                               String duration,
+                                               String attachedToRef,
+                                               TimeProviderType providerType,
+                                               String providerVariable,
+                                               String providerBean,
+                                               String staticValue,
                                                Map<String, String> extensionProperties,
-                                               LayoutCoordinates layout) implements BoundaryEventDefinition, FlowNodeDefinition {
+                                               LayoutCoordinates layout) implements BoundaryEventDefinition, FlowNodeDefinition, TimerDueDateSource {
 
     public static InterruptiveTimerEventDefinition.Builder builder() {
         return new InterruptiveTimerEventDefinition.Builder();
@@ -49,7 +53,10 @@ public record InterruptiveTimerEventDefinition(String id,
         private Boolean commitBefore;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private String attachedToRef;
-        private String duration;
+        private TimeProviderType providerType;
+        private String providerVariable;
+        private String providerBean;
+        private String staticValue;
         private Map<String, String> extensionProperties;
         private LayoutCoordinates layout;
 
@@ -75,8 +82,23 @@ public record InterruptiveTimerEventDefinition(String id,
             return this;
         }
 
-        public Builder duration(String duration) {
-            this.duration = duration;
+        public Builder providerType(TimeProviderType providerType) {
+            this.providerType = providerType;
+            return this;
+        }
+
+        public Builder providerVariable(String providerVariable) {
+            this.providerVariable = providerVariable;
+            return this;
+        }
+
+        public Builder providerBean(String providerBean) {
+            this.providerBean = providerBean;
+            return this;
+        }
+
+        public Builder staticValue(String staticValue) {
+            this.staticValue = staticValue;
             return this;
         }
 
@@ -113,7 +135,7 @@ public record InterruptiveTimerEventDefinition(String id,
         }
 
         public InterruptiveTimerEventDefinition build() {
-            return new InterruptiveTimerEventDefinition(id, name, "BOUNDARY_INTERRUPTIVE_TIMER", description, executor, commitAfter, commitBefore, outgoing, attachedToRef, duration, extensionProperties, layout);
+            return new InterruptiveTimerEventDefinition(id, name, "BOUNDARY_INTERRUPTIVE_TIMER", description, executor, commitAfter, commitBefore, outgoing, attachedToRef, providerType, providerVariable, providerBean, staticValue, extensionProperties, layout);
         }
     }
 }

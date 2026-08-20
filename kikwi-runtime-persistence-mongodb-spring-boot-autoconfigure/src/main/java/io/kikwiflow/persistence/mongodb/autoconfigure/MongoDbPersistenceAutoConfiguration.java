@@ -19,23 +19,35 @@ package io.kikwiflow.persistence.mongodb.autoconfigure;
 
 import com.mongodb.client.MongoClient;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.persistence.mongodb.autoconfigure.properties.KikwiflowOutboxProperties;
 import io.kikwiflow.persistence.mongodb.repository.MongoKikwiEngineRepository;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.mongo.MongoProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
+/**
+ * A persistência e a leitura/consumo (relay) do outbox são propositalmente desacopladas: este módulo cuida
+ * apenas de escrever e reter eventos críticos (respeitando {@code kikwiflow.outbox.events-enabled} e um TTL
+ * opcional). Não há aqui nenhuma implementação de {@code OutboxReader} (drenagem/relay) — o schema da coleção
+ * {@code outbox_events} (campos {@code relayStatus}/{@code lockedUntil}) já é compatível com um consumidor de
+ * relay que uma aplicação ou uma lib separada venha a implementar.
+ */
 @AutoConfiguration
 @ConditionalOnClass(MongoClient.class)
+@EnableConfigurationProperties(KikwiflowOutboxProperties.class)
 public class MongoDbPersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(KikwiEngineRepository.class)
-    public KikwiEngineRepository kikwiEngineRepository(MongoClient mongoClient, MongoProperties mongoProperties) {
+    public KikwiEngineRepository kikwiEngineRepository(MongoClient mongoClient, MongoProperties mongoProperties,
+                                                         KikwiflowOutboxProperties outboxProperties) {
         String databaseName = mongoProperties.getDatabase();
-        return new MongoKikwiEngineRepository(mongoClient, databaseName);
+        return new MongoKikwiEngineRepository(mongoClient, databaseName, outboxProperties.eventsEnabled(),
+                outboxProperties.ttlSeconds());
     }
 
     @Bean

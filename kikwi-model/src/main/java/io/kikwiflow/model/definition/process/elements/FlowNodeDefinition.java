@@ -22,7 +22,23 @@ import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
 import java.util.List;
 import java.util.Map;
 
-public sealed interface FlowNodeDefinition permits StartEventDefinition, ExternalTaskDefinition, ExecutableTaskDefinition, EndEventDefinition, ExclusiveGatewayDefinition, InterruptiveTimerEventDefinition, BoundaryEventDefinition {
+public sealed interface FlowNodeDefinition permits StartEventDefinition,
+        ExternalTaskDefinition,
+        ExecutableTaskDefinition,
+        EndEventDefinition,
+        ExclusiveGatewayDefinition,
+        InterruptiveTimerEventDefinition,
+        BoundaryEventDefinition,
+        ParallelGatewayDefinition,
+        JoinGatewayDefinition,
+        NonInterruptiveTimerEventDefinition,
+        ErrorHandlerDefinition,
+        CallActivityDefinition,
+        EventCatcherDefinition,
+        InterruptiveCatchEventDefinition,
+        TimerTaskDefinition,
+        EventThrowerDefinition {
+
     String id();
     String name();
     String type();

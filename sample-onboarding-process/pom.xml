@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.42</version>
+        <version>0.1.68</version>
     </parent>
 
     <artifactId>sample-onboarding-process</artifactId>
@@ -32,6 +32,8 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <central.skipPublishing>true</central.skipPublishing>
     </properties>
     <dependencies>
         <dependency>
@@ -55,27 +57,32 @@
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-spring-boot-starter</artifactId>
-            <version>0.1.42</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-runtime-persistence-mongodb-spring-boot-starter</artifactId>
-            <version>0.1.42</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-runtime-query-spring-boot-starter</artifactId>
-            <version>0.1.42</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-view-models</artifactId>
-            <version>0.1.42</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-management-rest-spring-boot-starter</artifactId>
-            <version>0.1.42</version>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>

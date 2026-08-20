@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@RequestMapping("${kikwiflow.api.base-path:/engine/api/v1}/executable-tasks")
+@RequestMapping("/executable-tasks")
 public interface ExecutableTaskQueryRestApi extends ExecutableTaskQueryApi {
 
     @Override

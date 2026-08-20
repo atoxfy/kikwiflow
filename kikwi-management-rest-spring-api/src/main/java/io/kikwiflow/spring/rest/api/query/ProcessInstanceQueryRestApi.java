@@ -19,6 +19,7 @@ package io.kikwiflow.spring.rest.api.query;
 
 import io.kikwiflow.api.dto.CountResponse;
 import io.kikwiflow.api.query.ProcessInstanceQueryApi;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +30,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.List;
 
-@RequestMapping("${kikwiflow.api.base-path:/engine/api/v1}/process-instances")
+@RequestMapping("/process-instances")
 public interface ProcessInstanceQueryRestApi extends ProcessInstanceQueryApi {
 
     @Override
@@ -41,6 +42,10 @@ public interface ProcessInstanceQueryRestApi extends ProcessInstanceQueryApi {
     @GetMapping("{id}")
     @ResponseStatus(HttpStatus.OK)
     ProcessInstance findProcessInstanceById(@PathVariable(value = "id") String id);
+
+    @GetMapping("{id}/incidents")
+    @ResponseStatus(HttpStatus.OK)
+    List<Incident> getIncidents(@PathVariable(value = "id")  String id);
 
     @Override
     @GetMapping

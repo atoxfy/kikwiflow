@@ -1,0 +1,121 @@
+{
+  "key": "call-activity-and-catch-event-independence",
+  "name": "Independencia entre boundary timeout de CALL_ACTIVITY_COORDINATOR e boundary catch event em ramo irmao",
+  "description": "Fixture de teste: start -> PARALLEL_SPLIT -> [CALL_CHILD (CALL_ACTIVITY_COORDINATOR com boundary CALL_TIMEOUT), COLETAR_DADOS (EXTERNAL_TASK com boundary CANCEL_CATCH)] -> JOIN_SYNC -> AFTER_JOIN -> end. Usada para provar que a cascata de cancelamento recursivo de filhos (disparada por CALL_TIMEOUT) e o guard de finalizacao de CANCEL_CATCH nao se contaminam: cada boundary event so afeta o proprio ramo, o outro segue intacto ate o join liberar.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-split", "name": "", "targetNodeId": "PARALLEL_SPLIT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "PARALLEL_SPLIT": {
+      "id": "PARALLEL_SPLIT",
+      "name": "Divisao Paralela",
+      "type": "PARALLEL_GATEWAY",
+      "commitBefore": false,
+      "commitAfter": false,
+      "targetJoinId": "JOIN_SYNC",
+      "outgoing": [
+        { "id": "flow-split-to-call", "name": "", "targetNodeId": "CALL_CHILD", "isDefault": false, "extensionProperties": {} },
+        { "id": "flow-split-to-coletar", "name": "", "targetNodeId": "COLETAR_DADOS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALL_CHILD": {
+      "id": "CALL_CHILD",
+      "name": "Chamar Processo Filho",
+      "type": "CALL_ACTIVITY_COORDINATOR",
+      "calledElement": "call-activity-child-process",
+      "collectionVariable": null,
+      "elementVariable": null,
+      "boundaryEventIds": ["CALL_TIMEOUT"],
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-call-to-join", "name": "", "targetNodeId": "JOIN_SYNC", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALL_TIMEOUT": {
+      "id": "CALL_TIMEOUT",
+      "name": "Timeout da Coordenadora",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "attachedToRef": "CALL_CHILD",
+      "providerType": "STATIC",
+      "staticValue": "PT24H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-timeout-to-join", "name": "", "targetNodeId": "JOIN_SYNC", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "COLETAR_DADOS": {
+      "id": "COLETAR_DADOS",
+      "name": "Coletar Dados",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["CANCEL_CATCH"],
+      "outgoing": [
+        { "id": "flow-coletar-to-join", "name": "", "targetNodeId": "JOIN_SYNC", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CANCEL_CATCH": {
+      "id": "CANCEL_CATCH",
+      "name": "Cancelamento Externo",
+      "type": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT",
+      "attachedToRef": "COLETAR_DADOS",
+      "providerType": "STATIC",
+      "staticKey": "cancelar-coleta-independence",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-cancel-to-join", "name": "", "targetNodeId": "JOIN_SYNC", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "JOIN_SYNC": {
+      "id": "JOIN_SYNC",
+      "name": "Sincronizacao",
+      "type": "JOIN_GATEWAY",
+      "sourceSplitId": "PARALLEL_SPLIT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-join-to-after", "name": "", "targetNodeId": "AFTER_JOIN", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_JOIN": {
+      "id": "AFTER_JOIN",
+      "name": "Depois do Join",
+      "type": "EXECUTABLE_TASK",
+      "executor": "afterJoinHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-join-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

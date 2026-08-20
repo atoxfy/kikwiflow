@@ -20,6 +20,7 @@ package io.kikwiflow.spring.rest.api.command;
 import io.kikwiflow.api.command.ExternalTaskOperationsApi;
 import io.kikwiflow.api.dto.CompleteExternalTaskRequest;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.security.IdentityContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,22 +29,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@RequestMapping("${kikwiflow.api.path:/engine/api/v1}/external-tasks")
+@RequestMapping("/external-tasks")
 public interface ExternalTaskOperationsRestApi extends ExternalTaskOperationsApi {
 
     @Override
     @PutMapping("{id}/claim/{assignee}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void claim(@PathVariable(value = "id") String id, @PathVariable(value = "assignee") String assignee);
+    void claim(@PathVariable(value = "id") String id, @PathVariable(value = "assignee") String assignee, IdentityContext identityContext);
 
     @Override
     @PutMapping("{id}/unclaim")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void unclaim(@PathVariable(value = "id") String id);
+    void unclaim(@PathVariable(value = "id") String id, IdentityContext identityContext);
 
     @Override
     @PostMapping("{id}/complete")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    ProcessInstance completeExternalTask(@PathVariable(value = "id") String id, @RequestBody CompleteExternalTaskRequest completeExternalTaskRequest);
+    ProcessInstance completeExternalTask(@PathVariable(value = "id") String id, @RequestBody CompleteExternalTaskRequest completeExternalTaskRequest, IdentityContext identityContext);
 
 }

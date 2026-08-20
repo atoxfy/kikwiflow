@@ -1,0 +1,75 @@
+{
+  "key": "boundary-catch-event-external-task",
+  "name": "Coleta de Dados Cancelavel por Correlacao",
+  "description": "Fixture de teste: start -> COLETAR_DADOS (EXTERNAL_TASK) com boundary interruptivo BOUNDARY_INTERRUPTIVE_CATCH_EVENT (STATIC) -> AFTER_COLETA (EXTERNAL_TASK) -> end. AFTER_COLETA mantem o processo ativo apos a conclusao normal de COLETAR_DADOS, provando que a limpeza do catch event nao e so efeito colateral do wipe em bloco de uma instancia concluida.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-coletar", "name": "", "targetNodeId": "COLETAR_DADOS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "COLETAR_DADOS": {
+      "id": "COLETAR_DADOS",
+      "name": "Coletar Dados",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["CANCEL_CATCH"],
+      "outgoing": [
+        { "id": "flow-coletar-to-after", "name": "", "targetNodeId": "AFTER_COLETA", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CANCEL_CATCH": {
+      "id": "CANCEL_CATCH",
+      "name": "Cancelamento Externo",
+      "type": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT",
+      "attachedToRef": "COLETAR_DADOS",
+      "providerType": "STATIC",
+      "staticKey": "cancelar-task-15649234",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-cancel-to-end", "name": "", "targetNodeId": "END_EVENT_CANCELLED", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_COLETA": {
+      "id": "AFTER_COLETA",
+      "name": "Confirmar Coleta (tarefa externa)",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Dados Coletados",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_CANCELLED": {
+      "id": "END_EVENT_CANCELLED",
+      "name": "Cancelado Externamente",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

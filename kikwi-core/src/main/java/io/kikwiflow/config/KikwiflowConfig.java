@@ -16,6 +16,9 @@
  */
 package io.kikwiflow.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class KikwiflowConfig {
 
     /**
@@ -47,9 +50,82 @@ public class KikwiflowConfig {
 
     private long taskAcquisitionIntervalMillis = 5000L;
     private int taskAcquisitionMaxTasks = 10;
-
+    private int maxConcurrentTasks = 200;
+    private int shutdownGracePeriodSeconds = 20;
+    private long lockTimeoutMillis = 5000L;
+    private String defaultRetryInterval = "PT3M";
+    private int defaultMaxRetries = 3;
+    private String instanceName;
+    private List<String> fatalExceptions = new ArrayList<>();
+    private boolean isProcessDefinitionDeployEnabled = true;
 
     public KikwiflowConfig() {
+    }
+
+    public String getDefaultRetryInterval() {
+        return defaultRetryInterval;
+    }
+
+    public void setDefaultRetryInterval(String defaultRetryInterval) {
+        this.defaultRetryInterval = defaultRetryInterval;
+    }
+
+    public void setStatsEnabled(boolean statsEnabled) {
+        isStatsEnabled = statsEnabled;
+    }
+
+    public void setOutboxEventsEnabled(boolean outboxEventsEnabled) {
+        isOutboxEventsEnabled = outboxEventsEnabled;
+    }
+
+    public boolean isProcessDefinitionDeployEnabled() {
+        return isProcessDefinitionDeployEnabled;
+    }
+
+    public void setProcessDefinitionDeployEnabled(boolean processDefinitionDeployEnabled) {
+        isProcessDefinitionDeployEnabled = processDefinitionDeployEnabled;
+    }
+
+    public int getDefaultMaxRetries() {
+        return defaultMaxRetries;
+    }
+
+    public List<String> getFatalExceptions() {
+        return fatalExceptions;
+    }
+
+    public void setFatalExceptions(List<String> fatalExceptions) {
+        if (fatalExceptions != null) {
+            this.fatalExceptions = fatalExceptions;
+        }
+    }
+
+    public void setDefaultMaxRetries(int defaultMaxRetries) {
+        this.defaultMaxRetries = defaultMaxRetries;
+    }
+
+    public String getInstanceName() {
+        return instanceName;
+    }
+
+    public void setLockTimeoutMillis(long lockTimeoutMillis) {
+        this.lockTimeoutMillis = lockTimeoutMillis;
+    }
+
+    public long getLockTimeoutMillis() {
+        return lockTimeoutMillis;
+    }
+
+    public void setInstanceName(String instanceName) {
+        this.instanceName = instanceName;
+    }
+
+    public void setMaxConcurrentTasks(int maxConcurrentTasks) {
+        this.maxConcurrentTasks = maxConcurrentTasks;
+    }
+
+    public void setShutdownGracePeriodSeconds(int shutdownGracePeriodSeconds) {
+        this.shutdownGracePeriodSeconds = shutdownGracePeriodSeconds;
     }
 
     public long getTaskAcquisitionIntervalMillis() {
@@ -85,5 +161,29 @@ public class KikwiflowConfig {
 
     public boolean isOutboxEventsEnabled() {
         return isOutboxEventsEnabled;
+    }
+
+    public int getMaxConcurrentTasks() {
+        return maxConcurrentTasks;
+    }
+
+    public long getShutdownGracePeriodSeconds() {
+        return shutdownGracePeriodSeconds;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("KikwiflowConfig{");
+        sb.append("isStatsEnabled=").append(isStatsEnabled);
+        sb.append(", isOutboxEventsEnabled=").append(isOutboxEventsEnabled);
+        sb.append(", taskAcquisitionIntervalMillis=").append(taskAcquisitionIntervalMillis);
+        sb.append(", taskAcquisitionMaxTasks=").append(taskAcquisitionMaxTasks);
+        sb.append(", maxConcurrentTasks=").append(maxConcurrentTasks);
+        sb.append(", shutdownGracePeriodSeconds=").append(shutdownGracePeriodSeconds);
+        sb.append(", lockTimeoutMillis=").append(lockTimeoutMillis);
+        sb.append(", instanceName='").append(instanceName).append('\'');
+        sb.append(", fatalExceptions=").append(fatalExceptions);
+        sb.append('}');
+        return sb.toString();
     }
 }

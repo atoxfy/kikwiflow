@@ -18,6 +18,8 @@
 package io.kikwiflow.model.execution.node;
 
 import io.kikwiflow.model.execution.enumerated.ExternalTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ExternalTaskType;
+import io.kikwiflow.model.execution.enumerated.MatchPolicy;
 
 import java.time.Instant;
 import java.util.List;
@@ -38,10 +40,52 @@ public record ExternalTask (
          String topicName,
          String assignee,
          String tenantId,
-         List<String> boundaryEvents){
+         List<AttachedEventReference> boundaryEvents,
+         AttachedTaskType attachedToRefType,
+         String attachedToRefId,
+         String attachedToRefDefinitionId,
+         String joinTaskId,
+         List<String> pendingBranchIds,
+         String branchId,
+         ExternalTaskType type,
+         String correlationKey,
+         String displayName,
+         List<String> pendingCorrelationKeys,
+         MatchPolicy matchPolicy,
+         String coordinatorTaskId,
+         Integer totalCorrelationKeys){
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public Builder toBuilder() {
+        return new Builder()
+                .id(this.id)
+                .name(this.name)
+                .description(this.description)
+                .taskDefinitionId(this.taskDefinitionId)
+                .processInstanceId(this.processInstanceId)
+                .processDefinitionId(this.processDefinitionId)
+                .status(this.status)
+                .createdAt(this.createdAt)
+                .topicName(this.topicName)
+                .assignee(this.assignee)
+                .tenantId(this.tenantId)
+                .boundaryEvents(this.boundaryEvents)
+                .attachedToRefType(this.attachedToRefType)
+                .attachedToRefId(this.attachedToRefId)
+                .attachedToRefDefinitionId(this.attachedToRefDefinitionId)
+                .joinTaskId(this.joinTaskId)
+                .pendingBranchIds(this.pendingBranchIds)
+                .branchId(this.branchId)
+                .type(this.type)
+                .correlationKey(this.correlationKey)
+                .displayName(this.displayName)
+                .pendingCorrelationKeys(this.pendingCorrelationKeys)
+                .matchPolicy(this.matchPolicy)
+                .coordinatorTaskId(this.coordinatorTaskId)
+                .totalCorrelationKeys(this.totalCorrelationKeys);
     }
 
     public static class Builder {
@@ -56,11 +100,30 @@ public record ExternalTask (
         private String topicName;
         private String assignee;
         private String tenantId;
-        private List<String> boundaryEvents;
+        private List<AttachedEventReference> boundaryEvents;
+        private AttachedTaskType attachedToRefType;
+        private String attachedToRefId;
+        private String attachedToRefDefinitionId;
+        private String joinTaskId;
+        private List<String> pendingBranchIds;
+        private String branchId;
+        private ExternalTaskType type;
+        private String correlationKey;
+        private String displayName;
+        private List<String> pendingCorrelationKeys;
+        private MatchPolicy matchPolicy;
+        private String coordinatorTaskId;
+        private Integer totalCorrelationKeys;
 
         private Builder() {}
 
         public Builder id(String id) { this.id = id; return this; }
+        public Builder joinTaskId(String joinTaskId) { this.joinTaskId = joinTaskId; return this; }
+        public Builder branchId(String branchId) { this.branchId = branchId; return this; }
+        public Builder pendingBranchIds(List<String> pendingBranchIds) { this.pendingBranchIds = pendingBranchIds; return this; }
+        public Builder attachedToRefType(AttachedTaskType attachedToRefType) { this.attachedToRefType = attachedToRefType; return this; }
+        public Builder attachedToRefDefinitionId(String attachedToRefDefinitionId) { this.attachedToRefDefinitionId = attachedToRefDefinitionId; return this; }
+        public Builder attachedToRefId(String attachedToRefId) { this.attachedToRefId = attachedToRefId; return this; }
         public Builder tenantId(String tenantId) { this.tenantId = tenantId; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder description(String description) { this.description = description; return this; }
@@ -71,7 +134,14 @@ public record ExternalTask (
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder topicName(String topicName) { this.topicName = topicName; return this; }
         public Builder assignee(String assignee) { this.assignee = assignee; return this; }
-        public Builder boundaryEvents(List<String> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
+        public Builder boundaryEvents(List<AttachedEventReference> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
+        public Builder type(ExternalTaskType type) { this.type = type; return this; }
+        public Builder correlationKey(String correlationKey) { this.correlationKey = correlationKey; return this; }
+        public Builder displayName(String displayName) { this.displayName = displayName; return this; }
+        public Builder pendingCorrelationKeys(List<String> pendingCorrelationKeys) { this.pendingCorrelationKeys = pendingCorrelationKeys; return this; }
+        public Builder matchPolicy(MatchPolicy matchPolicy) { this.matchPolicy = matchPolicy; return this; }
+        public Builder coordinatorTaskId(String coordinatorTaskId) { this.coordinatorTaskId = coordinatorTaskId; return this; }
+        public Builder totalCorrelationKeys(Integer totalCorrelationKeys) { this.totalCorrelationKeys = totalCorrelationKeys; return this; }
 
         public ExternalTask build() {
             return new ExternalTask(
@@ -86,7 +156,20 @@ public record ExternalTask (
                 this.topicName,
                 this.assignee,
                 this.tenantId,
-                this.boundaryEvents
+                this.boundaryEvents,
+                this.attachedToRefType,
+                this.attachedToRefId,
+                this.attachedToRefDefinitionId,
+                this.joinTaskId,
+                this.pendingBranchIds,
+                this.branchId,
+                this.type,
+                this.correlationKey,
+                this.displayName,
+                this.pendingCorrelationKeys,
+                this.matchPolicy,
+                this.coordinatorTaskId,
+                this.totalCorrelationKeys
             );
         }
     }

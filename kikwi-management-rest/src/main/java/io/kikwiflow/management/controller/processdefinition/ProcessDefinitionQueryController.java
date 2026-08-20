@@ -17,6 +17,7 @@
 
 package io.kikwiflow.management.controller.processdefinition;
 
+import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@RestController
+@KikwiRestController
 @ConditionalOnBean(QueryRepository.class)
 public class ProcessDefinitionQueryController implements ProcessDefinitionQueryRestApi {
 

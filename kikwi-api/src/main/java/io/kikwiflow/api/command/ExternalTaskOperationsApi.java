@@ -19,10 +19,11 @@ package io.kikwiflow.api.command;
 
 import io.kikwiflow.api.dto.CompleteExternalTaskRequest;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.security.IdentityContext;
 
 public interface ExternalTaskOperationsApi {
-    void claim(String id, String assignee);
-    void unclaim(String id);
-    ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest);
+    void claim(String id, String assignee, IdentityContext identityContext);
+    void unclaim(String id, IdentityContext identityContext);
+    ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest, IdentityContext identityContext);
 
 }

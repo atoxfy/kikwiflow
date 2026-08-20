@@ -1,0 +1,46 @@
+{
+  "key": "event-catcher-group-any",
+  "name": "Espera de Correlacao em Grupo (ANY)",
+  "description": "Fixture de teste: start -> EVENT_CATCHER (GROUP, VARIABLE, ANY) -> end.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-catcher", "name": "", "targetNodeId": "WAIT_FIRST_PROPOSAL", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_FIRST_PROPOSAL": {
+      "id": "WAIT_FIRST_PROPOSAL",
+      "name": "Aguardar Primeira Proposta",
+      "type": "EVENT_CATCHER",
+      "catchType": "GROUP",
+      "providerType": "VARIABLE",
+      "providerVariable": "supplierIds",
+      "keyPrefix": "SUPPLIER_",
+      "keySuffix": "_PROPOSAL",
+      "matchPolicy": "ANY",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-catcher-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

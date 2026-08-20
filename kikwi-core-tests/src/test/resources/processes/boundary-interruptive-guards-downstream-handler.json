@@ -1,0 +1,122 @@
+{
+  "key": "boundary-interruptive-guards-downstream-handler",
+  "name": "Boundary Interruptivo Protege Handler Sincrono na Saida",
+  "description": "Fixture de teste: start -> COLETAR_DADOS (EXTERNAL_TASK) com DOIS boundary events interruptivos (timer e catch event), cada um saindo direto para um EXECUTABLE_TASK com commitBefore=false (REALIZAR_PAGAMENTO_*). Usada para provar que o motor NAO roda esse handler inline ao processar o boundary event — ele fica PENDING, protegido pelo guardSynchronousHandlers em ProcessExecutionManager.executeFlow, mesmo sem commitBefore declarado no proprio nó.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-coletar", "name": "", "targetNodeId": "COLETAR_DADOS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "COLETAR_DADOS": {
+      "id": "COLETAR_DADOS",
+      "name": "Coletar Dados",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["CANCEL_CATCH", "TIMEOUT_TIMER"],
+      "outgoing": [
+        { "id": "flow-coletar-to-after", "name": "", "targetNodeId": "AFTER_COLETA", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CANCEL_CATCH": {
+      "id": "CANCEL_CATCH",
+      "name": "Cancelamento Externo",
+      "type": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT",
+      "attachedToRef": "COLETAR_DADOS",
+      "providerType": "STATIC",
+      "staticKey": "cancelar-task-guard-1",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-cancel-to-pagamento", "name": "", "targetNodeId": "REALIZAR_PAGAMENTO_CATCH", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "REALIZAR_PAGAMENTO_CATCH": {
+      "id": "REALIZAR_PAGAMENTO_CATCH",
+      "name": "Realizar Pagamento (via cancelamento)",
+      "type": "EXECUTABLE_TASK",
+      "executor": "realizarPagamentoTaskHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-pagamento-catch-to-end", "name": "", "targetNodeId": "END_EVENT_CANCELLED", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "TIMEOUT_TIMER": {
+      "id": "TIMEOUT_TIMER",
+      "name": "Timeout de SLA",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "attachedToRef": "COLETAR_DADOS",
+      "providerType": "STATIC",
+      "staticValue": "PT24H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-timeout-to-pagamento", "name": "", "targetNodeId": "REALIZAR_PAGAMENTO_TIMEOUT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "REALIZAR_PAGAMENTO_TIMEOUT": {
+      "id": "REALIZAR_PAGAMENTO_TIMEOUT",
+      "name": "Realizar Pagamento (via timeout)",
+      "type": "EXECUTABLE_TASK",
+      "executor": "realizarPagamentoTaskHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-pagamento-timeout-to-end", "name": "", "targetNodeId": "END_EVENT_TIMEOUT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_COLETA": {
+      "id": "AFTER_COLETA",
+      "name": "Confirmar Coleta (tarefa externa)",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Dados Coletados",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_CANCELLED": {
+      "id": "END_EVENT_CANCELLED",
+      "name": "Cancelado Externamente",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_TIMEOUT": {
+      "id": "END_EVENT_TIMEOUT",
+      "name": "Cancelado por Timeout",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

@@ -23,7 +23,7 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.42</version>
+        <version>0.1.68</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <properties>
@@ -48,12 +48,17 @@
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-security-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-lightweight-events-api</artifactId>
               <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-delegate-api</artifactId>
+            <artifactId>kikwi-execution-api</artifactId>
               <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -86,12 +91,6 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kikwiflow</groupId>
-            <artifactId>kikwi-rule-api</artifactId>
-              <version>${project.version}</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

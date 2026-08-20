@@ -1,0 +1,79 @@
+{
+  "key": "call-activity-timeout-parent",
+  "name": "Coordenador Call Activity - Timeout de Boundary Event",
+  "description": "Fixture de teste: start -> CALL_CHILD (CALL_ACTIVITY_COORDINATOR, collectionVariable=documents) com boundary CALL_TIMEOUT -> AFTER_CALL -> end, ou (via timeout) -> END_EVENT_TIMEOUT. Usada para provar que o timeout apaga a coordenadora e qualquer iniciadora pendente, sem tocar filhos ja iniciados.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-call", "name": "", "targetNodeId": "CALL_CHILD", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALL_CHILD": {
+      "id": "CALL_CHILD",
+      "name": "Chamar Processos Filhos",
+      "type": "CALL_ACTIVITY_COORDINATOR",
+      "calledElement": "call-activity-child-process",
+      "collectionVariable": "documents",
+      "elementVariable": "document",
+      "boundaryEventIds": ["CALL_TIMEOUT"],
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-call-to-after", "name": "", "targetNodeId": "AFTER_CALL", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALL_TIMEOUT": {
+      "id": "CALL_TIMEOUT",
+      "name": "Timeout da Coordenadora",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "attachedToRef": "CALL_CHILD",
+      "providerType": "STATIC",
+      "staticValue": "PT24H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-timeout-to-end", "name": "", "targetNodeId": "END_EVENT_TIMEOUT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_CALL": {
+      "id": "AFTER_CALL",
+      "name": "Depois da Call Activity",
+      "type": "EXECUTABLE_TASK",
+      "executor": "afterCallHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Concluido",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_TIMEOUT": {
+      "id": "END_EVENT_TIMEOUT",
+      "name": "Cancelado por Timeout",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

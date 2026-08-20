@@ -16,15 +16,18 @@
  */
 package io.kikwiflow.navigation;
 
-import io.kikwiflow.bpmn.BpmnParser;
 import io.kikwiflow.cache.ProcessDefinitionCache;
 import io.kikwiflow.exception.ProcessDefinitionNotFoundException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.execution.api.parser.ProcessDefinitionParser;
+import io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
+import io.kikwiflow.security.api.DeploymentSecurityManager;
+import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.validation.DeployValidator;
 
-import java.io.InputStream;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Gerencia o ciclo de vida das definições de processo ({@link ProcessDefinition}).
@@ -35,51 +38,60 @@ import java.util.Optional;
  * frequentemente utilizadas.
  */
 public class ProcessDefinitionService {
-    private final BpmnParser bpmnParser;
+    private final ProcessDefinitionParser processDefinitionParser;
     private final KikwiEngineRepository kikwiEngineRepository;
     private final ProcessDefinitionCache processDefinitionCache;
     private final DeployValidator deployValidator;
+    private final DeploymentSecurityManager deploymentSecurityManager;
 
     /**
      * Constrói uma nova instância do ProcessDefinitionService.
-     *
-     * @param bpmnParser O parser responsável por ler um arquivo BPMN e transformá-lo num objeto {@link ProcessDefinition}.
      * @param kikwiEngineRepository O repositório para persistir e buscar as definições de processo.
      */
-    public ProcessDefinitionService(BpmnParser bpmnParser, KikwiEngineRepository kikwiEngineRepository, DeployValidator deployValidator){
-        this.bpmnParser =  bpmnParser;
+    public ProcessDefinitionService(ProcessDefinitionParser processDefinitionParser, KikwiEngineRepository kikwiEngineRepository, DeployValidator deployValidator, DeploymentSecurityManager deploymentSecurityManager){
+        this.processDefinitionParser = processDefinitionParser;
         this.kikwiEngineRepository = kikwiEngineRepository;
         this.deployValidator = deployValidator;
+        this.deploymentSecurityManager = deploymentSecurityManager;
         this.processDefinitionCache = new ProcessDefinitionCache();
     }
 
-    /**
-     * Implanta (deploy) uma nova definição de processo a partir de um stream de arquivo BPMN.
-     * O processo envolve:
-     * <ol>
-     *   <li>Fazer o parse do arquivo XML.</li>
-     *   <li>Transformá-lo num objeto {@link ProcessDefinition}.</li>
-     *   <li>Persistir a nova definição no repositório.</li>
-     * </ol>
-     *
-     * @param inputStream O stream do arquivo BPMN a ser implantado.
-     * @return A {@link ProcessDefinition} persistida, incluindo o seu ID e versão.
-     * @throws Exception se ocorrer um erro durante o parse ou a persistência.
-     */
-    public ProcessDefinition deploy(InputStream inputStream) throws Exception {
-        ProcessDefinition processDefinitionDeploy = bpmnParser.parse(inputStream);
-        deployValidator.validate(processDefinitionDeploy);
-        ProcessDefinition processDefinition =  kikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
-        processDefinitionCache.clear();;
-        return processDefinition;
+    public ProcessDefinition deploy(byte[] content, IdentityContext identityContext) throws Exception {
+        ProcessDefinitionDeployRequest processDefinitionDeployRequest = processDefinitionParser.parse(content);
+        return deploy(processDefinitionDeployRequest, identityContext);
     }
 
-    public ProcessDefinition deploy(ProcessDefinition processDefinitionDeploy){
-        deployValidator.validate(processDefinitionDeploy);
-        ProcessDefinition processDefinition =  kikwiEngineRepository.saveProcessDefinition(processDefinitionDeploy);
-        processDefinitionCache.clear();;
-        return processDefinition;
+    private ProcessDefinition deploy(ProcessDefinitionDeployRequest processContent) throws Exception {
+        String checksum = processDefinitionParser.calculateChecksum(processContent);
+
+        ProcessDefinition parsedDefinition = processDefinitionParser.parse(processContent);
+
+        Optional<ProcessDefinition> existingIdentical = kikwiEngineRepository.findByKeyAndChecksum(parsedDefinition.key(), checksum);
+        if (existingIdentical.isPresent()) {
+            return existingIdentical.get();
+        }
+
+        int nextVersion = kikwiEngineRepository.findLatestVersionByKey(parsedDefinition.key())
+                .map(def -> def.version() + 1)
+                .orElse(1);
+
+        ProcessDefinition definitionToSave = parsedDefinition.toBuilder()
+                .id(UUID.randomUUID().toString())
+                .version(nextVersion)
+                .checksum(checksum)
+                .build();
+
+        deployValidator.validate(definitionToSave);
+        ProcessDefinition savedDefinition = kikwiEngineRepository.saveProcessDefinition(definitionToSave);
+        processDefinitionCache.clear();
+        return savedDefinition;
     }
+
+    public ProcessDefinition deploy(ProcessDefinitionDeployRequest processContent, IdentityContext identityContext) throws Exception {
+        deploymentSecurityManager.validateDeployAccess(identityContext, processContent);
+        return deploy(processContent);
+    }
+
 
     /**
      * Obtém uma definição de processo pela sua chave (key), utilizando uma estratégia de cache.

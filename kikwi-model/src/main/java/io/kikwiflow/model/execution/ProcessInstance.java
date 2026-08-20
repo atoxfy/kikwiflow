@@ -22,12 +22,26 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 
 public record ProcessInstance(
-        String id, String businessKey, BigDecimal businessValue, String tenantId, ProcessInstanceStatus status, String processDefinitionId,
-        Map<String, ProcessVariable> variables, Instant startedAt, Instant endedAt, String origin) {
+        String id,
+        String businessKey,
+        BigDecimal businessValue,
+        String tenantId,
+        ProcessInstanceStatus status,
+        String processDefinitionId,
+        Map<String, ProcessVariable>
+        variables, Instant startedAt,
+        Instant endedAt,
+        String origin,
+        int version,
+        String parentInstanceId,
+        String callerTaskId,
+        String callerBranchId,
+        Map<String, Integer> activeNodes) {
 
     public static Builder builder() {
         return new Builder();
@@ -44,14 +58,46 @@ public record ProcessInstance(
         private BigDecimal businessValue;
         private String tenantId;
         private String origin;
-
+        private int version = 0;
+        private String parentInstanceId;
+        private String callerTaskId;
+        private String callerBranchId;
+        private Map<String, Integer> activeNodes = new java.util.HashMap<>();
 
         private Builder() {}
+
+        public Builder version(int version) {
+            this.version = version;
+            return this;
+        }
+
+        public Builder callerBranchId(String callerBranchId) {
+            this.callerBranchId = callerBranchId;
+            return this;
+        }
+
+        public Builder callerTaskId(String callerTaskId) {
+            this.callerTaskId = callerTaskId;
+            return this;
+        }
+
+        public Builder parentInstanceId(String parentInstanceId) {
+            this.parentInstanceId = parentInstanceId;
+            return this;
+        }
+
+        public Builder activeNodes(Map<String, Integer> activeNodes) {
+            if (activeNodes != null) {
+                this.activeNodes = activeNodes;
+            }
+            return this;
+        }
 
         public Builder id(String id) {
             this.id = id;
             return this;
         }
+
 
         public Builder businessKey(String businessKey) {
             this.businessKey = businessKey;
@@ -107,7 +153,7 @@ public record ProcessInstance(
                 status = ProcessInstanceStatus.ACTIVE;
             }
 
-            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt, origin);
+            return new ProcessInstance(id, businessKey, businessValue, tenantId, status, processDefinitionId, variables, startedAt, endedAt, origin, version, parentInstanceId, callerTaskId, callerBranchId, activeNodes);
         }
     }
 }

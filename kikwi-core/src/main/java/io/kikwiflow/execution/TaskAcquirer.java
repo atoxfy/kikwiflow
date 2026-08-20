@@ -24,43 +24,66 @@ import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-public class TaskAcquirer implements Runnable{
-    private final KikwiflowEngine engine;
+public class TaskAcquirer implements Runnable {
+    private KikwiflowEngine engine;
     private final KikwiEngineRepository kikwiEngineRepository;
     private final KikwiflowConfig kikwiflowConfig;
-    private final ExecutorService executorService;
+    private final ExecutorService acquirerExecutor;
+    private final ExecutorService workerExecutor;
     private volatile boolean running = false;
+    private final Semaphore concurrencyLimit;
+    private final String workerId;
 
-    public TaskAcquirer(KikwiflowEngine engine, KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig) {
-        this.engine = engine;
+    public TaskAcquirer(KikwiEngineRepository kikwiEngineRepository, KikwiflowConfig kikwiflowConfig) {
         this.kikwiEngineRepository = kikwiEngineRepository;
         this.kikwiflowConfig = kikwiflowConfig;
-        this.executorService = Executors.newSingleThreadExecutor(Thread.ofVirtual().name("kikwiflow-task-acquirer-", 0).factory());
+        this.acquirerExecutor = Executors.newSingleThreadExecutor(Thread.ofVirtual().name("kikwiflow-acquirer-", 0).factory());
+        this.workerExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        this.concurrencyLimit = new Semaphore(kikwiflowConfig.getMaxConcurrentTasks());
+        String baseName = kikwiflowConfig.getInstanceName() != null ? kikwiflowConfig.getInstanceName() : "kikwi-node";
+        this.workerId = baseName + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
 
 
-    public void start(){
+    public void start(KikwiflowEngine kikwiflowEngine){
+        this.engine = kikwiflowEngine;
         if(!running){
             this.running = true;
-            this.executorService.submit(this);
-            System.out.println("Kikwiflow Task Acquirer started.");
+            this.acquirerExecutor.submit(this);
+            System.out.println("Kikwiflow Task Acquirer started... " + kikwiflowConfig.toString());
         }
     }
 
 
-    public void stop(){
+    public void stop() {
         this.running = false;
-        this.executorService.shutdown();
-        try{
-            if(!this.executorService.awaitTermination(10, TimeUnit.SECONDS)){
-                this.executorService.shutdownNow();
+        System.out.println("Kikwiflow Task Acquirer: Iniciando graceful shutdown...");
+
+        this.acquirerExecutor.shutdown();
+        this.workerExecutor.shutdown();
+
+        long gracePeriod = kikwiflowConfig.getShutdownGracePeriodSeconds();
+
+        try {
+            if (!this.acquirerExecutor.awaitTermination(gracePeriod, TimeUnit.SECONDS)) {
+                System.err.println("Kikwiflow Task Acquirer: Acquirer timeout. Forçando parada.");
+                this.acquirerExecutor.shutdownNow();
+            }
+
+            if (!this.workerExecutor.awaitTermination(gracePeriod, TimeUnit.SECONDS)) {
+                System.err.println("Kikwiflow Task Acquirer: Workers timeout. Existem tarefas que foram interrompidas abruptamente.");
+                this.workerExecutor.shutdownNow();
             }
         } catch (InterruptedException e) {
-            this.executorService.shutdownNow();
+            System.err.println("Kikwiflow Task Acquirer: Shutdown interrompido externamente.");
+            this.acquirerExecutor.shutdownNow();
+            this.workerExecutor.shutdownNow();
             Thread.currentThread().interrupt();
         }
 
@@ -69,18 +92,43 @@ public class TaskAcquirer implements Runnable{
 
     @Override
     public void run() {
-        while (running){
+        while (running) {
             try {
-                List<ExecutableTask> taskList = kikwiEngineRepository.findAndLockDueTasks(Instant.now(), kikwiflowConfig.getTaskAcquisitionMaxTasks(), "kikwiflow-1");
-                for(ExecutableTask task : taskList){
-                    engine.executeFromTask(task);
+                int availablePermits = concurrencyLimit.availablePermits();
+
+                if (availablePermits <= 0) {
+                    Thread.sleep(kikwiflowConfig.getTaskAcquisitionIntervalMillis());
+                    continue;
                 }
+
+                int limitToFetch = Math.min(availablePermits, kikwiflowConfig.getTaskAcquisitionMaxTasks());
+                List<ExecutableTask> taskList = kikwiEngineRepository.findAndLockDueTasks(
+                        Instant.now(),
+                        limitToFetch,
+                        this.workerId,
+                        this.kikwiflowConfig.getLockTimeoutMillis()
+                );
+
+                for (ExecutableTask task : taskList) {
+                    concurrencyLimit.acquireUninterruptibly();
+                    workerExecutor.submit(() -> {
+                        try {
+                            engine.executeFromTask(task);
+                        } catch (Exception ex) {
+                            System.err.println("Erro crítico na execução: " + ex.getMessage());
+                        } finally {
+                            concurrencyLimit.release();
+                        }
+                    });
+                }
+
                 Thread.sleep(kikwiflowConfig.getTaskAcquisitionIntervalMillis());
-            }catch (InterruptedException e){
+
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 this.running = false;
-            } catch (Exception e){
-                System.err.println("Errror during job acquisition: " + e.getMessage());
+            } catch (Exception e) {
+                System.err.println("Erro no Poller: " + e.getMessage());
             }
         }
     }

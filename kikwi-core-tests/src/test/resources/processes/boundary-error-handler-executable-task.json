@@ -1,0 +1,102 @@
+{
+  "key": "boundary-error-handler-executable-task",
+  "name": "Pagamento com Boundary Error Handler",
+  "description": "Fixture de teste: start -> PAGAMENTO (EXECUTABLE_TASK, commitBefore=true, RetryPolicy maxRetries=2) com dois BOUNDARY_ERROR_HANDLER anexados: um especifico (errorCode=SALDO_INSUFICIENTE) e um catch-all (sem errorCode). O catch-all tem commitAfter=true, entao sua saida (NOTIFICAR_ERRO) fica PENDING em vez de rodar inline.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-pagamento", "name": "", "targetNodeId": "PAGAMENTO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "PAGAMENTO": {
+      "id": "PAGAMENTO",
+      "name": "Processar Pagamento",
+      "type": "EXECUTABLE_TASK",
+      "executor": "processarPagamentoTaskHandler",
+      "commitBefore": true,
+      "commitAfter": false,
+      "retryPolicy": {
+        "strategy": "LINEAR",
+        "maxRetries": 2,
+        "intervals": ["PT0S", "PT0S"]
+      },
+      "boundaryEventIds": ["SALDO_INSUFICIENTE_HANDLER", "ERRO_GENERICO_HANDLER"],
+      "outgoing": [
+        { "id": "flow-pagamento-to-end", "name": "", "targetNodeId": "END_EVENT_SUCESSO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "SALDO_INSUFICIENTE_HANDLER": {
+      "id": "SALDO_INSUFICIENTE_HANDLER",
+      "name": "Saldo Insuficiente",
+      "type": "BOUNDARY_ERROR_HANDLER",
+      "attachedToRef": "PAGAMENTO",
+      "errorCode": "SALDO_INSUFICIENTE",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-saldo-to-end", "name": "", "targetNodeId": "END_EVENT_SALDO_INSUFICIENTE", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "ERRO_GENERICO_HANDLER": {
+      "id": "ERRO_GENERICO_HANDLER",
+      "name": "Erro Generico de Negocio",
+      "type": "BOUNDARY_ERROR_HANDLER",
+      "attachedToRef": "PAGAMENTO",
+      "commitBefore": false,
+      "commitAfter": true,
+      "outgoing": [
+        { "id": "flow-generico-to-notificar", "name": "", "targetNodeId": "NOTIFICAR_ERRO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "NOTIFICAR_ERRO": {
+      "id": "NOTIFICAR_ERRO",
+      "name": "Notificar Erro",
+      "type": "EXECUTABLE_TASK",
+      "executor": "notificarErroTaskHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-notificar-to-end", "name": "", "targetNodeId": "END_EVENT_ERRO_GENERICO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCESSO": {
+      "id": "END_EVENT_SUCESSO",
+      "name": "Pagamento Concluido",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SALDO_INSUFICIENTE": {
+      "id": "END_EVENT_SALDO_INSUFICIENTE",
+      "name": "Rejeitado por Saldo Insuficiente",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_ERRO_GENERICO": {
+      "id": "END_EVENT_ERRO_GENERICO",
+      "name": "Falhou com Erro Generico",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

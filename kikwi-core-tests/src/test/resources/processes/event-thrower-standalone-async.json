@@ -1,0 +1,44 @@
+{
+  "key": "event-thrower-standalone-async",
+  "name": "Lancamento de Evento Correlacionado (commitBefore)",
+  "description": "Fixture de teste: start -> EVENT_THROWER (VARIABLE, commitBefore=true) -> end. O throw vira uma ExecutableTask EVENT_THROW pendente em vez de disparar inline.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-thrower", "name": "", "targetNodeId": "THROW_ORDER_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "THROW_ORDER_EVENT": {
+      "id": "THROW_ORDER_EVENT",
+      "name": "Lancar Evento do Pedido",
+      "type": "EVENT_THROWER",
+      "providerType": "VARIABLE",
+      "providerVariable": "orderId",
+      "keyPrefix": "ORDER_",
+      "keySuffix": "_THROWN",
+      "commitBefore": true,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-thrower-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

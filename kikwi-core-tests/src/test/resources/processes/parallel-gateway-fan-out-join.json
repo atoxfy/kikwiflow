@@ -1,0 +1,90 @@
+{
+  "key": "parallel-gateway-fan-out-join",
+  "name": "Fan-out/Fan-in com PARALLEL_GATEWAY e JOIN_GATEWAY",
+  "description": "Fixture de teste: start -> PARALLEL_SPLIT -> [FAST_TASK (commitBefore=false), SLOW_TASK (commitBefore=true)] -> JOIN_SYNC -> AFTER_JOIN_TASK -> end. Usada para provar que o split sempre persiste as duas ExecutableTasks (mesmo a de commitBefore=false) e que o join só libera apos as duas ramificacoes concluirem.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-split", "name": "", "targetNodeId": "PARALLEL_SPLIT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "PARALLEL_SPLIT": {
+      "id": "PARALLEL_SPLIT",
+      "name": "Divisao Paralela",
+      "type": "PARALLEL_GATEWAY",
+      "commitBefore": false,
+      "commitAfter": false,
+      "targetJoinId": "JOIN_SYNC",
+      "outgoing": [
+        { "id": "flow-split-to-fast", "name": "", "targetNodeId": "FAST_TASK", "isDefault": false, "extensionProperties": {} },
+        { "id": "flow-split-to-slow", "name": "", "targetNodeId": "SLOW_TASK", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "FAST_TASK": {
+      "id": "FAST_TASK",
+      "name": "Tarefa Rapida (commitBefore=false)",
+      "type": "EXECUTABLE_TASK",
+      "executor": "fastBranchHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-fast-to-join", "name": "", "targetNodeId": "JOIN_SYNC", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "SLOW_TASK": {
+      "id": "SLOW_TASK",
+      "name": "Tarefa Lenta (commitBefore=true)",
+      "type": "EXECUTABLE_TASK",
+      "executor": "slowBranchHandler",
+      "commitBefore": true,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-slow-to-join", "name": "", "targetNodeId": "JOIN_SYNC", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "JOIN_SYNC": {
+      "id": "JOIN_SYNC",
+      "name": "Sincronizacao",
+      "type": "JOIN_GATEWAY",
+      "sourceSplitId": "PARALLEL_SPLIT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-join-to-after", "name": "", "targetNodeId": "AFTER_JOIN_TASK", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_JOIN_TASK": {
+      "id": "AFTER_JOIN_TASK",
+      "name": "Depois do Join",
+      "type": "EXECUTABLE_TASK",
+      "executor": "afterJoinHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-join-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

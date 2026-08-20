@@ -1,0 +1,258 @@
+{
+  "key": "onboarding-scatter-gather",
+  "name": "Onboarding de Cliente Bancário com Produtos (Scatter-Gather)",
+  "description": "Onboarding com verificação paralela (bureau de crédito + upload de documentos), mesa de análise para risco alto com SLA por timer, tratamento de erro de negócio via BOUNDARY_ERROR_HANDLER, e ativação assíncrona de produtos via padrão Scatter-Gather. Ver TUTORIAL.md para o passo a passo de execução.",
+  "extensionProperties": {
+    "sla.target": "PT48H"
+  },
+  "defaultStartPoint": "START_EVENT",
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Início do Onboarding",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-start-parallel", "targetNodeId": "PARALLEL_SPLIT", "extensionProperties": {}}
+      ],
+      "layout": {"x": 100, "y": 300},
+      "extensionProperties": {}
+    },
+    "PARALLEL_SPLIT": {
+      "id": "PARALLEL_SPLIT",
+      "name": "Divisão de Esteiras",
+      "type": "PARALLEL_GATEWAY",
+      "commitBefore": false,
+      "commitAfter": false,
+      "targetJoinId": "JOIN_SYNC",
+      "outgoing": [
+        {"id": "flow-split-bureau", "targetNodeId": "API_BUREAU", "extensionProperties": {}},
+        {"id": "flow-split-ui", "targetNodeId": "UI_UPLOAD", "extensionProperties": {}}
+      ],
+      "layout": {"x": 250, "y": 300},
+      "extensionProperties": {}
+    },
+    "API_BUREAU": {
+      "id": "API_BUREAU",
+      "name": "Consulta Bureau",
+      "type": "EXECUTABLE_TASK",
+      "executor": "bureauCheckHandler",
+      "commitBefore": true,
+      "commitAfter": false,
+      "retryPolicy": {
+        "strategy": "EXPONENTIAL_BACKOFF",
+        "maxRetries": 2,
+        "initialInterval": "PT5S",
+        "multiplier": 2.0,
+        "maxInterval": "PT30S"
+      },
+      "outgoing": [
+        {"id": "flow-bureau-join", "targetNodeId": "JOIN_SYNC", "extensionProperties": {}}
+      ],
+      "layout": {"x": 400, "y": 200},
+      "extensionProperties": {}
+    },
+    "UI_UPLOAD": {
+      "id": "UI_UPLOAD",
+      "name": "Upload Doc & Selfie",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-ui-join", "targetNodeId": "JOIN_SYNC", "extensionProperties": {}}
+      ],
+      "layout": {"x": 400, "y": 400},
+      "extensionProperties": {}
+    },
+    "JOIN_SYNC": {
+      "id": "JOIN_SYNC",
+      "name": "Sincronização",
+      "type": "JOIN_GATEWAY",
+      "sourceSplitId": "PARALLEL_SPLIT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-join-calc", "targetNodeId": "CALC_RISK", "extensionProperties": {}}
+      ],
+      "layout": {"x": 600, "y": 300},
+      "extensionProperties": {}
+    },
+    "CALC_RISK": {
+      "id": "CALC_RISK",
+      "name": "Calculador Risco",
+      "type": "EXECUTABLE_TASK",
+      "executor": "motorRiscoHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-calc-decision", "targetNodeId": "DECISION_RISK", "extensionProperties": {}}
+      ],
+      "layout": {"x": 750, "y": 300},
+      "extensionProperties": {}
+    },
+    "DECISION_RISK": {
+      "id": "DECISION_RISK",
+      "name": "Decisão de Risco",
+      "type": "EXCLUSIVE_GATEWAY",
+      "providerType": "BEAN",
+      "providerBean": "onboardingRiskAnswerProvider",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-approve", "targetNodeId": "CREATE_ACCOUNT", "expectedAnswer": "APPROVED", "extensionProperties": {}},
+        {"id": "flow-manual-review", "targetNodeId": "MANUAL_DESK", "expectedAnswer": "HIGH_RISK", "extensionProperties": {}},
+        {"id": "flow-default-review", "targetNodeId": "MANUAL_DESK", "isDefault": true, "extensionProperties": {}}
+      ],
+      "layout": {"x": 900, "y": 300},
+      "extensionProperties": {}
+    },
+    "MANUAL_DESK": {
+      "id": "MANUAL_DESK",
+      "name": "Mesa de Fraude",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["TIMER_SLA_TIMEOUT"],
+      "outgoing": [
+        {"id": "flow-desk-decision", "targetNodeId": "DECISION_DESK_RESULT", "extensionProperties": {}}
+      ],
+      "layout": {"x": 1050, "y": 450},
+      "extensionProperties": {}
+    },
+    "DECISION_DESK_RESULT": {
+      "id": "DECISION_DESK_RESULT",
+      "name": "Resultado da Mesa",
+      "type": "EXCLUSIVE_GATEWAY",
+      "providerType": "VARIABLE",
+      "providerVariable": "resultadoMesa",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-desk-approve", "targetNodeId": "CREATE_ACCOUNT", "expectedAnswer": "APPROVED", "extensionProperties": {}},
+        {"id": "flow-desk-reject", "targetNodeId": "END_EVENT_REJECTED", "isDefault": true, "extensionProperties": {}}
+      ],
+      "layout": {"x": 1200, "y": 450},
+      "extensionProperties": {}
+    },
+    "TIMER_SLA_TIMEOUT": {
+      "id": "TIMER_SLA_TIMEOUT",
+      "name": "SLA da Mesa de Fraude Expirado",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "attachedToRef": "MANUAL_DESK",
+      "providerType": "STATIC",
+      "staticValue": "PT2M",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-timeout-end", "targetNodeId": "END_EVENT_REJECTED", "extensionProperties": {}}
+      ],
+      "layout": {"x": 1000, "y": 510},
+      "extensionProperties": {}
+    },
+    "END_EVENT_REJECTED": {
+      "id": "END_EVENT_REJECTED",
+      "name": "Cliente Rejeitado",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "layout": {"x": 1350, "y": 450},
+      "extensionProperties": {}
+    },
+    "CREATE_ACCOUNT": {
+      "id": "CREATE_ACCOUNT",
+      "name": "Criação Core Banking",
+      "type": "EXECUTABLE_TASK",
+      "executor": "criarContaCoreBanking",
+      "commitBefore": true,
+      "commitAfter": true,
+      "retryPolicy": {
+        "strategy": "LINEAR",
+        "maxRetries": 2,
+        "intervals": ["PT5S", "PT15S"]
+      },
+      "boundaryEventIds": ["ERROR_DOCUMENTO_INVALIDO"],
+      "outgoing": [
+        {"id": "flow-create-to-products", "targetNodeId": "DISPARAR_PRODUTOS", "extensionProperties": {}}
+      ],
+      "layout": {"x": 1050, "y": 150},
+      "extensionProperties": {}
+    },
+    "ERROR_DOCUMENTO_INVALIDO": {
+      "id": "ERROR_DOCUMENTO_INVALIDO",
+      "name": "Documento Inválido",
+      "type": "BOUNDARY_ERROR_HANDLER",
+      "attachedToRef": "CREATE_ACCOUNT",
+      "errorCode": "DOCUMENTO_INVALIDO",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-documento-invalido-to-rejected", "targetNodeId": "END_EVENT_REJECTED", "extensionProperties": {}}
+      ],
+      "layout": {"x": 1050, "y": 90},
+      "extensionProperties": {}
+    },
+    "DISPARAR_PRODUTOS": {
+      "id": "DISPARAR_PRODUTOS",
+      "name": "Disparar Produtos (Kafka/API)",
+      "type": "EXECUTABLE_TASK",
+      "executor": "dispararAtivacaoProdutosHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-products-to-wait", "targetNodeId": "AGUARDAR_PRODUTOS", "extensionProperties": {}}
+      ],
+      "layout": {"x": 1250, "y": 150},
+      "extensionProperties": {}
+    },
+    "AGUARDAR_PRODUTOS": {
+      "id": "AGUARDAR_PRODUTOS",
+      "name": "Aguardar Efetivação",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["TIMER_PRODUTOS_TIMEOUT"],
+      "outgoing": [
+        {"id": "flow-wait-to-success", "targetNodeId": "END_EVENT_SUCCESS", "extensionProperties": {}}
+      ],
+      "layout": {"x": 1450, "y": 150},
+      "extensionProperties": {}
+    },
+    "TIMER_PRODUTOS_TIMEOUT": {
+      "id": "TIMER_PRODUTOS_TIMEOUT",
+      "name": "Timeout de Efetivação de Produtos",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "attachedToRef": "AGUARDAR_PRODUTOS",
+      "providerType": "STATIC",
+      "staticValue": "PT3M",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        {"id": "flow-timeout-products", "targetNodeId": "END_EVENT_PARTIAL_SUCCESS", "extensionProperties": {}}
+      ],
+      "layout": {"x": 1400, "y": 210},
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Conta e Produtos Criados",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "layout": {"x": 1650, "y": 150},
+      "extensionProperties": {}
+    },
+    "END_EVENT_PARTIAL_SUCCESS": {
+      "id": "END_EVENT_PARTIAL_SUCCESS",
+      "name": "Conta Criada (Produtos com Atraso)",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "layout": {"x": 1650, "y": 230},
+      "extensionProperties": {}
+    }
+  }
+}

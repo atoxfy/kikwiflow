@@ -18,12 +18,13 @@
 package io.kikwiflow.api;
 
 import io.kikwiflow.execution.ProcessInstanceExecution;
-import io.kikwiflow.execution.api.ExecutionContext;
+import io.kikwiflow.execution.api.context.ExecutionContext;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.ProcessVariable;
 
 public class DefaultExecutionContext implements ExecutionContext {
+
 
     private final ProcessInstanceExecution processInstance;
     private final ProcessDefinition processDefinition;

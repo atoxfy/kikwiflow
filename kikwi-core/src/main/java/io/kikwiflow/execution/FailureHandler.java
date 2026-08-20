@@ -16,7 +16,11 @@
  */
 package io.kikwiflow.execution;
 
-import io.kikwiflow.config.KikwiflowConfig;
+import io.kikwiflow.exception.ProcessErrorException; // Import da nova exceção
+import io.kikwiflow.execution.api.retry.RetryPolicyEvaluator;
+import io.kikwiflow.execution.event.CriticalEventRecorder;
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
+import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.IncidentStatus;
@@ -27,76 +31,109 @@ import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
 public class FailureHandler {
 
     private final KikwiEngineRepository repository;
+    private final RetryPolicyEvaluator policyEvaluator;
+    private final CriticalEventRecorder criticalEventRecorder;
 
-    public FailureHandler(KikwiEngineRepository repository) {
+    public FailureHandler(KikwiEngineRepository repository, RetryPolicyEvaluator policyEvaluator,
+                          CriticalEventRecorder criticalEventRecorder) {
         this.repository = repository;
+        this.policyEvaluator = policyEvaluator;
+        this.criticalEventRecorder = criticalEventRecorder;
     }
 
     public void handleFailure(ExecutableTask task, Exception exception) {
-        long retriesLeft = task.retries() - 1;
+        handleFailure(task, exception, List.of(), null);
+    }
 
-        if (retriesLeft > 0) {
-            handleRetry(task, exception, retriesLeft);
+    /**
+     * @param criticalEvents outbox events já construídos durante a execução que terminou em falha
+     *                       (ex.: o {@code FLOW_NODE_FINISHED(ERROR)} do próprio nó), para que não sejam
+     *                       perdidos apenas porque a execução terminou em exceção em vez de sucesso.
+     * @param tenantId tenant da instância de processo à qual {@code task} pertence — {@code ExecutableTask} não
+     *                carrega esse campo, então o chamador (que já tem o {@code ProcessInstance} em mãos) o
+     *                repassa para que {@code INCIDENT_CREATED}/{@code RETRY_SCHEDULED} não fiquem sem tenant.
+     */
+    public void handleFailure(ExecutableTask task, Exception exception, List<OutboxEventEntity> criticalEvents, String tenantId) {
+        List<ExecutableTask> tasksToUpdate = new ArrayList<>();
+        List<Incident> incidentsToCreate = new ArrayList<>();
+        RetryPolicy retryPolicy = task.retryPolicy();
+
+        RetryPolicyEvaluator.RetryEvaluationResult evaluation = policyEvaluator.evaluate(task, exception, retryPolicy);
+
+        Throwable rootCause = exception.getCause() != null ? exception.getCause() : exception;
+        boolean isUnhandledBusinessError = rootCause instanceof ProcessErrorException;
+
+        String errorMessage = rootCause.getMessage() != null
+                ? rootCause.getMessage()
+                : rootCause.getClass().getSimpleName();
+
+        long currentExecutions = task.executions() != null ? task.executions() : 0L;
+        long nextExecutionCount = currentExecutions + 1;
+
+        List<OutboxEventEntity> allCriticalEvents = new ArrayList<>(criticalEvents != null ? criticalEvents : List.of());
+
+        if (!evaluation.shouldCreateIncident() && !isUnhandledBusinessError) {
+            ExecutableTask updatedTask = task.toBuilder()
+                    .retries(evaluation.retriesLeft())
+                    .executions(nextExecutionCount)
+                    .dueDate(evaluation.nextDueDate())
+                    .status(ExecutableTaskStatus.PENDING)
+                    .error(errorMessage)
+                    .executorId(null)
+                    .build();
+
+            tasksToUpdate.add(updatedTask);
+            criticalEventRecorder.recordRetryScheduled(allCriticalEvents, updatedTask, nextExecutionCount,
+                    evaluation.retriesLeft(), evaluation.nextDueDate(), errorMessage, tenantId);
         } else {
-            handleIncident(task, exception);
+            ExecutableTask failedTask = task.toBuilder()
+                    .retries(0L)
+                    .executions(nextExecutionCount)
+                    .status(ExecutableTaskStatus.ERROR)
+                    .error(errorMessage)
+                    .executorId(null)
+                    .build();
+
+            tasksToUpdate.add(failedTask);
+
+            Incident incident = new Incident(
+                    UUID.randomUUID().toString(),
+                    isUnhandledBusinessError ? "UNHANDLED_BUSINESS_ERROR" : "FAILED_JOB",
+                    errorMessage,
+                    getStackTrace(exception),
+                    task.processDefinitionId(),
+                    task.processInstanceId(),
+                    task.id(),
+                    Instant.now(),
+                    IncidentStatus.OPEN,
+                    task.taskDefinitionId()
+            );
+
+            incidentsToCreate.add(incident);
+            criticalEventRecorder.recordIncidentCreated(allCriticalEvents, incident, tenantId);
         }
-    }
 
-    private void handleRetry(ExecutableTask task, Exception e, long retriesLeft) {
-        // Implementação simplificada: Calcula novo DueDate (ex: +2 minutos)
-        // O ideal é ler a estratégia de backoff da definição do processo
-        Instant nextRetry = Instant.now().plus(1, ChronoUnit.MINUTES);
-
-        // AQUI: Você precisa de um método no repositório para atualização atômica de tarefa
-        // Não usamos UnitOfWork aqui para não deletar/recriar a task, apenas atualizar campos
-        /*repository.updateExecutableTaskRetries(
-                task.id(),
-                retriesLeft,
-                nextRetry,
-                e.getMessage(),
-                ExecutableTaskStatus.PENDING // Volta para PENDING para o Acquirer pegar depois
-        );*/
-    }
-
-    private void handleIncident(ExecutableTask task, Exception e) {
-        // 1. Cria o Incidente
-        Incident incident = new Incident(
-                UUID.randomUUID().toString(),
-                "FAILED_JOB",
-                e.getMessage(),
-                getStackTrace(e),
-                task.processDefinitionId(),
-                task.processInstanceId(),
-                task.id(),
-                Instant.now(),
-                IncidentStatus.OPEN
-        );
-
-        // 2. Atualiza a Task para FAILED (para o Acquirer parar de pegar)
-        //repository.updateExecutableTaskStatus(task.id(), ExecutableTaskStatus.ERROR, e.getMessage());
-
-        // 3. Salva o Incidente via UnitOfWork
         UnitOfWork uow = new UnitOfWork(
-                null,
-                null,
-                null,
-                null, null, null, null,
-                List.of(incident) ,
-                null
+                null, null, null, null, null, null,
+                tasksToUpdate, null,
+                allCriticalEvents.isEmpty() ? null : allCriticalEvents,
+                incidentsToCreate,
+                null, null, null, null, null
         );
+
         repository.commitWork(uow);
     }
 
-    private String getStackTrace(Throwable t) {
+    public static String getStackTrace(Throwable t) {
         StringWriter sw = new StringWriter();
         t.printStackTrace(new PrintWriter(sw));
-        return sw.toString(); // Limitar caracteres se necessário
+        return sw.toString();
     }
 }

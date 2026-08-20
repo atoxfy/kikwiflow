@@ -16,12 +16,18 @@
  */
 package io.kikwiflow.execution;
 
+import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.persistence.api.data.VariableOpType;
+import io.kikwiflow.persistence.api.data.VariableOperation;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Representa uma instância de processo em execução.
@@ -34,6 +40,7 @@ import java.util.Map;
  * que é usado para persistência, snapshots e comunicação entre os limites do motor.
  */
 public class ProcessInstanceExecution {
+    private boolean isPersisted = false;
     private String id;
     private String businessKey;
     private ProcessInstanceStatus status;
@@ -44,6 +51,126 @@ public class ProcessInstanceExecution {
     private BigDecimal businessValue;
     private String tenantId;
     private String origin;
+    private int version;
+    private String parentInstanceId;
+    private String callerTaskId;
+    private String callerBranchId;
+    private Map<String, Integer> activeNodes;
+    private final List<BranchPullIntention> branchPullIntentions = new ArrayList<>();
+    private final Map<String, VariableOperation> variableOperations = new java.util.HashMap<>();
+
+    public Map<String, VariableOperation> getVariableOperations() {
+        return Map.copyOf(this.variableOperations);
+    }
+
+    /**
+     * Limpa o acumulador de operações de variáveis após o envio bem-sucedido para o UnitOfWork.
+     * Evita o vazamento de deltas antigos para os próximos passos transacionais do fluxo.
+     */
+    public void clearVariableOperations() {
+        this.variableOperations.clear();
+    }
+
+
+    public Map<String, ProcessVariable> getVariables() {
+        if (this.variables == null) return null;
+        return new java.util.HashMap<>(this.variables) {
+            @Override
+            public ProcessVariable put(String key, ProcessVariable value) {
+                variableOperations.put(key, new VariableOperation(value, VariableOpType.SET));
+                ProcessInstanceExecution.this.variables.put(key, value);
+                return super.put(key, value);
+            }
+
+            @Override
+            public void putAll(Map<? extends String, ? extends ProcessVariable> m) {
+                if (m != null) {
+                    m.forEach((k, v) -> variableOperations.put(k, new VariableOperation(v, VariableOpType.SET)));
+                    ProcessInstanceExecution.this.variables.putAll(m);
+                    super.putAll(m);
+                }
+            }
+
+            @Override
+            public ProcessVariable remove(Object key) {
+                if (key instanceof String k) {
+                    variableOperations.put(k, new VariableOperation(null, VariableOpType.UNSET));
+                    ProcessInstanceExecution.this.variables.remove(k);
+                }
+                return super.remove(key);
+            }
+        };
+    }
+
+    /**
+     * Registra temporariamente em memória que uma branch foi concluída e precisa
+     * ser removida do Join Task correspondente durante o commit transacional.
+     */
+    public void registerBranchConclusion(String joinTaskId, String branchId) {
+        this.branchPullIntentions.add(new BranchPullIntention(joinTaskId, branchId));
+    }
+
+    public String getCallerBranchId() {
+        return callerBranchId;
+    }
+
+    public void setCallerBranchId(String callerBranchId) {
+        this.callerBranchId = callerBranchId;
+    }
+
+    /**
+     * Retorna as intenções acumuladas para a camada de serviço transacional.
+     */
+    public List<BranchPullIntention> getBranchPullIntentions() {
+        return List.copyOf(this.branchPullIntentions);
+    }
+
+    /**
+     * Limpa o acumulador após o envio para o UnitOfWork.
+     */
+    public void clearBranchPullIntentions() {
+        this.branchPullIntentions.clear();
+    }
+
+    public String getParentInstanceId() {
+        return parentInstanceId;
+    }
+
+    public void setParentInstanceId(String parentInstanceId) {
+        this.parentInstanceId = parentInstanceId;
+    }
+
+    public String getCallerTaskId() {
+        return callerTaskId;
+    }
+
+    public void setCallerTaskId(String callerTaskId) {
+        this.callerTaskId = callerTaskId;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public boolean isPersisted() {
+        return isPersisted;
+    }
+
+    public Map<String, Integer> getActiveNodes() {
+        return activeNodes;
+    }
+
+    public void setActiveNodes(Map<String, Integer> activeNodes) {
+        this.activeNodes = activeNodes;
+    }
+
+    public void setPersisted(boolean persisted) {
+        isPersisted = persisted;
+    }
 
     public String getOrigin() {
         return origin;
@@ -85,10 +212,6 @@ public class ProcessInstanceExecution {
         this.processDefinitionId = processDefinitionId;
     }
 
-    public Map<String, ProcessVariable> getVariables() {
-        return variables;
-    }
-
     public void setVariables(Map<String, ProcessVariable> variables) {
         this.variables = variables;
     }
@@ -125,8 +248,16 @@ public class ProcessInstanceExecution {
         this.tenantId = tenantId;
     }
 
-    public void addVariables(Map<String, ProcessVariable> variables) {
-        if(variables == null) return;
-        this.variables.putAll(variables);
+    public void addVariables(Map<String, ProcessVariable> variablesToAdd) {
+        if (variablesToAdd == null || variablesToAdd.isEmpty()) return;
+
+        if (this.variables == null) {
+            this.variables = new java.util.HashMap<>();
+        }
+
+        variablesToAdd.forEach((k, v) -> {
+            this.variableOperations.put(k, new VariableOperation(v, VariableOpType.SET));
+            this.variables.put(k, v);
+        });
     }
 }

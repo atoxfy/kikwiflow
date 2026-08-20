@@ -47,6 +47,7 @@ public class InMemoryOutboxReader implements OutboxReader {
 
     @Override
     public void confirmBatch(List<OutboxEventEntity> events) {
-        throw new RuntimeException("InMemoryOutboxReade don't implement confirmBatch");
+        // A fila (outboxQueue) já remove os itens destrutivamente em readAndLockNextBatch (poll()),
+        // então não há status para atualizar de volta — confirmar um lote já drenado é um no-op.
     }
 }

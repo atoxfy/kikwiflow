@@ -18,6 +18,7 @@
 package io.kikwiflow.persistence.mongodb.mapper;
 
 import io.kikwiflow.model.execution.Incident;
+import io.kikwiflow.model.execution.enumerated.IncidentStatus;
 import org.bson.Document;
 
 
@@ -28,9 +29,24 @@ public class IncidentMapper {
                 .append("message", incident.message())
                 .append("processDefinitionId", incident.processDefinitionId())
                 .append("processInstanceId", incident.processInstanceId())
+                .append("stackTrace", incident.stackTrace())
                 .append("executionId", incident.executionId())
-                .append("createdAt", incident.createdAt())
+                .append("createdAt", incident.createdAt() != null ? java.util.Date.from(incident.createdAt()) : null)
+                .append("taskDefinitionId", incident.taskDefinitionId())
                 .append("status", incident.status().name());
     }
 
+    public static Incident fromDocument(Document doc) {
+        return new Incident(
+                doc.getString("_id"),
+                doc.getString("type"),
+                doc.getString("message"),
+                doc.getString("stackTrace"),
+                doc.getString("processDefinitionId"),
+                doc.getString("processInstanceId"),
+                doc.getString("executionId"),
+                InstantMapper.mapToInstant("createdAt", doc),
+                IncidentStatus.valueOf(doc.getString("status")),
+               doc.getString("taskDefinitionId"));
+    }
 }

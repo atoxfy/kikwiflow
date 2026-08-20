@@ -19,12 +19,13 @@ package io.kikwiflow.management.controller.externaltask;
 
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.api.dto.CompleteExternalTaskRequest;
+import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.spring.rest.api.command.ExternalTaskOperationsRestApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@KikwiRestController
 @ConditionalOnBean(KikwiflowEngine.class)
 public class ExternalTaskCommandController implements ExternalTaskOperationsRestApi {
 
@@ -35,20 +36,19 @@ public class ExternalTaskCommandController implements ExternalTaskOperationsRest
     }
 
     @Override
-    public void claim(String id, String assignee) {
-        engine.claim(id, assignee);
+    public void claim(String id, String assignee, IdentityContext identityContext) {
+        engine.claim(id, assignee, identityContext);
     }
 
     @Override
-    public void unclaim(String id) {
-        engine.unclaim(id);
+    public void unclaim(String id, IdentityContext identityContext) {
+        engine.unclaim(id, identityContext);
     }
 
     @Override
-    public ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest) {
+    public ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest, IdentityContext identityContext) {
         return engine.completeExternalTask(id,
-                completeExternalTaskRequest.tenant(),
                 completeExternalTaskRequest.variables(),
-                completeExternalTaskRequest.targetFlowNodeId());
+                identityContext);
     }
 }

@@ -36,6 +36,17 @@ public final class ProcessInstanceFactory {
     }
 
     public static ProcessInstance create(String businessKey, String processDefinitionId, Map<String, ProcessVariable> variables, BigDecimal businessValue, String tenantId, String origin){
+        return create(businessKey, processDefinitionId, variables, businessValue, tenantId, origin, null, null, null);
+    }
+
+    /**
+     * Variante usada por {@code KikwiflowEngine.ProcessStarter.asChildOf(...)} — quando o processo é iniciado
+     * por uma iniciadora de {@code CALL_ACTIVITY_COORDINATOR} (ver {@code KikwiflowEngine.executeFromTask}),
+     * grava a referência ao pai diretamente na instância recém-criada.
+     */
+    public static ProcessInstance create(String businessKey, String processDefinitionId, Map<String, ProcessVariable> variables,
+                                         BigDecimal businessValue, String tenantId, String origin,
+                                         String parentInstanceId, String callerTaskId, String callerBranchId){
         return ProcessInstance.builder()
                 .businessKey(businessKey)
                 .processDefinitionId(processDefinitionId)
@@ -43,6 +54,9 @@ public final class ProcessInstanceFactory {
                 .businessValue(businessValue)
                 .tenantId(tenantId)
                 .origin(origin)
+                .parentInstanceId(parentInstanceId)
+                .callerTaskId(callerTaskId)
+                .callerBranchId(callerBranchId)
                 .build();
     }
 }

@@ -93,7 +93,7 @@ public record EndEventDefinition(String id,
         }
 
         public EndEventDefinition build() {
-            return new EndEventDefinition(id, name, description, "DEFAULT_END_EVENT", commitAfter, commitBefore, outgoing,extensionProperties, layout);
+            return new EndEventDefinition(id, name, "DEFAULT_END_EVENT", description, commitAfter, commitBefore, outgoing,extensionProperties, layout);
         }
     }
 }

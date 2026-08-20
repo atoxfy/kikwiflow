@@ -31,7 +31,7 @@ public  record ExternalTaskDefinition(String id,
                                      Boolean commitAfter,
                                      Boolean commitBefore,
                                      List<SequenceFlowDefinition> outgoing,
-                                     List<BoundaryEventDefinition> boundaryEvents,
+                                      List<String> boundaryEventIds,
                                      Map<String, String> extensionProperties,
                                      LayoutCoordinates layout) implements FlowNodeDefinition, WaitState {
 
@@ -47,7 +47,7 @@ public  record ExternalTaskDefinition(String id,
         private Boolean commitBefore;
         private LayoutCoordinates layout;
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
-        private  List<BoundaryEventDefinition> boundaryEvents = Collections.emptyList();
+        private List<String> boundaryEventIds = Collections.emptyList();
         private Map<String, String> extensionProperties;
 
         private Builder() {}
@@ -89,9 +89,9 @@ public  record ExternalTaskDefinition(String id,
             return this;
         }
 
-        public Builder boundaryEvents(List<BoundaryEventDefinition> boundaryEventDefinitions) {
-            if (boundaryEventDefinitions != null) {
-                this.boundaryEvents = boundaryEventDefinitions;
+        public Builder boundaryEventIds(List<String> boundaryEventIds) {
+            if (boundaryEventIds != null) {
+                this.boundaryEventIds = boundaryEventIds;
             }
             return this;
         }
@@ -103,9 +103,8 @@ public  record ExternalTaskDefinition(String id,
             return this;
         }
 
-
         public ExternalTaskDefinition build() {
-            return new ExternalTaskDefinition(id, name, description, "EXTERNAL_TASK", commitAfter, commitBefore, outgoing, boundaryEvents, extensionProperties, layout);
+            return new ExternalTaskDefinition(id, name, "EXTERNAL_TASK", description, commitAfter, commitBefore, outgoing, boundaryEventIds, extensionProperties, layout);
         }
     }
 }

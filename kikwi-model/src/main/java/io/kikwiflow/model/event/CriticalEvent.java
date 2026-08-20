@@ -19,4 +19,19 @@ package io.kikwiflow.model.event;
 
 public interface CriticalEvent {
 
+    String processInstanceId();
+
+    String processDefinitionId();
+
+    String tenantId();
+
+    /**
+     * Quem comandou a ação que gerou este evento. {@code null} para os tipos que ainda não carregam essa
+     * informação ({@link FlowNodeFinished}, {@link GatewayAnswerResolved}, {@link ProcessInstanceFinished}) —
+     * ver a nota em {@code docs/engine/09-eventos-e-observabilidade.md} sobre o porquê desses três ainda
+     * ficarem de fora.
+     */
+    default String actorId() {
+        return null;
+    }
 }

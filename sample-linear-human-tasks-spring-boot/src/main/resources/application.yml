@@ -1,5 +1,0 @@
-kikwiflow:
-  stats:
-    enabled: true
-  outbox:
-    events-enabled: true

@@ -17,7 +17,9 @@
 
 package io.kikwiflow.model.execution.node;
 
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
 
 import java.time.Instant;
 import java.util.List;
@@ -38,7 +40,22 @@ public record ExecutableTask (String id,
                                Instant dueDate,
                                String attachedToRefId,
                                AttachedTaskType attachedToRefType,
-                               List<String> boundaryEvents){
+                               String attachedToRefDefinitionId,
+                               List<AttachedEventReference> boundaryEvents,
+                               ExecutableTaskType type,
+                               String joinTaskId,
+                               List<String> pendingBranchIds,
+                               String branchId,
+                              RetryPolicy retryPolicy,
+                               Integer loopIndex,
+                               io.kikwiflow.model.execution.ProcessVariable loopElement,
+                               List<io.kikwiflow.model.execution.ProcessVariable> pendingLoopElements,
+                               // Número (1-based) do ciclo de recorrência que esta ExecutableTask representa —
+                               // só usado por NON_INTERRUPTIVE_TIMER. Carregado adiante a cada reagendamento
+                               // (ver ContinuationService) para que TimerDueDateEvaluator.calculateNextSchedule
+                               // saiba comparar contra SchedulePolicy.maxOccurrences. Null para todo outro tipo
+                               // de task, que não tem noção de "ciclo".
+                               Integer occurrence){
 
     public static Builder builder() {
         return new Builder();
@@ -62,7 +79,17 @@ public record ExecutableTask (String id,
                 .acquiredAt(this.acquiredAt)
                 .attachedToRefId(this.attachedToRefId)
                 .attachedToRefType(this.attachedToRefType)
-                .boundaryEvents(this.boundaryEvents);
+                .attachedToRefDefinitionId(this.attachedToRefDefinitionId)
+                .branchId(this.branchId)
+                .type(this.type)
+                .pendingBranchIds(this.pendingBranchIds)
+                .joinTaskId(this.joinTaskId)
+                .retryPolicy(this.retryPolicy)
+                .boundaryEvents(this.boundaryEvents)
+                .loopIndex(this.loopIndex)
+                .loopElement(this.loopElement)
+                .pendingLoopElements(this.pendingLoopElements)
+                .occurrence(this.occurrence);
     }
 
     public static class Builder {
@@ -82,12 +109,28 @@ public record ExecutableTask (String id,
         private Instant dueDate;
         private String attachedToRefId;
         private AttachedTaskType attachedToRefType;
-        private List<String> boundaryEvents;
-
+        private List<AttachedEventReference> boundaryEvents;
+        private String attachedToRefDefinitionId;
+        private ExecutableTaskType type;
+        private List<String> pendingBranchIds;
+        private String branchId;
+        private String joinTaskId;
+        private RetryPolicy retryPolicy;
+        private Integer loopIndex;
+        private io.kikwiflow.model.execution.ProcessVariable loopElement;
+        private List<io.kikwiflow.model.execution.ProcessVariable> pendingLoopElements;
+        private Integer occurrence;
 
         private Builder() {}
 
         public Builder id(String id) { this.id = id; return this; }
+        public Builder retryPolicy(RetryPolicy retryPolicy) { this.retryPolicy = retryPolicy; return this; }
+
+        public Builder joinTaskId(String joinTaskId) { this.joinTaskId = joinTaskId; return this; }
+        public Builder pendingBranchIds(List<String> pendingBranchIds) { this.pendingBranchIds = pendingBranchIds; return this; }
+        public Builder branchId(String branchId) { this.branchId = branchId; return this; }
+        public Builder type(ExecutableTaskType type) { this.type = type; return this; }
+        public Builder attachedToRefDefinitionId(String attachedToRefDefinitionId) { this.attachedToRefDefinitionId = attachedToRefDefinitionId; return this; }
         public Builder taskDefinitionId(String taskDefinitionId) { this.taskDefinitionId = taskDefinitionId; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder description(String description) { this.description = description; return this; }
@@ -102,8 +145,12 @@ public record ExecutableTask (String id,
         public Builder acquiredAt(Instant acquiredAt) { this.acquiredAt = acquiredAt; return this; }
         public Builder attachedToRefId(String attachedToRefId) { this.attachedToRefId = attachedToRefId; return this; }
         public Builder attachedToRefType(AttachedTaskType attachedToRefType) { this.attachedToRefType = attachedToRefType; return this; }
-        public Builder boundaryEvents(List<String> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
+        public Builder boundaryEvents(List<AttachedEventReference> boundaryEvents) { this.boundaryEvents = boundaryEvents; return this; }
         public Builder dueDate(Instant dueDate) { this.dueDate = dueDate; return this; }
+        public Builder loopIndex(Integer loopIndex) { this.loopIndex = loopIndex; return this; }
+        public Builder loopElement(io.kikwiflow.model.execution.ProcessVariable loopElement) { this.loopElement = loopElement; return this; }
+        public Builder pendingLoopElements(List<io.kikwiflow.model.execution.ProcessVariable> pendingLoopElements) { this.pendingLoopElements = pendingLoopElements; return this; }
+        public Builder occurrence(Integer occurrence) { this.occurrence = occurrence; return this; }
 
         public ExecutableTask build() {
             return new ExecutableTask(
@@ -123,9 +170,18 @@ public record ExecutableTask (String id,
                 this.dueDate,
                 this.attachedToRefId,
                 this.attachedToRefType,
-                this.boundaryEvents
+                this.attachedToRefDefinitionId,
+                this.boundaryEvents,
+                this.type,
+                this.joinTaskId,
+                this.pendingBranchIds,
+                this.branchId,
+                this.retryPolicy,
+                this.loopIndex,
+                this.loopElement,
+                this.pendingLoopElements,
+                this.occurrence
             );
         }
     }
-
 }

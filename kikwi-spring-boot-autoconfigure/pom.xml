@@ -6,7 +6,7 @@
     <parent>
         <artifactId>kikwiflow-parent</artifactId>
         <groupId>io.kikwiflow</groupId>
-        <version>0.1.42</version>
+        <version>0.1.68</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -35,6 +35,11 @@
             <groupId>io.kikwiflow</groupId>
             <artifactId>kikwi-lightweight-events-api</artifactId>
               <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kikwiflow</groupId>
+            <artifactId>kikwi-parser-jackson</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- Spring Boot -->

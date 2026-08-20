@@ -1,0 +1,98 @@
+{
+  "key": "boundary-dual-timer-and-catch-event",
+  "name": "Coleta de Dados com Dois Boundary Events Interruptivos",
+  "description": "Fixture de teste: start -> COLETAR_DADOS (EXTERNAL_TASK) com DOIS boundary events interruptivos anexados ao mesmo no (BOUNDARY_INTERRUPTIVE_TIMER e BOUNDARY_INTERRUPTIVE_CATCH_EVENT) -> AFTER_COLETA (EXTERNAL_TASK) -> end. Usada para provar que disparar um dos dois cancela o irmao remanescente (guard de finalizacao em UnitOfWork.finalizingNodeId), nao so o pai.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-coletar", "name": "", "targetNodeId": "COLETAR_DADOS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "COLETAR_DADOS": {
+      "id": "COLETAR_DADOS",
+      "name": "Coletar Dados",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["CANCEL_CATCH", "TIMEOUT_TIMER"],
+      "outgoing": [
+        { "id": "flow-coletar-to-after", "name": "", "targetNodeId": "AFTER_COLETA", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CANCEL_CATCH": {
+      "id": "CANCEL_CATCH",
+      "name": "Cancelamento Externo",
+      "type": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT",
+      "attachedToRef": "COLETAR_DADOS",
+      "providerType": "STATIC",
+      "staticKey": "cancelar-task-dual-1",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-cancel-to-end", "name": "", "targetNodeId": "END_EVENT_CANCELLED", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "TIMEOUT_TIMER": {
+      "id": "TIMEOUT_TIMER",
+      "name": "Timeout de SLA",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "attachedToRef": "COLETAR_DADOS",
+      "providerType": "STATIC",
+      "staticValue": "PT24H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-timeout-to-end", "name": "", "targetNodeId": "END_EVENT_TIMEOUT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_COLETA": {
+      "id": "AFTER_COLETA",
+      "name": "Confirmar Coleta (tarefa externa)",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Dados Coletados",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_CANCELLED": {
+      "id": "END_EVENT_CANCELLED",
+      "name": "Cancelado Externamente",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_TIMEOUT": {
+      "id": "END_EVENT_TIMEOUT",
+      "name": "Cancelado por Timeout",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

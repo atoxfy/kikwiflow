@@ -26,6 +26,7 @@ import org.bson.types.Decimal128;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -43,7 +44,12 @@ public final class ProcessInstanceMapper {
                 .append("tenantId", instance.tenantId())
                 .append("startedAt", instance.startedAt())
                 .append("endedAt", instance.endedAt())
-                .append("origin", instance.origin());
+                .append("origin", instance.origin())
+                .append("parentInstanceId", instance.parentInstanceId())
+                .append("callerTaskId", instance.callerTaskId())
+                .append("callerBranchId", instance.callerBranchId())
+                .append("version", instance.version());
+
 
         if (instance.businessValue() != null) {
             doc.append("businessValue", new Decimal128(instance.businessValue()));
@@ -69,6 +75,18 @@ public final class ProcessInstanceMapper {
             businessValue = doc.get("businessValue", Decimal128.class).bigDecimalValue();
         }
 
+
+        Map<String, Integer> activeNodes = new java.util.HashMap<>();
+        Document activeNodesDoc = doc.get("activeNodes", Document.class);
+        if (activeNodesDoc != null) {
+            activeNodesDoc.forEach((key, value) -> {
+                if (value instanceof Integer) {
+                    activeNodes.put(key, (Integer) value);
+                }
+            });
+        }
+
+
         Map<String, ProcessVariable> variables = Collections.emptyMap();
         Document variablesDoc = doc.get("variables", Document.class);
         if (variablesDoc != null) {
@@ -83,6 +101,9 @@ public final class ProcessInstanceMapper {
                 .id(doc.getString("_id"))
                 .businessKey(doc.getString("businessKey"))
                 .businessValue(businessValue)
+                .parentInstanceId(doc.getString("parentInstanceId"))
+                .callerTaskId(doc.getString("callerTaskId"))
+                .callerBranchId(doc.getString("callerBranchId"))
                 .tenantId(doc.getString("tenantId"))
                 .status(ProcessInstanceStatus.valueOf(doc.getString("status")))
                 .processDefinitionId(doc.getString("processDefinitionId"))
@@ -90,6 +111,8 @@ public final class ProcessInstanceMapper {
                 .startedAt(InstantMapper.mapToInstant("startedAt", doc))
                 .endedAt(InstantMapper.mapToInstant("endedAt", doc))
                 .origin(doc.getString("origin"))
+                .version(doc.getInteger("version", 0))
+                .activeNodes(activeNodes)
                 .build();
     }
 

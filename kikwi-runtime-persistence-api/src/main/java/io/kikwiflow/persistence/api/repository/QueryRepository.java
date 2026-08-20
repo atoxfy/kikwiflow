@@ -18,18 +18,24 @@
 package io.kikwiflow.persistence.api.repository;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
+import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public interface QueryRepository {
 
+    List<Incident> findIncidentsByProcessInstanceId(String processInstanceId);
+    Optional<Incident> findIncidentById(String incidentId);
     long countExecutableTasksByDefinitionId(String taskDefinitionId);
     long countExternalTasksByDefinitionId(String taskDefinitionId);
     long countOpenIncidentsByProcessDefinition(String processDefinitionId);
@@ -69,5 +75,21 @@ public interface QueryRepository {
 
     ExternalTaskQuery createExternalTaskQuery();
 
+    ProcessInstanceQuery createProcessInstanceQuery();
+
     Map<String, KKFMetrics> getMetricsByNodeForProcessDefinition(String processDefinitionId);
+
+    Optional<ProcessDefinition> findByKeyAndChecksum(String key, String checksum);
+
+    Optional<ProcessDefinition> findLatestVersionByKey(String key);
+
+    List<ExecutableTask> findExecutableTasksByProcessInstanceId(String processInstanceId);
+
+    /**
+     * Retorna o histórico de eventos críticos ({@link OutboxEventEntity}) registrados para uma instância de
+     * processo, ordenado por {@code timestamp} ascendente — permite reconstruir por quais nós a instância
+     * passou. Só retorna dados quando a persistência de eventos (ex.: {@code kikwiflow.outbox.events-enabled})
+     * está habilitada; caso contrário, a lista é sempre vazia.
+     */
+    List<OutboxEventEntity> findEventHistoryByProcessInstanceId(String processInstanceId);
 }

@@ -1,0 +1,41 @@
+{
+  "key": "executable-task-flow",
+  "name": "Fluxo Síncrono de Tarefa Executável",
+  "description": "Fixture de teste: start -> EXECUTABLE_TASK -> end, tudo síncrono.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-task", "name": "", "targetNodeId": "CALCULATE_RISK_TASK", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "CALCULATE_RISK_TASK": {
+      "id": "CALCULATE_RISK_TASK",
+      "name": "Calcular Risco",
+      "type": "EXECUTABLE_TASK",
+      "executor": "calculateRisk",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-task-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

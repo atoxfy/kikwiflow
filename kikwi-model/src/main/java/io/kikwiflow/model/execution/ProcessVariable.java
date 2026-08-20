@@ -17,10 +17,8 @@
 
 package io.kikwiflow.model.execution;
 
-import io.kikwiflow.model.execution.enumerated.ProcessVariableVisibility;
-
-import java.util.List;
-
-public record ProcessVariable(String name, ProcessVariableVisibility visibility, List<String> roles, boolean isTransient, Object value) {
-
+public record ProcessVariable(String name, boolean isTransient, Object value) {
+    public ProcessVariable(String name, Object value) {
+        this(name, false, value);
+    }
 }

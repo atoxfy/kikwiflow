@@ -17,46 +17,36 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.api.DefaultExecutionContext;
-import io.kikwiflow.execution.api.ExecutionContext;
+import io.kikwiflow.execution.api.context.ExecutionContext;
+import io.kikwiflow.execution.api.handler.TaskHandler;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.EventThrowerDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.execution.node.Executable;
 
 
-/**
- * O coração da execução do motor Kikwiflow.
- * <p>
- * Esta classe é responsável por conduzir uma instância de processo através do seu fluxo,
- * executando os nós ({@link FlowNodeDefinition}) de forma sequencial. A sua principal
- * função é operar num loop que avança no processo até encontrar um "ponto de paragem".
- * <p>
- * Um ponto de paragem pode ser:
- * <ul>
- *     <li>Um <strong>estado de espera (Wait State)</strong>, como uma {@link io.kikwiflow.model.execution.node.HumanTask}.</li>
- *     <li>Um nó que exige um commit transacional antes da sua execução (commit-before).</li>
- *     <li>O fim do processo (nenhum nó seguinte).</li>
- * </ul>
- * O resultado da sua execução é um {@link ExecutionResult}, que encapsula o estado
- * final da instância e o plano de continuação.
- */
 public class FlowNodeExecutor {
 
     private final TaskExecutor taskExecutor;
+    private final EventThrowExecutor eventThrowExecutor;
 
     /**
      * Constrói uma nova instância do FlowNodeExecutor.
      *
-     * @param taskExecutor O executor responsável por invocar a lógica de negócio de uma tarefa (ex: {@link JavaDelegate}).
+     * @param taskExecutor O executor responsável por invocar a lógica de negócio de uma tarefa (ex: {@link TaskHandler}).
+     * @param eventThrowExecutor O executor responsável pelo efeito de um nó {@link EventThrowerDefinition}.
      */
-    public FlowNodeExecutor(TaskExecutor taskExecutor) {
+    public FlowNodeExecutor(TaskExecutor taskExecutor, EventThrowExecutor eventThrowExecutor) {
         this.taskExecutor = taskExecutor;
+        this.eventThrowExecutor = eventThrowExecutor;
     }
 
     /**
      * Executa a lógica de negócio associada a um nó, se aplicável.
      * <p>
-     * Delega a execução para o {@link TaskExecutor} se o nó for do tipo {@link Executable}.
-     * Para outros tipos de nós (como eventos), este método não faz nada.
+     * Delega a execução para o {@link TaskExecutor} se o nó for do tipo {@link Executable}, ou para o
+     * {@link EventThrowExecutor} se for um {@link EventThrowerDefinition}. Para outros tipos de nós (gateways,
+     * eventos de espera), este método não faz nada.
      *
      * @param processInstance A instância de processo em execução.
      * @param processDefinition A definição do processo correspondente.
@@ -66,6 +56,8 @@ public class FlowNodeExecutor {
         if (flowNodeDefinition instanceof Executable) {
             ExecutionContext executionContext = new DefaultExecutionContext(processInstance, processDefinition, flowNodeDefinition);
             taskExecutor.execute(executionContext);
+        } else if (flowNodeDefinition instanceof EventThrowerDefinition thrower) {
+            eventThrowExecutor.throwEvent(thrower, processInstance);
         }
     }
 }

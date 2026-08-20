@@ -18,12 +18,12 @@ package io.kikwiflow.cache;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ProcessDefinitionCache {
-    private Map<String, ProcessDefinition> processDefinitionMap = new HashMap<String, ProcessDefinition>();
+    private Map<String, ProcessDefinition> processDefinitionMap = new ConcurrentHashMap<>();
 
     public ProcessDefinition add(ProcessDefinition processDefinition){
         this.processDefinitionMap.put(processDefinition.key(), processDefinition);

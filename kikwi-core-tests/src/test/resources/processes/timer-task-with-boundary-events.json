@@ -1,0 +1,122 @@
+{
+  "key": "timer-task-with-boundary-events",
+  "name": "TIMER_TASK com os 3 tipos de boundary event suportados",
+  "description": "Fixture de teste: start -> WAIT_SLA (TIMER_TASK, STATIC PT24H) com tres boundary events anexados: SLA_TIMEOUT (BOUNDARY_INTERRUPTIVE_TIMER, PT1H), SLA_PING (BOUNDARY_NON_INTERRUPTIVE_TIMER, RATE_DURATION PT1H) e SLA_CANCEL (BOUNDARY_INTERRUPTIVE_CATCH_EVENT) -> AFTER_TIMER (EXTERNAL_TASK) -> end. Usada para provar os 3 tipos de boundary event suportados em TIMER_TASK e a limpeza cruzada entre irmaos.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-wait", "name": "", "targetNodeId": "WAIT_SLA", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_SLA": {
+      "id": "WAIT_SLA",
+      "name": "Aguardar SLA",
+      "type": "TIMER_TASK",
+      "providerType": "STATIC",
+      "staticValue": "PT24H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["SLA_TIMEOUT", "SLA_PING", "SLA_CANCEL"],
+      "outgoing": [
+        { "id": "flow-wait-to-after", "name": "", "targetNodeId": "AFTER_TIMER", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "SLA_TIMEOUT": {
+      "id": "SLA_TIMEOUT",
+      "name": "Timeout do SLA",
+      "type": "BOUNDARY_INTERRUPTIVE_TIMER",
+      "attachedToRef": "WAIT_SLA",
+      "providerType": "STATIC",
+      "staticValue": "PT1H",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-timeout-to-end", "name": "", "targetNodeId": "END_EVENT_TIMEOUT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "SLA_PING": {
+      "id": "SLA_PING",
+      "name": "Ping Periodico de SLA",
+      "type": "BOUNDARY_NON_INTERRUPTIVE_TIMER",
+      "attachedToRef": "WAIT_SLA",
+      "commitBefore": false,
+      "commitAfter": false,
+      "schedulePolicy": { "type": "RATE_DURATION", "expression": "PT1H" },
+      "outgoing": [
+        { "id": "flow-ping-to-end", "name": "", "targetNodeId": "END_EVENT_PING_CYCLE", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "SLA_CANCEL": {
+      "id": "SLA_CANCEL",
+      "name": "Cancelamento Externo do SLA",
+      "type": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT",
+      "attachedToRef": "WAIT_SLA",
+      "providerType": "STATIC",
+      "staticKey": "cancelar-timer-task-sla",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-cancel-to-end", "name": "", "targetNodeId": "END_EVENT_CANCELLED", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_TIMER": {
+      "id": "AFTER_TIMER",
+      "name": "Depois do SLA (tarefa externa)",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "SLA Cumprido",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_TIMEOUT": {
+      "id": "END_EVENT_TIMEOUT",
+      "name": "SLA Estourado",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_CANCELLED": {
+      "id": "END_EVENT_CANCELLED",
+      "name": "SLA Cancelado Externamente",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_PING_CYCLE": {
+      "id": "END_EVENT_PING_CYCLE",
+      "name": "Fim de um Ciclo de Ping",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

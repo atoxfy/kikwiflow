@@ -16,6 +16,7 @@
  */
 package io.kikwiflow.client.starter.configuration;
 
+import io.kikwiflow.spring.rest.api.command.EventCorrelationOperationsRestApi;
 import io.kikwiflow.spring.rest.api.command.ExternalTaskOperationsRestApi;
 import io.kikwiflow.spring.rest.api.command.ProcessDefinitionOperationsRestApi;
 import io.kikwiflow.spring.rest.api.command.ProcessInstanceOperationsRestApi;
@@ -70,6 +71,11 @@ public class KikwiClientAutoConfiguration {
     @Bean
     public ProcessDefinitionQueryRestApi processDefinitionQueryClient(RestClient kikwiRestClient) {
         return createClient(kikwiRestClient, ProcessDefinitionQueryRestApi.class);
+    }
+
+    @Bean
+    public EventCorrelationOperationsRestApi eventCorrelationOperationsClient(RestClient kikwiRestClient) {
+        return createClient(kikwiRestClient, EventCorrelationOperationsRestApi.class);
     }
 
 

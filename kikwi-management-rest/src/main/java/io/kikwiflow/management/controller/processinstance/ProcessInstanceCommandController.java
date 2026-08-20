@@ -20,12 +20,14 @@ package io.kikwiflow.management.controller.processinstance;
 import io.kikwiflow.KikwiflowEngine;
 import io.kikwiflow.api.dto.ProcessInstanceStartRequest;
 import io.kikwiflow.api.dto.SetVariablesRequest;
+import io.kikwiflow.api.dto.UnsetVariablesRequest;
+import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.spring.rest.api.command.ProcessInstanceOperationsRestApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@KikwiRestController
 @ConditionalOnBean(KikwiflowEngine.class)
 public class ProcessInstanceCommandController implements ProcessInstanceOperationsRestApi {
 
@@ -37,10 +39,10 @@ public class ProcessInstanceCommandController implements ProcessInstanceOperatio
 
 
     @Override
-    public ProcessInstance start(ProcessInstanceStartRequest processInstanceStartRequest) {
+    public ProcessInstance start(ProcessInstanceStartRequest processInstanceStartRequest, IdentityContext identityContext) {
+        //Identity context injetado para implementação futura/logs.
         return engine.startProcess()
                 .byKey(processInstanceStartRequest.processDefinitionKey())
-                .targetFlowNodeId(processInstanceStartRequest.targetFlowNodeId())
                 .from(processInstanceStartRequest.origin())
                 .onTenant(processInstanceStartRequest.tenant())
                 .withBusinessKey(processInstanceStartRequest.businessKey())
@@ -50,12 +52,17 @@ public class ProcessInstanceCommandController implements ProcessInstanceOperatio
     }
 
     @Override
-    public ProcessInstance setVariables(String id, SetVariablesRequest setVariablesRequest) {
-        return engine.setVariables(id, setVariablesRequest.variables());
+    public ProcessInstance setVariables(String id, SetVariablesRequest setVariablesRequest, IdentityContext identityContext) {
+        return engine.setVariables(id, setVariablesRequest.variables(), identityContext);
     }
 
     @Override
-    public void deleteInstance(String processInstanceId) {
-        engine.deleteInstance(processInstanceId);
+    public ProcessInstance unsetVariables(String id, UnsetVariablesRequest unsetVariablesRequest, IdentityContext identityContext) {
+        return engine.unsetVariables(id, unsetVariablesRequest.variableNames(), identityContext);
+    }
+
+    @Override
+    public void deleteInstance(String processInstanceId, IdentityContext identityContext) {
+        engine.deleteInstance(processInstanceId, identityContext);
     }
 }
