@@ -151,14 +151,15 @@ public class ContinuationService {
 
                 for (int i = 0; i < continuation.nextNodes().size(); i++) {
                     FlowNodeDefinition nextNode = continuation.nextNodes().get(i);
+                    String nextNodeKey = continuation.nextNodeKeys().get(i);
                     String branchId = branchIds.get(i);
-                    generateNextTasksWithContext(nextNode, processInstanceExecution, branchId, newJoinTaskId, nextExecutableTasks, nextExternalTasks, processDefinition);
+                    generateNextTasksWithContext(nextNode, nextNodeKey, processInstanceExecution, branchId, newJoinTaskId, nextExecutableTasks, nextExternalTasks, processDefinition);
                 }
 
                 ExecutableTask joinTask = ExecutableTask.builder()
                         .id(newJoinTaskId)
                         .processDefinitionId(processInstanceExecution.getProcessDefinitionId())
-                        .taskDefinitionId(continuation.targetJoinNode().id())
+                        .taskDefinitionId(continuation.targetJoinNodeKey())
                         .processInstanceId(processInstanceExecution.getId())
                         .type(ExecutableTaskType.JOIN_GATEWAY)
                         .status(ExecutableTaskStatus.AWAITING_BRANCHES)
@@ -171,11 +172,11 @@ public class ContinuationService {
 
             } else {
 
-                String finalCurrentBranchId = currentBranchId;
-                String finalCurrentJoinTaskId = currentJoinTaskId;
-                continuation.nextNodes().forEach(flowNodeDefinitionSnapshot -> {
-                    generateNextTasksWithContext(flowNodeDefinitionSnapshot, processInstanceExecution, finalCurrentBranchId, finalCurrentJoinTaskId, nextExecutableTasks, nextExternalTasks, processDefinition);
-                });
+                for (int i = 0; i < continuation.nextNodes().size(); i++) {
+                    FlowNodeDefinition flowNodeDefinitionSnapshot = continuation.nextNodes().get(i);
+                    String flowNodeKey = continuation.nextNodeKeys().get(i);
+                    generateNextTasksWithContext(flowNodeDefinitionSnapshot, flowNodeKey, processInstanceExecution, currentBranchId, currentJoinTaskId, nextExecutableTasks, nextExternalTasks, processDefinition);
+                }
             }
 
         } else if (completedExecutableTask == null || completedExecutableTask.type() != ExecutableTaskType.NON_INTERRUPTIVE_TIMER) {
@@ -371,6 +372,7 @@ public class ContinuationService {
     }
 
     private void generateNextTasksWithContext(FlowNodeDefinition flowNodeDefinition,
+                                              String flowNodeDefinitionId,
                                               ProcessInstanceExecution processInstanceExecution,
                                               String branchId,
                                               String joinTaskId,
@@ -378,7 +380,6 @@ public class ContinuationService {
                                               List<ExternalTask> nextExternalTasks,
                                               ProcessDefinition processDefinition) {
 
-        String flowNodeDefinitionId = flowNodeDefinition.id();
         String processInstanceId = processInstanceExecution.getId();
         String processDefinitionId = processInstanceExecution.getProcessDefinitionId();
 
@@ -530,7 +531,7 @@ public class ContinuationService {
                     .joinTaskId(joinTaskId)
                     .build());
         } else if (flowNodeDefinition instanceof CallActivityDefinition ca) {
-            generateCallActivityFanOut(ca, processInstanceExecution, branchId, joinTaskId, nextExecutableTasks, nextExternalTasks, processDefinition);
+            generateCallActivityFanOut(ca, flowNodeDefinitionId, processInstanceExecution, branchId, joinTaskId, nextExecutableTasks, nextExternalTasks, processDefinition);
         } else {
             if (joinTaskId != null && branchId != null) {
                 processInstanceExecution.registerBranchConclusion(joinTaskId, branchId);
@@ -588,28 +589,28 @@ public class ContinuationService {
 
             if (boundaryEventDefinition instanceof InterruptiveTimerEventDefinition it) {
                 ExecutableTask boundaryEvent = getInterruptiveExecutableTask(
-                        mainTaskId, processInstanceId, it, processDefinitionId, mainTaskType,
+                        mainTaskId, processInstanceId, it, boundaryEventDefinitionId, processDefinitionId, mainTaskType,
                         flowNodeDefinitionId, branchId, joinTaskId, processInstanceExecution);
 
-                boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id(), AttachedTaskType.EXECUTABLE_TASK));
+                boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinitionId, AttachedTaskType.EXECUTABLE_TASK));
                 nextExecutableTasks.add(boundaryEvent);
 
             } else if (boundaryEventDefinition instanceof NonInterruptiveTimerEventDefinition nit) {
                 ExecutableTask boundaryEvent = getNonInterruptiveTimerTask(
-                        mainTaskId, processInstanceId, nit, processDefinitionId, mainTaskType,
+                        mainTaskId, processInstanceId, nit, boundaryEventDefinitionId, processDefinitionId, mainTaskType,
                         flowNodeDefinitionId, branchId, joinTaskId);
 
                 if (boundaryEvent != null) {
-                    boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id(), AttachedTaskType.EXECUTABLE_TASK));
+                    boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinitionId, AttachedTaskType.EXECUTABLE_TASK));
                     nextExecutableTasks.add(boundaryEvent);
                 }
 
             } else if (boundaryEventDefinition instanceof InterruptiveCatchEventDefinition ice) {
                 ExternalTask boundaryEvent = getBoundaryCatchEventTask(
-                        mainTaskId, processInstanceId, ice, processDefinitionId, mainTaskType,
+                        mainTaskId, processInstanceId, ice, boundaryEventDefinitionId, processDefinitionId, mainTaskType,
                         flowNodeDefinitionId, branchId, joinTaskId, processInstanceExecution);
 
-                boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinition.id(), AttachedTaskType.EXTERNAL_TASK));
+                boundaryEvents.add(new AttachedEventReference(boundaryEvent.id(), boundaryEventDefinitionId, AttachedTaskType.EXTERNAL_TASK));
                 nextExternalTasks.add(boundaryEvent);
 
             } else if (boundaryEventDefinition instanceof ErrorHandlerDefinition) {
@@ -638,6 +639,7 @@ public class ContinuationService {
      * {@code KikwiflowEngine.executeFromTask}), em transação própria.
      */
     private void generateCallActivityFanOut(CallActivityDefinition ca,
+                                            String flowNodeDefinitionId,
                                             ProcessInstanceExecution processInstanceExecution,
                                             String branchId,
                                             String joinTaskId,
@@ -645,7 +647,6 @@ public class ContinuationService {
                                             List<ExternalTask> nextExternalTasks,
                                             ProcessDefinition processDefinition) {
 
-        String flowNodeDefinitionId = ca.id();
         String processInstanceId = processInstanceExecution.getId();
         String processDefinitionId = processInstanceExecution.getProcessDefinitionId();
 
@@ -739,6 +740,7 @@ public class ContinuationService {
             String mainTaskId,
             String processInstanceId,
             io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition timerDef,
+            String boundaryDefKey,
             String processDefinitionId,
             AttachedTaskType mainTaskType,
             String flowNodeDefinitionId,
@@ -757,7 +759,7 @@ public class ContinuationService {
                 .id(UUID.randomUUID().toString())
                 .type(ExecutableTaskType.NON_INTERRUPTIVE_TIMER)
                 .processDefinitionId(processDefinitionId)
-                .taskDefinitionId(timerDef.id())
+                .taskDefinitionId(boundaryDefKey)
                 .processInstanceId(processInstanceId)
                 .dueDate(firstDueDate)
                 .occurrence(1)
@@ -774,6 +776,7 @@ public class ContinuationService {
             String mainTaskId,
             String processInstanceId,
             InterruptiveTimerEventDefinition timerDef,
+            String boundaryDefKey,
             String processDefinitionId,
             AttachedTaskType mainTaskType,
             String flowNodeDefinitionId,
@@ -787,7 +790,7 @@ public class ContinuationService {
                 .id(UUID.randomUUID().toString())
                 .type(ExecutableTaskType.INTERRUPTIVE_TIMER)
                 .processDefinitionId(processDefinitionId)
-                .taskDefinitionId(timerDef.id())
+                .taskDefinitionId(boundaryDefKey)
                 .processInstanceId(processInstanceId)
                 .dueDate(resolvedDueDate)
                 .attachedToRefId(mainTaskId)
@@ -812,6 +815,7 @@ public class ContinuationService {
             String mainTaskId,
             String processInstanceId,
             InterruptiveCatchEventDefinition catchEventDef,
+            String boundaryDefKey,
             String processDefinitionId,
             AttachedTaskType mainTaskType,
             String flowNodeDefinitionId,
@@ -824,7 +828,7 @@ public class ContinuationService {
         return ExternalTask.builder()
                 .id(UUID.randomUUID().toString())
                 .processDefinitionId(processDefinitionId)
-                .taskDefinitionId(catchEventDef.id())
+                .taskDefinitionId(boundaryDefKey)
                 .processInstanceId(processInstanceId)
                 .name(catchEventDef.name())
                 .description(catchEventDef.description())

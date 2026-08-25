@@ -1,0 +1,52 @@
+{
+  "key": "exclusive-gateway-duplicate-expected-answer-invalid",
+  "name": "Fixture Negativa: EXCLUSIVE_GATEWAY com expectedAnswer duplicado",
+  "description": "Fixture de teste: RISK_GATEWAY tem 2 arestas com expectedAnswer='APPROVED' — rejeitado por DeployValidator (KIKWI-020).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-gateway", "name": "", "targetNodeId": "RISK_GATEWAY", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "RISK_GATEWAY": {
+      "id": "RISK_GATEWAY",
+      "name": "Gateway de Risco",
+      "type": "EXCLUSIVE_GATEWAY",
+      "providerType": "VARIABLE",
+      "providerVariable": "risk",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-gateway-to-a", "name": "", "targetNodeId": "END_A", "isDefault": false, "expectedAnswer": "APPROVED", "extensionProperties": {} },
+        { "id": "flow-gateway-to-b", "name": "", "targetNodeId": "END_B", "isDefault": false, "expectedAnswer": "APPROVED", "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_A": {
+      "id": "END_A",
+      "name": "End A",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_B": {
+      "id": "END_B",
+      "name": "End B",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

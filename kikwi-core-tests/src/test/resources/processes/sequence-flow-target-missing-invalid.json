@@ -1,0 +1,20 @@
+{
+  "key": "sequence-flow-target-missing-invalid",
+  "name": "Fixture Negativa: aresta apontando para nó inexistente",
+  "description": "Fixture de teste: START_EVENT aponta para um targetNodeId ('NAO_EXISTE') que não está em flowNodes — rejeitado por DeployValidator (KIKWI-001).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-nowhere", "name": "", "targetNodeId": "NAO_EXISTE", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

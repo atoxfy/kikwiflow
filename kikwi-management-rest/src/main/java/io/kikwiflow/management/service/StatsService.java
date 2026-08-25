@@ -48,8 +48,13 @@ public class StatsService {
                     Map<String, KKFMetrics> nodeMetrics = queryRepository.getMetricsByNodeForProcessDefinition(processDefinitionId);
                     final Map<String, KKFFlowNodeDefinition> flowNodes = new HashMap<>();
 
-                    definition.flowNodes().values().forEach(node -> {
-                        KKFMetrics metrics = nodeMetrics.getOrDefault(node.id(), new KKFMetrics(0L, 100.00, 0L));
+                    definition.flowNodes().forEach((nodeKey, node) -> {
+                        // Chaveado por nodeKey (a chave do mapa flowNodes), nunca por node.id() — é essa chave
+                        // que o motor grava como taskDefinitionId em runtime (ver
+                        // docs/engine/15-achados-motor-lacunas-de-validacao.md, §2.2), e é por ela que
+                        // getMetricsByNodeForProcessDefinition agrega. Usar node.id() aqui funcionava só
+                        // enquanto id() e a chave do mapa coincidiam por convenção — não por garantia.
+                        KKFMetrics metrics = nodeMetrics.getOrDefault(nodeKey, new KKFMetrics(0L, 100.00, 0L));
 
                         // CALL_ACTIVITY_COORDINATOR e TIMER_TASK também são materializados como ExecutableTask
                         // (mesma coleção agregada por getMetricsByNodeForProcessDefinition, chaveada por
@@ -62,9 +67,9 @@ public class StatsService {
                         if (node instanceof ExecutableTaskDefinition || node instanceof ExternalTaskDefinition
                                 || node instanceof EventCatcherDefinition || node instanceof CallActivityDefinition
                                 || node instanceof TimerTaskDefinition) {
-                            flowNodes.put(node.id(), ProcessMapper.mapNode(node, metrics));
+                            flowNodes.put(nodeKey, ProcessMapper.mapNode(node, metrics));
                         } else {
-                            flowNodes.put(node.id(), ProcessMapper.mapNode(node, null));
+                            flowNodes.put(nodeKey, ProcessMapper.mapNode(node, null));
                         }
                     });
 

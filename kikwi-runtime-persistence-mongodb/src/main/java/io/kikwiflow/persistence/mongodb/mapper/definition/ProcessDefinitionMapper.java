@@ -197,13 +197,20 @@ public final class ProcessDefinitionMapper {
                 .append("targetNodeId", flow.targetNodeId())
                 .append("expectedAnswer", flow.expectedAnswer())
                 .append("isDefault", flow.isDefault())
-                .append("handlesNull", flow.handlesNull());
+                .append("handlesNull", flow.handlesNull())
+                .append("sourceHandle", flow.sourceHandle())
+                .append("extensionProperties", new Document(flow.extensionProperties()));
 
         if (flow.positionHandlers() != null) {
             sequenceFlow.append("positionHandlers", flow.positionHandlers()
                     .stream().map(ph ->
                         new Document("x", ph.x()).append("y", ph.y())
                     ).collect(Collectors.toList()));
+        }
+
+        if (flow.labelPosition() != null) {
+            sequenceFlow.append("labelPosition", new Document("x", flow.labelPosition().x())
+                    .append("y", flow.labelPosition().y()));
         }
 
         return sequenceFlow;

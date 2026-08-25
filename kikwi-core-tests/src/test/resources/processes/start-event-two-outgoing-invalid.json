@@ -1,0 +1,39 @@
+{
+  "key": "start-event-two-outgoing-invalid",
+  "name": "Fixture Negativa: DEFAULT_START_EVENT com duas saídas",
+  "description": "Fixture de teste: START_EVENT declara 2 sequence flows em outgoing — rejeitado por DeployValidator (KIKWI-009, exige exatamente 1).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-end-1", "name": "", "targetNodeId": "END_EVENT_1", "isDefault": false, "extensionProperties": {} },
+        { "id": "flow-start-to-end-2", "name": "", "targetNodeId": "END_EVENT_2", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_1": {
+      "id": "END_EVENT_1",
+      "name": "End Event 1",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_2": {
+      "id": "END_EVENT_2",
+      "name": "End Event 2",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

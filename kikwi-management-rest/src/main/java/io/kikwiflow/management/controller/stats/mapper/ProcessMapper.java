@@ -60,7 +60,10 @@ public class ProcessMapper {
                 dto.targetNodeId(),
                 dto.isDefault(),
                 dto.handlesNull(),
-                mapPositionHandlers(dto.positionHandlers())
+                mapPositionHandlers(dto.positionHandlers()),
+                dto.extensionProperties(),
+                mapLabelPosition(dto.labelPosition()),
+                dto.sourceHandle()
         )).collect(Collectors.toList());
     }
 
@@ -75,7 +78,10 @@ public class ProcessMapper {
                 dto.targetNodeId(),
                 dto.isDefault(),
                 dto.handlesNull(),
-                mapPositionHandlersk(dto.positionHandlers())
+                mapPositionHandlersk(dto.positionHandlers()),
+                dto.extensionProperties(),
+                mapLabelPositionK(dto.labelPosition()),
+                dto.sourceHandle()
         )).collect(Collectors.toList());
     }
 
@@ -208,6 +214,18 @@ public class ProcessMapper {
         Double y = dtoCoords.y() != null ? dtoCoords.y().doubleValue() : 0.0;
 
         return new KKFLayoutCoordinates(x, y);
+    }
+
+    // Diferente de mapLayout(...) acima: labelPosition de aresta é opcional por design (ausente = a UI
+    // recalcula a posição do rótulo automaticamente a cada render) — sintetizar {0,0} quando não foi salvo
+    // nada faria o rótulo aparecer grudado no canto em vez de deixar a UI recalcular. Por isso preserva null
+    // em vez de reaproveitar mapLayout(...) direto.
+    private static LayoutCoordinates mapLabelPosition(KKFLayoutCoordinates dtoCoords) {
+        return dtoCoords != null ? mapLayout(dtoCoords) : null;
+    }
+
+    private static KKFLayoutCoordinates mapLabelPositionK(LayoutCoordinates coords) {
+        return coords != null ? mapLayout(coords) : null;
     }
 
 

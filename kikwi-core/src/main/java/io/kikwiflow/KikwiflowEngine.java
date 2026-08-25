@@ -325,6 +325,7 @@ public class KikwiflowEngine {
         } else {
 
             FlowNodeDefinition startPoint = continuation.nextNodes().get(0);
+            String startPointKey = continuation.nextNodeKeys().get(0);
 
             // Boundary catch event interruptivo: guarda o primeiro ExecutableTaskDefinition alcançado nesta
             // chamada (mesmo que não seja o próximo nó imediato — gateways/end event no meio continuam
@@ -336,6 +337,7 @@ public class KikwiflowEngine {
             try {
                 executionResult = processExecutionManager.executeFlow(
                         startPoint,
+                        startPointKey,
                         taskToComplete.branchId(),
                         taskToComplete.joinTaskId(),
                         processInstanceExecution,
@@ -351,7 +353,7 @@ public class KikwiflowEngine {
                     SyncContinuationFailed telemetryEvent = new SyncContinuationFailed(
                             processInstanceExecution.getId(),
                             taskToComplete.id(),
-                            startPoint.id(),
+                            startPointKey,
                             rootCause.getMessage(),
                             FailureHandler.getStackTrace(rootCause),
                             Instant.now()
@@ -360,7 +362,7 @@ public class KikwiflowEngine {
                     this.asynchronousEventPublisher.publishEvent(telemetryEvent);
                 }
 
-                throw new RuntimeException("Kikwiflow Core: Falha síncrona no nó [" + startPoint.id() + "] após a conclusão da tarefa externa [" + taskToComplete.id() + "]. Transação abortada.", rootCause);
+                throw new RuntimeException("Kikwiflow Core: Falha síncrona no nó [" + startPointKey + "] após a conclusão da tarefa externa [" + taskToComplete.id() + "]. Transação abortada.", rootCause);
             }
         }
 
@@ -475,6 +477,7 @@ public class KikwiflowEngine {
 
             executionResult = processExecutionManager.executeFlow(
                     flowNodeDefinition,
+                    executableTask.taskDefinitionId(),
                     executableTask.branchId(),
                     executableTask.joinTaskId(),
                     processInstanceExecution,
@@ -760,6 +763,7 @@ public class KikwiflowEngine {
             try {
                 executionResult = engine.processExecutionManager.executeFlow(
                         defaultStartPoint,
+                        defaultStartPointId,
                         null,
                         null,
                         processInstanceExecution,

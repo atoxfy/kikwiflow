@@ -60,6 +60,7 @@ public class ProcessExecutionManager {
      */
     public record ExecutionFrame(
             FlowNodeDefinition node,
+            String nodeKey,
             String branchId,
             String joinTaskId
     ) {}
@@ -85,6 +86,7 @@ public class ProcessExecutionManager {
      */
     public ExecutionResult executeFlow(
             FlowNodeDefinition startPoint,
+            String startPointKey,
             String initialBranchId,
             String initialJoinTaskId,
             ProcessInstanceExecution processInstance,
@@ -93,7 +95,7 @@ public class ProcessExecutionManager {
             boolean guardSynchronousHandlers) {
 
         Queue<ExecutionFrame> agenda = new LinkedList<>();
-        agenda.add(new ExecutionFrame(startPoint, initialBranchId, initialJoinTaskId));
+        agenda.add(new ExecutionFrame(startPoint, startPointKey, initialBranchId, initialJoinTaskId));
 
         List<OutboxEventEntity> criticalEvents = new ArrayList<>();
         boolean isFirstNodeInLoop = true;
@@ -103,6 +105,7 @@ public class ProcessExecutionManager {
         while (!agenda.isEmpty()) {
             ExecutionFrame currentFrame = agenda.poll();
             FlowNodeDefinition currentNode = currentFrame.node();
+            String currentNodeKey = currentFrame.nodeKey();
             String currentBranchId = currentFrame.branchId();
             String currentJoinTaskId = currentFrame.joinTaskId();
 
@@ -114,7 +117,7 @@ public class ProcessExecutionManager {
             if (isWaitState(currentNode) || shouldStopForCommitBefore) {
                 return new ExecutionResult(
                         new ExecutionOutcome(processInstance, criticalEvents),
-                        new Continuation(List.of(currentNode), true)
+                        new Continuation(List.of(currentNode), List.of(currentNodeKey), true)
                 );
             }
 
@@ -153,8 +156,11 @@ public class ProcessExecutionManager {
                     List<FlowNodeDefinition> nextNodes = handler.outgoing().stream()
                             .map(seq -> processDefinition.flowNodes().get(seq.targetNodeId()))
                             .toList();
+                    List<String> nextNodeKeys = handler.outgoing().stream()
+                            .map(seq -> seq.targetNodeId())
+                            .toList();
 
-                    continuation = new Continuation(nextNodes, Boolean.TRUE.equals(handler.commitAfter()));
+                    continuation = new Continuation(nextNodes, nextNodeKeys, Boolean.TRUE.equals(handler.commitAfter()));
                 } else {
 
                     status = NodeExecutionStatus.ERROR;
@@ -192,8 +198,10 @@ public class ProcessExecutionManager {
             if (continuation == null || continuation.isAsynchronous()) {
                 return new ExecutionResult(new ExecutionOutcome(processInstance, criticalEvents), continuation);
             } else {
-                for (FlowNodeDefinition nextNode : continuation.nextNodes()) {
-                    agenda.add(new ExecutionFrame(nextNode, currentBranchId, currentJoinTaskId));
+                for (int i = 0; i < continuation.nextNodes().size(); i++) {
+                    FlowNodeDefinition nextNode = continuation.nextNodes().get(i);
+                    String nextNodeKey = continuation.nextNodeKeys().get(i);
+                    agenda.add(new ExecutionFrame(nextNode, nextNodeKey, currentBranchId, currentJoinTaskId));
                 }
             }
         }
@@ -201,7 +209,7 @@ public class ProcessExecutionManager {
         if (branchConcluded && agenda.isEmpty()) {
             return new ExecutionResult(
                     new ExecutionOutcome(processInstance, criticalEvents),
-                    new io.kikwiflow.execution.dto.Continuation(List.of(), true)
+                    new io.kikwiflow.execution.dto.Continuation(List.of(), List.of(), true)
             );
         }
 

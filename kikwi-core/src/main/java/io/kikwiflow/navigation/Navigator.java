@@ -48,10 +48,12 @@ public class Navigator {
         List<SequenceFlowDefinition> outgoingFlows = completedNode.outgoing();
         if ("PARALLEL_GATEWAY".equals(completedNode.type())) {
             List<FlowNodeDefinition> nextNodes = new ArrayList<>();
+            List<String> nextNodeKeys = new ArrayList<>();
             for (SequenceFlowDefinition flow : outgoingFlows) {
                 FlowNodeDefinition target = processDefinition.flowNodes().get(flow.targetNodeId());
                 if (target != null) {
                     nextNodes.add(target);
+                    nextNodeKeys.add(flow.targetNodeId());
                 }
             }
 
@@ -64,7 +66,7 @@ public class Navigator {
 
             FlowNodeDefinition targetJoinNode = processDefinition.flowNodes().get(targetJoinId);
 
-            return new Continuation(nextNodes, true, null, null, targetJoinNode);
+            return new Continuation(nextNodes, nextNodeKeys, true, null, null, targetJoinNode, targetJoinId);
         }
 
         if ("JOIN_GATEWAY".equals(completedNode.type())) {
@@ -74,7 +76,7 @@ public class Navigator {
 
             SequenceFlowDefinition defaultFlow = outgoingFlows.get(0);
             FlowNodeDefinition nextNode = processDefinition.flowNodes().get(defaultFlow.targetNodeId());
-            return new Continuation(List.of(nextNode), forceAsync, null, defaultFlow.id(), null);
+            return new Continuation(List.of(nextNode), List.of(defaultFlow.targetNodeId()), forceAsync, null, defaultFlow.id());
         }
 
         if (outgoingFlows.isEmpty()) {
@@ -82,6 +84,7 @@ public class Navigator {
         }
 
         List<FlowNodeDefinition> nextNodes = new ArrayList<>();
+        List<String> nextNodeKeys = new ArrayList<>();
         String recordedAnswer = null;
         String recordedFlowId = null;
 
@@ -96,17 +99,19 @@ public class Navigator {
                         "' defined in sequence flow does not exist in the process definition.");
             }
             nextNodes.add(nextNode);
+            nextNodeKeys.add(chosenFlow.targetNodeId());
 
         } else {
             SequenceFlowDefinition defaultFlow = outgoingFlows.get(0);
             recordedFlowId = defaultFlow.id();
             FlowNodeDefinition nextNode = processDefinition.flowNodes().get(defaultFlow.targetNodeId());
             nextNodes.add(nextNode);
+            nextNodeKeys.add(defaultFlow.targetNodeId());
         }
 
         boolean isAsync = forceAsync || (nextNodes.get(0) != null && Boolean.TRUE.equals(nextNodes.get(0).commitBefore()));
 
-        return new Continuation(nextNodes, isAsync, recordedAnswer, recordedFlowId, null);
+        return new Continuation(nextNodes, nextNodeKeys, isAsync, recordedAnswer, recordedFlowId);
     }
 
     private String resolveAnswer(ExclusiveGatewayDefinition gateway, Map<String, ProcessVariable> variables) {

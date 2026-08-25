@@ -20,6 +20,7 @@ package io.kikwiflow.model.definition.process.elements;
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
 
 import java.util.List;
+import java.util.Map;
 
 public record SequenceFlowDefinition(
         String id,
@@ -29,5 +30,12 @@ public record SequenceFlowDefinition(
         String targetNodeId,
         boolean isDefault,
         boolean handlesNull,
-        List<LayoutCoordinates> positionHandlers) {
+        List<LayoutCoordinates> positionHandlers,
+        Map<String, String> extensionProperties,
+        LayoutCoordinates labelPosition,
+        String sourceHandle) {
+
+    public SequenceFlowDefinition {
+        extensionProperties = extensionProperties != null ? Map.copyOf(extensionProperties) : Map.of();
+    }
 }

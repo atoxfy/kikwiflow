@@ -1,0 +1,42 @@
+{
+  "key": "executable-task-retry-policy-missing-strategy-invalid",
+  "name": "Fixture Negativa: retryPolicy sem strategy",
+  "description": "Fixture de teste: PAGAMENTO.retryPolicy não declara 'strategy' — sem retry real (reagendamento imediato até esgotar maxRetries) — rejeitado por DeployValidator (KIKWI-044).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-pagamento", "name": "", "targetNodeId": "PAGAMENTO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "PAGAMENTO": {
+      "id": "PAGAMENTO",
+      "name": "Processar Pagamento",
+      "type": "EXECUTABLE_TASK",
+      "executor": "processarPagamentoTaskHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "retryPolicy": { "maxRetries": 3 },
+      "outgoing": [
+        { "id": "flow-pagamento-to-end", "name": "", "targetNodeId": "END_EVENT_SUCESSO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCESSO": {
+      "id": "END_EVENT_SUCESSO",
+      "name": "Sucesso",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}
