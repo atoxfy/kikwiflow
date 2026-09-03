@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.kikwiflow</groupId>
         <artifactId>kikwiflow-parent</artifactId>
-        <version>0.1.69</version>
+        <version>0.1.71</version>
     </parent>
 
     <artifactId>kikwi-management-spring-rest-api</artifactId>
