@@ -1,0 +1,62 @@
+{
+  "key": "external-task-boundary-error-handler-invalid",
+  "name": "Fixture Negativa: BOUNDARY_ERROR_HANDLER anexado a EXTERNAL_TASK",
+  "description": "Fixture de teste: WAIT_TASK (EXTERNAL_TASK) tem um BOUNDARY_ERROR_HANDLER anexado — não suportado nesse host (só EXECUTABLE_TASK), rejeitado por DeployValidator (fecha o gap relacionado a KIKWI-041: antes desta mudança EXTERNAL_TASK não tinha nenhuma validação de boundaryEventIds).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-wait", "name": "", "targetNodeId": "WAIT_TASK", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "WAIT_TASK": {
+      "id": "WAIT_TASK",
+      "name": "Aguardar",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "boundaryEventIds": ["ERROR_HANDLER"],
+      "outgoing": [
+        { "id": "flow-wait-to-end", "name": "", "targetNodeId": "END_EVENT_SUCCESS", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "ERROR_HANDLER": {
+      "id": "ERROR_HANDLER",
+      "name": "Handler de Erro",
+      "type": "BOUNDARY_ERROR_HANDLER",
+      "attachedToRef": "WAIT_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-handler-to-end", "name": "", "targetNodeId": "END_EVENT_ERROR", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCCESS": {
+      "id": "END_EVENT_SUCCESS",
+      "name": "Sucesso",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_EVENT_ERROR": {
+      "id": "END_EVENT_ERROR",
+      "name": "Erro",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

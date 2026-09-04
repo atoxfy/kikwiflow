@@ -21,6 +21,7 @@ package io.kikwiflow.management.dtos.elements;
 import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
 
 import java.util.List;
+import java.util.Map;
 
 public record KKFSequenceFlowDefinition(
         String id,
@@ -30,5 +31,8 @@ public record KKFSequenceFlowDefinition(
         String targetNodeId,
         Boolean isDefault,
         Boolean handlesNull,
-        List<KKFLayoutCoordinates> positionHandlers) {
+        List<KKFLayoutCoordinates> positionHandlers,
+        Map<String, String> extensionProperties,
+        KKFLayoutCoordinates labelPosition,
+        String sourceHandle) {
 }

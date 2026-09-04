@@ -23,19 +23,28 @@ import java.util.List;
 
 /**
  * Carrega a decisão de roteamento do Navigator e seus respectivos metadados de escopo.
+ * <p>
+ * {@code nextNodeKeys}/{@code targetJoinNodeKey} carregam a chave usada em
+ * {@code processDefinition.flowNodes().get(...)} para resolver cada entrada de {@code nextNodes()}/
+ * {@code targetJoinNode()} — a engine usa exclusivamente essas chaves (nunca o campo {@code id()} interno do
+ * nó) para gravar {@code taskDefinitionId} em runtime, já que a chave do mapa é a única forma de identificador
+ * garantidamente consistente com o resto do motor (ver docs/engine/15-achados-motor-lacunas-de-validacao.md,
+ * §2.2). Sempre do mesmo tamanho/ordem que {@code nextNodes()}.
  */
 public record Continuation(
         List<FlowNodeDefinition> nextNodes,
+        List<String> nextNodeKeys,
         boolean isAsynchronous,
         String resolvedAnswer,
         String chosenFlowId,
-        FlowNodeDefinition targetJoinNode
+        FlowNodeDefinition targetJoinNode,
+        String targetJoinNodeKey
 ) {
-    public Continuation(List<FlowNodeDefinition> nextNodes, boolean isAsynchronous) {
-        this(nextNodes, isAsynchronous, null, null, null);
+    public Continuation(List<FlowNodeDefinition> nextNodes, List<String> nextNodeKeys, boolean isAsynchronous) {
+        this(nextNodes, nextNodeKeys, isAsynchronous, null, null, null, null);
     }
 
-    public Continuation(List<FlowNodeDefinition> nextNodes, boolean isAsynchronous, String resolvedAnswer, String chosenFlowId) {
-        this(nextNodes, isAsynchronous, resolvedAnswer, chosenFlowId, null);
+    public Continuation(List<FlowNodeDefinition> nextNodes, List<String> nextNodeKeys, boolean isAsynchronous, String resolvedAnswer, String chosenFlowId) {
+        this(nextNodes, nextNodeKeys, isAsynchronous, resolvedAnswer, chosenFlowId, null, null);
     }
 }

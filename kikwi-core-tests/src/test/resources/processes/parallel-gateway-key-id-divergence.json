@@ -1,0 +1,90 @@
+{
+  "key": "parallel-gateway-key-id-divergence",
+  "name": "Fan-out/Fan-in com chave de flowNodes divergente do campo id interno",
+  "description": "Fixture de teste: todo node.id() interno é deliberadamente DIFERENTE da chave usada em flowNodes (ex.: chave 'SPLIT', node.id() 'ID_PARALLEL_SPLIT_INTERNO'). Toda referência (targetNodeId/targetJoinId/defaultStartPoint) usa a CHAVE do mapa, nunca o id interno. Prova que a engine resolve/grava taskDefinitionId sempre pela chave do mapa, nunca por node.id() (ver docs/engine/15-achados-motor-lacunas-de-validacao.md, secao 2.2).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START": {
+      "id": "ID_START_INTERNO",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-split", "name": "", "targetNodeId": "SPLIT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "SPLIT": {
+      "id": "ID_SPLIT_INTERNO",
+      "name": "Divisao Paralela",
+      "type": "PARALLEL_GATEWAY",
+      "commitBefore": false,
+      "commitAfter": false,
+      "targetJoinId": "JOIN",
+      "outgoing": [
+        { "id": "flow-split-to-a", "name": "", "targetNodeId": "BRANCH_A", "isDefault": false, "extensionProperties": {} },
+        { "id": "flow-split-to-b", "name": "", "targetNodeId": "BRANCH_B", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "BRANCH_A": {
+      "id": "ID_BRANCH_A_INTERNO",
+      "name": "Ramo A",
+      "type": "EXECUTABLE_TASK",
+      "executor": "branchAHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-a-to-join", "name": "", "targetNodeId": "JOIN", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "BRANCH_B": {
+      "id": "ID_BRANCH_B_INTERNO",
+      "name": "Ramo B",
+      "type": "EXECUTABLE_TASK",
+      "executor": "branchBHandler",
+      "commitBefore": true,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-b-to-join", "name": "", "targetNodeId": "JOIN", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "JOIN": {
+      "id": "ID_JOIN_INTERNO",
+      "name": "Sincronizacao",
+      "type": "JOIN_GATEWAY",
+      "sourceSplitId": "SPLIT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-join-to-after", "name": "", "targetNodeId": "AFTER_JOIN", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "AFTER_JOIN": {
+      "id": "ID_AFTER_JOIN_INTERNO",
+      "name": "Depois do Join",
+      "type": "EXECUTABLE_TASK",
+      "executor": "afterJoinHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-after-join-to-end", "name": "", "targetNodeId": "END", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END": {
+      "id": "ID_END_INTERNO",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START"
+}

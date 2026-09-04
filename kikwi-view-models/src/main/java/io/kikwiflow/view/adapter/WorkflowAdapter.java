@@ -35,8 +35,9 @@ public class WorkflowAdapter {
 
     public static Workflow toManualWorkflow(ProcessDefinition definition) {
         Map<String, WorkflowStage> stagesMap = new LinkedHashMap<>();
-        FlowNodeDefinition defaultStartPoint = definition.flowNodes().get(definition.defaultStartPoint());
-        buildStagesRecursively(defaultStartPoint, definition.flowNodes(), stagesMap, new HashSet<>());
+        String defaultStartPointKey = definition.defaultStartPoint();
+        FlowNodeDefinition defaultStartPoint = definition.flowNodes().get(defaultStartPointKey);
+        buildStagesRecursively(defaultStartPoint, defaultStartPointKey, definition.flowNodes(), stagesMap, new HashSet<>());
 
         return new Workflow(
                 definition.id(),
@@ -48,36 +49,46 @@ public class WorkflowAdapter {
     }
 
     /**
+     * Referencia uma {@code ExternalTaskDefinition} junto com a chave usada para resolvê-la em
+     * {@code flowNodes} — os identificadores expostos em {@link WorkflowStage} (consumidos pelo frontend) usam
+     * exclusivamente essa chave, nunca {@code FlowNodeDefinition.id()}, para ficar consistente com o
+     * {@code taskDefinitionId} que a engine de fato grava em runtime (ver
+     * docs/engine/15-achados-motor-lacunas-de-validacao.md, §2.2).
+     */
+    private record HumanTaskRef(String key, ExternalTaskDefinition task) {}
+
+    /**
      * Constrói recursivamente a lista de estágios (tarefas humanas) navegando pelo grafo do processo.
      * Ele popula um mapa de estágios para evitar o processamento da mesma tarefa várias vezes.
      */
     private static void buildStagesRecursively(
             FlowNodeDefinition currentNode,
+            String currentNodeKey,
             Map<String, FlowNodeDefinition> allNodes,
             Map<String, WorkflowStage> stages,
             Set<String> visitedNodes) {
 
-        if (currentNode == null || !visitedNodes.add(currentNode.id())) {
+        if (currentNode == null || !visitedNodes.add(currentNodeKey)) {
             return;
         }
 
         if (currentNode instanceof ExternalTaskDefinition manualTask) {
-            List<ExternalTaskDefinition> nextHumanTasks = findNextHumanTasks(manualTask, allNodes, new HashSet<>());
+            List<HumanTaskRef> nextHumanTasks = findNextHumanTasks(currentNode, allNodes, new HashSet<>());
 
-            stages.put(manualTask.id(), new WorkflowStage(
-                    manualTask.id(),
+            stages.put(currentNodeKey, new WorkflowStage(
+                    currentNodeKey,
                     manualTask.name(),
-                    nextHumanTasks.stream().map(FlowNodeDefinition::id).collect(Collectors.toList()),
+                    nextHumanTasks.stream().map(HumanTaskRef::key).collect(Collectors.toList()),
                     manualTask.extensionProperties()
             ));
 
-            for (ExternalTaskDefinition nextTask : nextHumanTasks) {
-                buildStagesRecursively(nextTask, allNodes, stages, visitedNodes);
+            for (HumanTaskRef nextTask : nextHumanTasks) {
+                buildStagesRecursively(nextTask.task(), nextTask.key(), allNodes, stages, visitedNodes);
             }
         } else {
             currentNode.outgoing().forEach(flow -> {
                 FlowNodeDefinition nextNode = allNodes.get(flow.targetNodeId());
-                buildStagesRecursively(nextNode, allNodes, stages, visitedNodes);
+                buildStagesRecursively(nextNode, flow.targetNodeId(), allNodes, stages, visitedNodes);
             });
         }
     }
@@ -86,21 +97,25 @@ public class WorkflowAdapter {
      * A partir de um nó inicial, encontra a(s) próxima(s) tarefa(s) humana(s) no fluxo,
      * atravessando nós não-humanos (como gateways e tarefas de sistema).
      */
-    private static List<ExternalTaskDefinition> findNextHumanTasks(
+    private static List<HumanTaskRef> findNextHumanTasks(
             FlowNodeDefinition startNode,
             Map<String, FlowNodeDefinition> allNodes,
             Set<String> visitedNodesInPath) {
 
-        List<ExternalTaskDefinition> foundTasks = new ArrayList<>();
-        if (startNode == null || !visitedNodesInPath.add(startNode.id())) {
+        List<HumanTaskRef> foundTasks = new ArrayList<>();
+        if (startNode == null) {
             return foundTasks;
         }
 
         for (var flow : startNode.outgoing()) {
-            FlowNodeDefinition nextNode = allNodes.get(flow.targetNodeId());
+            String nextNodeKey = flow.targetNodeId();
+            if (!visitedNodesInPath.add(nextNodeKey)) {
+                continue;
+            }
+            FlowNodeDefinition nextNode = allNodes.get(nextNodeKey);
 
             if (nextNode instanceof ExternalTaskDefinition manualTask) {
-                foundTasks.add(manualTask);
+                foundTasks.add(new HumanTaskRef(nextNodeKey, manualTask));
             } else {
                 foundTasks.addAll(findNextHumanTasks(nextNode, allNodes, visitedNodesInPath));
             }

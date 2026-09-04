@@ -35,19 +35,35 @@ import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveCatchEventDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveTimerEventDefinition;
+import io.kikwiflow.model.definition.process.elements.JoinGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.NonInterruptiveTimerEventDefinition;
+import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
+import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
+import io.kikwiflow.model.definition.process.policies.RetryPolicy;
+import io.kikwiflow.model.definition.process.policies.SchedulePolicy;
 import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
 import io.kikwiflow.model.execution.enumerated.CatchType;
 import io.kikwiflow.model.execution.enumerated.CorrelationProviderType;
+import io.kikwiflow.model.execution.enumerated.RetryStrategy;
+import io.kikwiflow.model.execution.enumerated.ScheduleType;
+import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 /**
  * Validates a ProcessDefinition at deploy-time to ensure all its required
  * dependencies (e.g., Spring beans for task handlers and rules) are available.
+ * <p>
+ * As regras implementadas aqui espelham o catálogo normativo em
+ * docs/engine/14-regras-de-processo-valido.md (identificadores {@code KIKWI-NNN}, citados nos comentários
+ * abaixo) — só as marcadas como severidade Bloqueante foram promovidas de "Sugerida" para "Existente" nesta
+ * revisão; regras de severidade Aviso e as que exigem travessia de grafo com risco de falso-positivo
+ * (KIKWI-005, KIKWI-029) ficam de fora deliberadamente. Ver docs/engine/15-achados-motor-lacunas-de-validacao.md
+ * para o racional completo de cada uma.
  */
 public class DeployValidator {
 
@@ -63,18 +79,40 @@ public class DeployValidator {
     }
 
     public void validate(ProcessDefinition definition) {
+        validateDefaultStartPoint(definition);
+        validateSequenceFlowTargetsExist(definition);
+
         definition.flowNodes().values().forEach(node -> {
-            if (node instanceof ExecutableTaskDefinition serviceTask) {
+            if (node instanceof StartEventDefinition startEvent) {
+                // KIKWI-009 (Bloqueante): sem exatamente 1 saída, o processo inicia e encerra ali mesmo,
+                // silenciosamente (Navigator.determineNextContinuation trata outgoing vazio como fim de fluxo
+                // pra qualquer tipo de nó — ver docs/engine/15-achados-motor-lacunas-de-validacao.md, §2.3).
+                int outgoingCount = startEvent.outgoing() == null ? 0 : startEvent.outgoing().size();
+                if (outgoingCount != 1) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for DEFAULT_START_EVENT '%s' (id: %s): must declare exactly one outgoing sequence flow (found %d).",
+                            startEvent.name(), startEvent.id(), outgoingCount));
+                }
+
+            } else if (node instanceof ExecutableTaskDefinition serviceTask) {
                 String executor = serviceTask.executor();
-                if (executor != null && !executor.isBlank()) {
-                    try {
-                        taskHandlerResolver.resolve(executor)
-                                .orElseThrow(() -> new TaskHandlerNotFoundException(""));
-                    } catch (Exception e) {
-                        throw new InvalidProcessDefinitionException(
-                            String.format("Validation failed for Service Task '%s' (id: %s): Task Handler bean '%s' not found in application context.",
-                                serviceTask.name(), serviceTask.id(), executor), e);
-                    }
+
+                // KIKWI-011 (Bloqueante): sem executor, a tarefa não executa nada — hoje isso só falhava em
+                // runtime (BadDefinitionExecutionException), na primeira vez que o nó era alcançado.
+                if (executor == null || executor.isBlank()) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for Executable Task '%s' (id: %s): 'executor' is empty.",
+                            serviceTask.name(), serviceTask.id()));
+                }
+
+                // KIKWI-012 (já Existente): o bean TaskHandler precisa existir no contexto Spring.
+                try {
+                    taskHandlerResolver.resolve(executor)
+                            .orElseThrow(() -> new TaskHandlerNotFoundException(""));
+                } catch (Exception e) {
+                    throw new InvalidProcessDefinitionException(
+                        String.format("Validation failed for Service Task '%s' (id: %s): Task Handler bean '%s' not found in application context.",
+                            serviceTask.name(), serviceTask.id(), executor), e);
                 }
 
                 // Boundary events interruptivos (timer ou catch event) só podem ser anexados a um nó que não
@@ -87,6 +125,46 @@ public class DeployValidator {
                 // permitido: é try/catch síncrono na mesma call stack, não uma interrupção assíncrona.
                 validateBoundaryEvents(definition, serviceTask, "Executable Task", serviceTask.boundaryEventIds(),
                         Set.of(NonInterruptiveTimerEventDefinition.class, ErrorHandlerDefinition.class));
+
+                // KIKWI-042 (Bloqueante): sem isso, Navigator.findMatchingErrorHandler usa .findFirst() — o
+                // primeiro handler cujo errorCode bate (ou o primeiro curinga) silenciosamente vence, e os
+                // demais nunca são alcançáveis, sem nenhum aviso.
+                validateNoDuplicateErrorCodes(definition, serviceTask, "Executable Task", serviceTask.boundaryEventIds());
+
+                // KIKWI-043/044/045 (Bloqueante): RetryPolicy.maxRetries é int primitivo — declarar retryPolicy
+                // sem maxRetries explícito deserializa como 0 (não herda o fallback global de 3), e a tarefa
+                // abre incidente já na primeira falha, sem nenhuma tentativa adicional (ver
+                // docs/engine/15-achados-motor-lacunas-de-validacao.md, §4.5).
+                RetryPolicy retryPolicy = serviceTask.retryPolicy();
+                if (retryPolicy != null) {
+                    if (retryPolicy.maxRetries() < 1) {
+                        throw new InvalidProcessDefinitionException(String.format(
+                                "Validation failed for Executable Task '%s' (id: %s): 'retryPolicy.maxRetries' must be >= 1 (declaring retryPolicy without an explicit maxRetries deserializes to 0 — zero retries, not the global default).",
+                                serviceTask.name(), serviceTask.id()));
+                    }
+                    if (retryPolicy.strategy() == null) {
+                        throw new InvalidProcessDefinitionException(String.format(
+                                "Validation failed for Executable Task '%s' (id: %s): 'retryPolicy.strategy' is missing — must be LINEAR or EXPONENTIAL_BACKOFF.",
+                                serviceTask.name(), serviceTask.id()));
+                    }
+                    if (retryPolicy.strategy() == RetryStrategy.EXPONENTIAL_BACKOFF
+                            && (retryPolicy.initialInterval() == null || retryPolicy.initialInterval().isBlank())) {
+                        throw new InvalidProcessDefinitionException(String.format(
+                                "Validation failed for Executable Task '%s' (id: %s): 'retryPolicy.strategy' is EXPONENTIAL_BACKOFF but 'initialInterval' is empty.",
+                                serviceTask.name(), serviceTask.id()));
+                    }
+                }
+
+            } else if (node instanceof ExternalTaskDefinition externalTask) {
+                // Fecha uma lacuna real (relacionada a KIKWI-041): antes desta checagem, EXTERNAL_TASK era o
+                // único host de boundary event sem NENHUMA validação de deploy — anexar um
+                // BOUNDARY_ERROR_HANDLER (não suportado aqui, só em EXECUTABLE_TASK) passava limpo e só quebrava
+                // com NotImplementedException na primeira instância real (ver
+                // docs/engine/15-achados-motor-lacunas-de-validacao.md, §3.7).
+                validateBoundaryEvents(definition, externalTask, "External Task", externalTask.boundaryEventIds(),
+                        Set.of(InterruptiveTimerEventDefinition.class, NonInterruptiveTimerEventDefinition.class,
+                                InterruptiveCatchEventDefinition.class));
+
             } else if (node instanceof ExclusiveGatewayDefinition gateway) {
                 // Validação do Provedor de Resposta
                 if (gateway.providerType() == AnswerProviderType.BEAN) {
@@ -108,11 +186,63 @@ public class DeployValidator {
                     throw new InvalidProcessDefinitionException(String.format("Validation failed for Gateway '%s': 'providerType' is missing.", gateway.id()));
                 }
 
-                // Validação Estrutural das Arestas (Sequence Flows)
+                // KIKWI-021 (Bloqueante): sem nenhuma saída, o AnswerProvider nunca chega a ser avaliado — o
+                // motor encerra o fluxo antes disso (outgoing vazio termina o nó pra qualquer tipo, ver
+                // docs/engine/15-achados-motor-lacunas-de-validacao.md, §2.3).
+                if (gateway.outgoing() == null || gateway.outgoing().isEmpty()) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for Gateway '%s': must declare at least one outgoing sequence flow.", gateway.id()));
+                }
+
+                // Validação Estrutural das Arestas (Sequence Flows) — KIKWI-018 (já Existente)
                 long defaultFlowsCount = gateway.outgoing().stream().filter(SequenceFlowDefinition::isDefault).count();
                 if (defaultFlowsCount > 1) {
                     throw new InvalidProcessDefinitionException(String.format("Validation failed for Gateway '%s': Multiple sequence flows are marked as default.", gateway.id()));
                 }
+
+                // KIKWI-019 (Bloqueante): mesmo racional de KIKWI-018 — findMatchingFlow usa .findFirst() sobre
+                // handlesNull, então mais de uma aresta marcada vira dead code silencioso, não erro.
+                long handlesNullCount = gateway.outgoing().stream().filter(SequenceFlowDefinition::handlesNull).count();
+                if (handlesNullCount > 1) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for Gateway '%s': multiple sequence flows are marked as handlesNull — at most one is allowed.", gateway.id()));
+                }
+
+                // KIKWI-020 (Bloqueante): mesmo racional — findMatchingFlow usa .findFirst() sobre
+                // expectedAnswer, então respostas duplicadas silenciosamente escondem a segunda aresta.
+                Set<String> seenAnswers = new java.util.HashSet<>();
+                for (SequenceFlowDefinition flow : gateway.outgoing()) {
+                    String expectedAnswer = flow.expectedAnswer();
+                    if (expectedAnswer != null && !seenAnswers.add(expectedAnswer)) {
+                        throw new InvalidProcessDefinitionException(String.format(
+                                "Validation failed for Gateway '%s': duplicate expectedAnswer '%s' across outgoing sequence flows.", gateway.id(), expectedAnswer));
+                    }
+                }
+
+            } else if (node instanceof ParallelGatewayDefinition parallelGateway) {
+                // KIKWI-024/025/026 (Bloqueante): sem targetJoinId válido apontando pra um JOIN_GATEWAY real, o
+                // split ou lança RuntimeException("Não foi encontrado join") em runtime (targetJoinId nulo), ou
+                // degrada silenciosamente — targetJoinId apontando pra um id inexistente/de tipo errado nunca é
+                // checado hoje, e o "join" materializado referencia a definição errada (ver
+                // docs/engine/15-achados-motor-lacunas-de-validacao.md, §3.6, bloco ":::danger").
+                String targetJoinId = parallelGateway.targetJoinId();
+                if (targetJoinId == null || targetJoinId.isBlank()) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for PARALLEL_GATEWAY '%s' (id: %s): 'targetJoinId' is missing.",
+                            parallelGateway.name(), parallelGateway.id()));
+                }
+                FlowNodeDefinition targetJoin = definition.flowNodes().get(targetJoinId);
+                if (targetJoin == null) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for PARALLEL_GATEWAY '%s' (id: %s): 'targetJoinId' ('%s') does not reference an existing node in flowNodes.",
+                            parallelGateway.name(), parallelGateway.id(), targetJoinId));
+                }
+                if (!(targetJoin instanceof JoinGatewayDefinition)) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for PARALLEL_GATEWAY '%s' (id: %s): 'targetJoinId' ('%s') must reference a JOIN_GATEWAY node, but it is %s.",
+                            parallelGateway.name(), parallelGateway.id(), targetJoinId, targetJoin.type()));
+                }
+
             } else if (node instanceof CallActivityDefinition callActivity) {
                 // "collectionVariable resolve para uma lista" não é validável em deploy-time: o motor não tem
                 // nenhum mecanismo de declaração de tipo de variável de processo — só existe o valor em
@@ -176,6 +306,84 @@ public class DeployValidator {
                 validateBoundaryEvents(definition, timerTask, "TIMER_TASK", timerTask.boundaryEventIds(),
                         Set.of(InterruptiveTimerEventDefinition.class, NonInterruptiveTimerEventDefinition.class,
                                 InterruptiveCatchEventDefinition.class));
+            } else if (node instanceof InterruptiveTimerEventDefinition interruptiveTimer) {
+                // KIKWI-033/034/035/036 (Bloqueante): mesma forma condicional já usada no ExclusiveGateway/
+                // CorrelationKeySource acima, agora para o timer de borda interruptivo — sem isso, um
+                // providerType/staticValue/providerVariable/providerBean mal configurado só falha em runtime, em
+                // TimerDueDateEvaluator, quando o timer é efetivamente instanciado (ver
+                // docs/engine/15-achados-motor-lacunas-de-validacao.md, §4.3).
+                validateTimeProvider(interruptiveTimer.id(), interruptiveTimer.providerType(), interruptiveTimer.providerVariable(),
+                        interruptiveTimer.providerBean(), interruptiveTimer.staticValue(), "BOUNDARY_INTERRUPTIVE_TIMER");
+            } else if (node instanceof NonInterruptiveTimerEventDefinition nonInterruptiveTimer) {
+                // KIKWI-037/039/040 (Bloqueante) + o resquício de KIKWI-038 (schedulePolicy.type não-nulo — o
+                // próprio valor já é garantido pelo enum ScheduleType, que não tem mais CRON). Sem schedulePolicy,
+                // calculateNextSchedule(null) retorna null imediatamente — o boundary event nunca é criado, sem
+                // erro nenhum (degradação silenciosa, ver docs/engine/15-achados-motor-lacunas-de-validacao.md,
+                // §1.3).
+                SchedulePolicy schedulePolicy = nonInterruptiveTimer.schedulePolicy();
+                if (schedulePolicy == null) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for BOUNDARY_NON_INTERRUPTIVE_TIMER '%s' (id: %s): 'schedulePolicy' is missing.",
+                            nonInterruptiveTimer.name(), nonInterruptiveTimer.id()));
+                }
+                if (schedulePolicy.type() == null) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for BOUNDARY_NON_INTERRUPTIVE_TIMER '%s' (id: %s): 'schedulePolicy.type' is missing.",
+                            nonInterruptiveTimer.name(), nonInterruptiveTimer.id()));
+                }
+                if (schedulePolicy.type() == ScheduleType.RATE_DURATION
+                        && (schedulePolicy.expression() == null || schedulePolicy.expression().isBlank())) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for BOUNDARY_NON_INTERRUPTIVE_TIMER '%s' (id: %s): Configured as RATE_DURATION but 'expression' is empty.",
+                            nonInterruptiveTimer.name(), nonInterruptiveTimer.id()));
+                }
+                if (schedulePolicy.type() == ScheduleType.FIXED_DATES
+                        && (schedulePolicy.fixedDates() == null || schedulePolicy.fixedDates().isEmpty())) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for BOUNDARY_NON_INTERRUPTIVE_TIMER '%s' (id: %s): Configured as FIXED_DATES but 'fixedDates' is empty.",
+                            nonInterruptiveTimer.name(), nonInterruptiveTimer.id()));
+                }
+            }
+        });
+    }
+
+    /**
+     * KIKWI-003 (Bloqueante): sem isso, um {@code defaultStartPoint} nulo/vazio/inexistente só falha quando
+     * alguém tenta INICIAR uma instância ({@code KikwiflowEngine.ProcessStarter.execute()} lança
+     * {@code NullPointerException}), não no deploy — o processo fica implantado, mas nunca é iniciável.
+     */
+    private void validateDefaultStartPoint(ProcessDefinition definition) {
+        String defaultStartPoint = definition.defaultStartPoint();
+        if (defaultStartPoint == null || defaultStartPoint.isBlank()) {
+            throw new InvalidProcessDefinitionException(
+                    "Validation failed: 'defaultStartPoint' is empty — every process needs a declared entry point.");
+        }
+        if (!definition.flowNodes().containsKey(defaultStartPoint)) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed: 'defaultStartPoint' ('%s') does not reference an existing node in flowNodes.",
+                    defaultStartPoint));
+        }
+    }
+
+    /**
+     * KIKWI-001 (Bloqueante) — a checagem estática de maior valor do catálogo inteiro: o mesmo erro de
+     * modelagem (uma aresta apontando pra um id que não existe) produz sintomas completamente diferentes
+     * dependendo de onde acontece hoje — de um {@code NullPointerException} obscuro no próximo ciclo do
+     * {@code ProcessExecutionManager} até um ramo de {@code PARALLEL_GATEWAY} silenciosamente descartado — e o
+     * motor não valida isso de forma consistente em lugar nenhum (ver
+     * docs/engine/15-achados-motor-lacunas-de-validacao.md, §2.1).
+     */
+    private void validateSequenceFlowTargetsExist(ProcessDefinition definition) {
+        definition.flowNodes().forEach((nodeKey, node) -> {
+            if (node.outgoing() == null) {
+                return;
+            }
+            for (SequenceFlowDefinition flow : node.outgoing()) {
+                if (!definition.flowNodes().containsKey(flow.targetNodeId())) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for node '%s' (id: %s): outgoing sequence flow '%s' targets '%s', which does not exist in flowNodes.",
+                            node.name(), nodeKey, flow.id(), flow.targetNodeId()));
+                }
             }
         });
     }
@@ -205,6 +413,43 @@ public class DeployValidator {
                         hostLabel, hostNode.name(), hostNode.id(), boundaryEventId,
                         boundaryEvent != null ? boundaryEvent.type() : "unknown node",
                         allowedTypes.stream().map(Class::getSimpleName).sorted().toList()));
+            }
+        }
+    }
+
+    /**
+     * KIKWI-042 (Bloqueante): {@code Navigator.findMatchingErrorHandler} usa {@code .findFirst()} sobre
+     * {@code boundaryEventIds} — mais de um handler com o mesmo {@code errorCode} (ou mais de um curinga sem
+     * {@code errorCode}) anexado ao mesmo nó pai faz o primeiro que casa vencer silenciosamente, matando os
+     * demais sem nenhum aviso. Só relevante para {@code EXECUTABLE_TASK}, o único host onde
+     * {@code BOUNDARY_ERROR_HANDLER} é sequer permitido pelo allowlist.
+     */
+    private void validateNoDuplicateErrorCodes(ProcessDefinition definition, FlowNodeDefinition hostNode, String hostLabel,
+                                               List<String> boundaryEventIds) {
+        if (boundaryEventIds == null) {
+            return;
+        }
+
+        Set<String> seenErrorCodes = new java.util.HashSet<>();
+        boolean sawWildcard = false;
+        for (String boundaryEventId : boundaryEventIds) {
+            FlowNodeDefinition boundaryEvent = definition.flowNodes().get(boundaryEventId);
+            if (!(boundaryEvent instanceof ErrorHandlerDefinition handler)) {
+                continue;
+            }
+
+            String errorCode = handler.errorCode();
+            if (errorCode == null) {
+                if (sawWildcard) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for %s '%s' (id: %s): more than one wildcard BOUNDARY_ERROR_HANDLER (no errorCode) is attached — at most one is allowed.",
+                            hostLabel, hostNode.name(), hostNode.id()));
+                }
+                sawWildcard = true;
+            } else if (!seenErrorCodes.add(errorCode)) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for %s '%s' (id: %s): duplicate BOUNDARY_ERROR_HANDLER errorCode '%s' — each errorCode may only be handled once per parent node.",
+                        hostLabel, hostNode.name(), hostNode.id(), errorCode));
             }
         }
     }
@@ -252,6 +497,43 @@ public class DeployValidator {
                 if (source.correlationTemplates() == null || source.correlationTemplates().isEmpty()) {
                     throw new InvalidProcessDefinitionException(
                             String.format("Validation failed for %s '%s' (id: %s): Configured as TEMPLATE but 'correlationTemplates' is empty.", nodeKind, nodeName, source.id()));
+                }
+            }
+        }
+    }
+
+    /**
+     * Validação condicional compartilhada por qualquer {@link io.kikwiflow.model.definition.process.elements.TimerDueDateSource}
+     * (hoje, só {@link InterruptiveTimerEventDefinition} — o timer de borda interruptivo; {@code TimerTaskDefinition}
+     * continua deliberadamente fora, ver KIKWI-033 no catálogo). Mesmo formato condicional de
+     * {@code validateCorrelationKeySource}/gateway acima: sem isso, um {@code providerType}/valor correspondente
+     * mal configurado só falha em runtime, em {@code TimerDueDateEvaluator}, quando o timer é efetivamente
+     * instanciado.
+     */
+    private void validateTimeProvider(String nodeId, TimeProviderType providerType, String providerVariable,
+                                      String providerBean, String staticValue, String nodeKind) {
+        if (providerType == null) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed for %s (id: %s): 'providerType' is missing.", nodeKind, nodeId));
+        }
+
+        switch (providerType) {
+            case STATIC -> {
+                if (staticValue == null || staticValue.isBlank()) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for %s (id: %s): Configured as STATIC but 'staticValue' is empty.", nodeKind, nodeId));
+                }
+            }
+            case VARIABLE -> {
+                if (providerVariable == null || providerVariable.isBlank()) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for %s (id: %s): Configured as VARIABLE but 'providerVariable' is empty.", nodeKind, nodeId));
+                }
+            }
+            case BEAN -> {
+                if (providerBean == null || providerBean.isBlank()) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for %s (id: %s): Configured as BEAN but 'providerBean' is empty.", nodeKind, nodeId));
                 }
             }
         }

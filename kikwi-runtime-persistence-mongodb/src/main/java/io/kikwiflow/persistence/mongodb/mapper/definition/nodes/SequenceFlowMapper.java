@@ -23,6 +23,7 @@ import org.bson.Document;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SequenceFlowMapper {
@@ -50,6 +51,16 @@ public class SequenceFlowMapper {
                 ))
                 .collect(Collectors.toList());
 
+        Map<String, String> extensionProperties = ExtensionPropertiesMapper.mapToDefinition(
+                flowDoc.get("extensionProperties", Document.class));
+
+        Document labelPositionDoc = flowDoc.get("labelPosition", Document.class);
+        LayoutCoordinates labelPosition = labelPositionDoc == null
+                ? null
+                : new LayoutCoordinates(
+                        labelPositionDoc.get("x", Number.class).doubleValue(),
+                        labelPositionDoc.get("y", Number.class).doubleValue());
+
         return new SequenceFlowDefinition(
                 flowDoc.getString("id"),
                 flowDoc.getString("name"),
@@ -58,7 +69,10 @@ public class SequenceFlowMapper {
                 flowDoc.getString("targetNodeId"),
                 flowDoc.getBoolean("isDefault", false),
                 flowDoc.getBoolean("handlesNull", false),
-                positionHandlers
+                positionHandlers,
+                extensionProperties,
+                labelPosition,
+                flowDoc.getString("sourceHandle")
         );
     }
 }

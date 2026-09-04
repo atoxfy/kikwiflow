@@ -56,14 +56,6 @@ public class TimerDueDateEvaluator {
             case RATE_DURATION ->
                     Instant.now().plus(Duration.parse(policy.expression()));
 
-            case CRON -> {
-                yield Instant.now().plus(Duration.parse(policy.expression()));
-
-                /*CronExpression cron = CronExpression.parse(policy.expression());
-                ZonedDateTime next = cron.next(ZonedDateTime.now(ZoneId.of("UTC")));
-                yield next != null ? next.toInstant() : null;*/
-            }
-
             case FIXED_DATES -> {
                 Instant now = Instant.now();
                 yield policy.fixedDates().stream()

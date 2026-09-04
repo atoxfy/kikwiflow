@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,21280,e=>{"use strict";var i=e.i(34901);e.i(80722);var l=e.i(23629);function r(){return(0,i.jsx)("div",{className:"flex w-full h-full relative overflow-hidden bg-[#FAFAFA] dark:bg-[#060911]",children:(0,i.jsx)(l.MonitorScreen,{})})}e.s(["default",()=>r])}]);

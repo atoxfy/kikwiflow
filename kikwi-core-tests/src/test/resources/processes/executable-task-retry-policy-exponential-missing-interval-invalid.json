@@ -1,0 +1,42 @@
+{
+  "key": "executable-task-retry-policy-exponential-missing-interval-invalid",
+  "name": "Fixture Negativa: retryPolicy EXPONENTIAL_BACKOFF sem initialInterval",
+  "description": "Fixture de teste: PAGAMENTO.retryPolicy tem strategy=EXPONENTIAL_BACKOFF mas sem 'initialInterval' — Duration.parse(null) lançaria NPE só na primeira falha — rejeitado por DeployValidator (KIKWI-045).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-pagamento", "name": "", "targetNodeId": "PAGAMENTO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "PAGAMENTO": {
+      "id": "PAGAMENTO",
+      "name": "Processar Pagamento",
+      "type": "EXECUTABLE_TASK",
+      "executor": "processarPagamentoTaskHandler",
+      "commitBefore": false,
+      "commitAfter": false,
+      "retryPolicy": { "strategy": "EXPONENTIAL_BACKOFF", "maxRetries": 3 },
+      "outgoing": [
+        { "id": "flow-pagamento-to-end", "name": "", "targetNodeId": "END_EVENT_SUCESSO", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_EVENT_SUCESSO": {
+      "id": "END_EVENT_SUCESSO",
+      "name": "Sucesso",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

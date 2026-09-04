@@ -1,0 +1,605 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kikwiflow.io/schema/kikwi-process.schema.json",
+  "title": "Kikwiflow Process Definition (.kikwi)",
+  "description": "Schema for ProcessDefinitionDeployRequest — the JSON payload deployed via POST /process-definitions to the Kikwiflow engine (see kikwi-model's io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest and each FlowNodeDefinition subtype). Source of truth for every field/rule here: kikwi-model (plain Java records, no Bean Validation annotations — nothing is truly 'required' at the model level) and kikwi-core's DeployValidator (the only place that actually rejects a deploy). Verified against commit b21da09 (2026-08-21) plus the uncommitted addition of SequenceFlowDefinition.extensionProperties/labelPosition/sourceHandle on the same date (added to support the kikwi-pulse-ui edge-label/edge-documentation feature), and the ~50 fixtures under kikwi-core-tests/src/test/resources/processes. If the engine evolves, re-check field lists against those two locations before trusting this file over the source.",
+  "$comment": "Deliberately excluded (confirmed by grep — zero hits in any .java file as of the commit above): variableDeclarations / preConditions / postConditions / postConditionsProviderBean (docs/engine/26 — an unimplemented spec), candidateRoles / role-based task authorization (docs/engine/24 Part B — unimplemented), FormDefinition/FormComponentDefinition (exists in kikwi-model but orphaned — never referenced by any FlowNodeDefinition), transitionType on sequence flows (appears in some prose docs and in the document-java-as-kikwi skill's examples, but SequenceFlowDefinition has no such field). Two validation tiers are used throughout this schema: tier A = actually enforced today by DeployValidator, modeled here as real if/then/required constraints; tier B = documented behavior/expectation that the engine does NOT enforce at deploy time (e.g. defaultStartPoint or targetNodeId resolving to a real node) — these are described in prose only and never turned into a required/enum constraint, so this schema never rejects a process the engine would accept.",
+
+  "type": "object",
+  "required": ["key", "flowNodes"],
+  "unevaluatedProperties": false,
+  "properties": {
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Process definition business key — the identifier used by KikwiflowEngine.startProcess().byKey(...)."
+    },
+    "name": { "type": ["string", "null"] },
+    "description": { "type": ["string", "null"] },
+    "sla": {
+      "type": ["string", "null"],
+      "description": "Present on the model but unused anywhere in kikwi-core today (grep for .sla()/getSla in kikwi-core returns zero hits) — vestigial, accepted by the parser but has no functional effect."
+    },
+    "defaultStartPoint": {
+      "type": ["string", "null"],
+      "description": "Should be a key present in flowNodes, identifying a DEFAULT_START_EVENT node. NOT validated at deploy time (tier B) — KikwiflowEngine only resolves it the first time a process instance is started, and throws a null-derived error then if it doesn't resolve."
+    },
+    "flowNodes": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Keyed by node id — each value is a polymorphic FlowNodeDefinition dispatched by its own \"type\" field. By convention the map key should equal the node's own \"id\" field, but that consistency is never checked by the engine.",
+      "additionalProperties": { "$ref": "#/$defs/flowNodeUnion" }
+    },
+    "extensionProperties": { "$ref": "#/$defs/common/extensionProperties" }
+  },
+
+  "$defs": {
+    "common": {
+      "extensionProperties": {
+        "type": ["object", "null"],
+        "description": "Free-form string-to-string bag (Map<String,String> in the model) — untyped/unused by the engine core itself, available to downstream consumers (UI, custom extensions). Two reserved keys are used by convention (kikwiflow-pulse-ui, the visual modeler): 'kikwi:documentation' (free-form Markdown, may include ```mermaid fenced blocks) and 'kikwi:documentationLink' (a URL, opened in a new tab, or a path relative to the project, which only resolves inside the VS Code extension) — by UI convention the two are mutually exclusive (embedded doc vs. link), but the engine treats extensionProperties as an opaque bag and enforces nothing about these keys; this schema doesn't either. Present at process, node and (as of this addition) sequence-flow level.",
+        "additionalProperties": { "type": "string" }
+      },
+
+      "layoutCoordinates": {
+        "type": ["object", "null"],
+        "description": "Diagram positioning only — has no effect on execution.",
+        "unevaluatedProperties": false,
+        "properties": {
+          "x": { "type": ["number", "null"] },
+          "y": { "type": ["number", "null"] }
+        }
+      },
+
+      "sequenceFlow": {
+        "type": "object",
+        "description": "Lives inside a node's own \"outgoing\" array — there is no separate top-level sequence-flow collection; every node owns its own outgoing edges.",
+        "unevaluatedProperties": false,
+        "required": ["id", "targetNodeId"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": ["string", "null"] },
+          "description": { "type": ["string", "null"] },
+          "expectedAnswer": {
+            "type": ["string", "null"],
+            "description": "Only meaningful on EXCLUSIVE_GATEWAY outgoing edges — the Navigator compares this by plain string equality against whatever the gateway's AnswerProvider resolves to. There is no expression/condition language in Kikwiflow, just string matching."
+          },
+          "targetNodeId": {
+            "type": "string",
+            "description": "Should be a key present in the process' flowNodes map. NOT validated at deploy time (tier B) — an unresolved id only fails the first time this edge is actually taken, at runtime."
+          },
+          "isDefault": {
+            "type": "boolean",
+            "default": false,
+            "description": "At most one outgoing edge per EXCLUSIVE_GATEWAY may set this true — DeployValidator rejects a gateway with more than one default edge (tier A, enforced separately on the owning EXCLUSIVE_GATEWAY.outgoing array by this schema). Taken when the resolved answer is non-null and no expectedAnswer matched."
+          },
+          "handlesNull": {
+            "type": "boolean",
+            "default": false,
+            "description": "Taken when the gateway's AnswerProvider resolves to null — checked ahead of expectedAnswer/isDefault matching."
+          },
+          "positionHandlers": {
+            "type": ["array", "null"],
+            "description": "Intermediate waypoints for diagram rendering only — no effect on execution.",
+            "items": { "$ref": "#/$defs/common/layoutCoordinates" }
+          },
+          "extensionProperties": {
+            "$ref": "#/$defs/common/extensionProperties",
+            "description": "A real, persisted field on SequenceFlowDefinition (added to support kikwi-pulse-ui's edge documentation feature — see the reserved-keys note on the shared extensionProperties definition). Unlike the node/process-level extensionProperties (still nullable), this one is normalized at the model level: omitted or null input is turned into {} by SequenceFlowDefinition's compact constructor and never surfaces as null once deployed."
+          },
+          "labelPosition": {
+            "$ref": "#/$defs/common/layoutCoordinates",
+            "description": "Only set when the user manually drags the edge's label chip in the visual modeler (kikwi-pulse-ui's GatewayFlowEdge, mainly relevant on EXCLUSIVE_GATEWAY edges). Absent/null means the UI recalculates the label position automatically on every render — do not synthesize a default {x,y} here or downstream; round-trip exactly what was saved."
+          },
+          "sourceHandle": {
+            "type": ["string", "null"],
+            "description": "Opaque identifier of the source node's outgoing visual handle in the modeler's React Flow graph (e.g. \"right\", \"right-2\", \"right-3\" when a node has more than one visual output on the same side). The engine has no closed vocabulary of valid handles — this is UI-defined and passed through as plain text, purely for re-rendering the diagram the way it was last edited."
+          }
+        }
+      },
+
+      "baseNodeFields": {
+        "type": "object",
+        "required": ["id", "name", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Should equal this node's own key in the process' flowNodes map — the engine resolves cross-references (targetNodeId, attachedToRef, boundaryEventIds, ...) against that map key, not against this field; a mismatch between the two is never checked."
+          },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "description": { "type": ["string", "null"] },
+          "commitAfter": { "type": ["boolean", "null"] },
+          "commitBefore": {
+            "type": ["boolean", "null"],
+            "description": "When true, the Navigator persists a UnitOfWork and returns control immediately instead of continuing synchronously — Kikwiflow's actual async-continuation mechanism. This is unrelated to BPMN asyncBefore XML; there is no message bus, a separate TaskAcquirer/TaskExecutor later polls for the pending work."
+          },
+          "outgoing": {
+            "type": ["array", "null"],
+            "description": "null when omitted from the JSON — Jackson does not apply an empty-array default on this record field, so an omitted \"outgoing\" and an explicit \"outgoing\": null mean the same thing at runtime, NOT [].",
+            "items": { "$ref": "#/$defs/common/sequenceFlow" }
+          },
+          "extensionProperties": { "$ref": "#/$defs/common/extensionProperties" },
+          "layout": { "$ref": "#/$defs/common/layoutCoordinates" }
+        }
+      }
+    },
+
+    "policies": {
+      "retryPolicy": {
+        "type": ["object", "null"],
+        "description": "Only used by EXECUTABLE_TASK.retryPolicy. When null entirely, the engine falls back to the app-level kikwiflow default-retry-interval config instead of any of these fields.",
+        "unevaluatedProperties": false,
+        "required": ["strategy", "maxRetries"],
+        "properties": {
+          "strategy": { "enum": ["LINEAR", "EXPONENTIAL_BACKOFF"] },
+          "maxRetries": { "type": "integer" },
+          "initialInterval": {
+            "type": ["string", "null"],
+            "description": "ISO-8601 duration (e.g. \"PT10S\"). Semantically required as the base interval when strategy is EXPONENTIAL_BACKOFF — not enforced at deploy time (tier B)."
+          },
+          "multiplier": {
+            "type": ["number", "null"],
+            "description": "EXPONENTIAL_BACKOFF only. Defaults to 2.0 at runtime when null."
+          },
+          "maxInterval": {
+            "type": ["string", "null"],
+            "description": "ISO-8601 duration cap on the computed interval. EXPONENTIAL_BACKOFF only."
+          },
+          "intervals": {
+            "type": ["array", "null"],
+            "description": "LINEAR only — ISO-8601 durations indexed by attempt number, clamped to the last entry once the list is exhausted. Falls back to a hardcoded PT1M if empty/null.",
+            "items": { "type": "string" }
+          }
+        }
+      },
+
+      "schedulePolicy": {
+        "type": "object",
+        "description": "Recurring-timer policy — used only by BOUNDARY_NON_INTERRUPTIVE_TIMER.schedulePolicy.",
+        "unevaluatedProperties": false,
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "enum": ["RATE_DURATION", "FIXED_DATES"],
+            "description": "CRON was deliberately removed from this enum (never fully implemented — it was silently treated as an ISO-8601 duration, not real cron syntax — and making it real would require a vendor-specific SPI, which conflicts with the engine's vendor-neutral design). Do not expect a CRON value here even in future engine versions unless that design decision is revisited."
+          },
+          "expression": {
+            "type": ["string", "null"],
+            "description": "ISO-8601 duration (e.g. \"PT1H\") — used for RATE_DURATION."
+          },
+          "fixedDates": {
+            "type": ["array", "null"],
+            "description": "FIXED_DATES only — ISO-8601 instants (e.g. \"2026-12-31T23:59:59Z\"); the evaluator picks the first future date in this list.",
+            "items": { "type": "string" }
+          },
+          "maxOccurrences": {
+            "type": ["integer", "null"],
+            "description": "1-based cap on recurrence cycles — with maxOccurrences=3 the timer fires on cycles 1, 2 and 3 and never schedules a 4th. null means unbounded recurrence (legacy behavior)."
+          }
+        }
+      },
+
+      "correlationTemplateSegment": {
+        "type": "object",
+        "unevaluatedProperties": false,
+        "required": ["type", "value"],
+        "properties": {
+          "type": { "enum": ["LITERAL", "VARIABLE"] },
+          "value": {
+            "type": "string",
+            "description": "Literal text when type=LITERAL, or the name of a process variable to interpolate when type=VARIABLE."
+          }
+        }
+      },
+
+      "correlationTemplate": {
+        "type": "object",
+        "description": "One entry expected per key when the owning node's catchType=GROUP; a single entry for STANDALONE.",
+        "unevaluatedProperties": false,
+        "properties": {
+          "keySegments": {
+            "type": ["array", "null"],
+            "items": { "$ref": "#/$defs/policies/correlationTemplateSegment" }
+          },
+          "displayNameSegments": {
+            "type": ["array", "null"],
+            "items": { "$ref": "#/$defs/policies/correlationTemplateSegment" }
+          }
+        }
+      },
+
+      "correlationKeySourceBase": {
+        "type": "object",
+        "description": "Shared correlation-key resolution contract (CorrelationKeySource) — implemented by EVENT_CATCHER, BOUNDARY_INTERRUPTIVE_CATCH_EVENT and EVENT_THROWER. All four providerType-conditional requirements below ARE enforced at deploy time by DeployValidator.validateCorrelationKeySource (tier A), identically for all three node types.",
+        "required": ["providerType"],
+        "properties": {
+          "providerType": { "enum": ["STATIC", "VARIABLE", "BEAN", "TEMPLATE"] },
+          "providerBean": {
+            "type": ["string", "null"],
+            "description": "CorrelationKeysProvider Spring bean name — required non-blank and resolved at deploy time when providerType=BEAN."
+          },
+          "providerVariable": {
+            "type": ["string", "null"],
+            "description": "Process variable name — required non-blank at deploy time when providerType=VARIABLE."
+          },
+          "staticKey": {
+            "type": ["string", "null"],
+            "description": "Literal correlation key — required non-blank at deploy time when providerType=STATIC."
+          },
+          "keyPrefix": { "type": ["string", "null"] },
+          "keySuffix": { "type": ["string", "null"] },
+          "displayNamePrefix": { "type": ["string", "null"] },
+          "displayNameSuffix": { "type": ["string", "null"] },
+          "correlationTemplates": {
+            "type": ["array", "null"],
+            "description": "Required non-empty at deploy time when providerType=TEMPLATE.",
+            "items": { "$ref": "#/$defs/policies/correlationTemplate" }
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "providerType": { "const": "STATIC" } } },
+            "then": { "properties": { "staticKey": { "type": "string", "minLength": 1 } }, "required": ["staticKey"] }
+          },
+          {
+            "if": { "properties": { "providerType": { "const": "VARIABLE" } } },
+            "then": { "properties": { "providerVariable": { "type": "string", "minLength": 1 } }, "required": ["providerVariable"] }
+          },
+          {
+            "if": { "properties": { "providerType": { "const": "BEAN" } } },
+            "then": { "properties": { "providerBean": { "type": "string", "minLength": 1 } }, "required": ["providerBean"] }
+          },
+          {
+            "if": { "properties": { "providerType": { "const": "TEMPLATE" } } },
+            "then": { "properties": { "correlationTemplates": { "type": "array", "minItems": 1 } }, "required": ["correlationTemplates"] }
+          }
+        ]
+      }
+    },
+
+    "flowNodeUnion": {
+      "type": "object",
+      "required": ["id", "type"],
+      "description": "One entry of the process' flowNodes map. Dispatched on \"type\" — each branch below routes to the matching $defs/nodeTypes/* schema, which independently closes itself against unknown fields (typos surface as \"unevaluated properties\" there, scoped to the matched node type).",
+      "properties": {
+        "type": {
+          "enum": [
+            "DEFAULT_START_EVENT", "DEFAULT_END_EVENT", "EXECUTABLE_TASK", "EXTERNAL_TASK",
+            "EXCLUSIVE_GATEWAY", "PARALLEL_GATEWAY", "JOIN_GATEWAY",
+            "BOUNDARY_INTERRUPTIVE_TIMER", "BOUNDARY_NON_INTERRUPTIVE_TIMER", "BOUNDARY_ERROR_HANDLER",
+            "BOUNDARY_INTERRUPTIVE_CATCH_EVENT", "TIMER_TASK", "EVENT_CATCHER", "EVENT_THROWER",
+            "CALL_ACTIVITY_COORDINATOR"
+          ],
+          "description": "Discriminator — must exactly match one of the 15 @JsonSubTypes values FlowNodeDefinitionMixin dispatches on."
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "DEFAULT_START_EVENT" } } }, "then": { "$ref": "#/$defs/nodeTypes/startEvent" } },
+        { "if": { "properties": { "type": { "const": "DEFAULT_END_EVENT" } } }, "then": { "$ref": "#/$defs/nodeTypes/endEvent" } },
+        { "if": { "properties": { "type": { "const": "EXECUTABLE_TASK" } } }, "then": { "$ref": "#/$defs/nodeTypes/executableTask" } },
+        { "if": { "properties": { "type": { "const": "EXTERNAL_TASK" } } }, "then": { "$ref": "#/$defs/nodeTypes/externalTask" } },
+        { "if": { "properties": { "type": { "const": "EXCLUSIVE_GATEWAY" } } }, "then": { "$ref": "#/$defs/nodeTypes/exclusiveGateway" } },
+        { "if": { "properties": { "type": { "const": "PARALLEL_GATEWAY" } } }, "then": { "$ref": "#/$defs/nodeTypes/parallelGateway" } },
+        { "if": { "properties": { "type": { "const": "JOIN_GATEWAY" } } }, "then": { "$ref": "#/$defs/nodeTypes/joinGateway" } },
+        { "if": { "properties": { "type": { "const": "BOUNDARY_INTERRUPTIVE_TIMER" } } }, "then": { "$ref": "#/$defs/nodeTypes/boundaryInterruptiveTimer" } },
+        { "if": { "properties": { "type": { "const": "BOUNDARY_NON_INTERRUPTIVE_TIMER" } } }, "then": { "$ref": "#/$defs/nodeTypes/boundaryNonInterruptiveTimer" } },
+        { "if": { "properties": { "type": { "const": "BOUNDARY_ERROR_HANDLER" } } }, "then": { "$ref": "#/$defs/nodeTypes/boundaryErrorHandler" } },
+        { "if": { "properties": { "type": { "const": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT" } } }, "then": { "$ref": "#/$defs/nodeTypes/boundaryInterruptiveCatchEvent" } },
+        { "if": { "properties": { "type": { "const": "TIMER_TASK" } } }, "then": { "$ref": "#/$defs/nodeTypes/timerTask" } },
+        { "if": { "properties": { "type": { "const": "EVENT_CATCHER" } } }, "then": { "$ref": "#/$defs/nodeTypes/eventCatcher" } },
+        { "if": { "properties": { "type": { "const": "EVENT_THROWER" } } }, "then": { "$ref": "#/$defs/nodeTypes/eventThrower" } },
+        { "if": { "properties": { "type": { "const": "CALL_ACTIVITY_COORDINATOR" } } }, "then": { "$ref": "#/$defs/nodeTypes/callActivityCoordinator" } }
+      ]
+    },
+
+    "nodeTypes": {
+      "startEvent": {
+        "description": "DEFAULT_START_EVENT — no node-specific fields beyond the common base.",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "properties": { "type": { "const": "DEFAULT_START_EVENT" } },
+        "unevaluatedProperties": false
+      },
+
+      "endEvent": {
+        "description": "DEFAULT_END_EVENT — no node-specific fields beyond the common base.",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "properties": { "type": { "const": "DEFAULT_END_EVENT" } },
+        "unevaluatedProperties": false
+      },
+
+      "executableTask": {
+        "description": "EXECUTABLE_TASK — runs a Java TaskHandler synchronously on the acquiring thread.",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "properties": {
+          "type": { "const": "EXECUTABLE_TASK" },
+          "executor": {
+            "type": ["string", "null"],
+            "description": "Spring TaskHandler bean name. Resolved and validated at deploy time only when non-blank (tier A) — a blank/omitted executor deploys fine and only fails the first time this node is actually reached."
+          },
+          "boundaryEventIds": {
+            "type": ["array", "null"],
+            "description": "Ids of boundary events attached to this task. Deploy-time allowlist (tier A, but the referenced ids' own types are NOT checkable by this schema — cross-node reference): only BOUNDARY_NON_INTERRUPTIVE_TIMER or BOUNDARY_ERROR_HANDLER. Interruptive timers/catch events are forbidden here — this task runs its handler synchronously with real side effects and has no safe interruption point mid-execution.",
+            "items": { "type": "string" }
+          },
+          "retryPolicy": { "$ref": "#/$defs/policies/retryPolicy" }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "externalTask": {
+        "description": "EXTERNAL_TASK — a wait state, completed from outside the engine (a worker calling the REST/client API).",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "properties": {
+          "type": { "const": "EXTERNAL_TASK" },
+          "boundaryEventIds": {
+            "type": ["array", "null"],
+            "description": "Ids of boundary events attached to this task. No dedicated allowlist branch exists in DeployValidator for this host type — each boundary event enforces its own rule instead (e.g. BOUNDARY_INTERRUPTIVE_CATCH_EVENT independently requires its attachedToRef to resolve to an EXTERNAL_TASK or TIMER_TASK).",
+            "items": { "type": "string" }
+          }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "exclusiveGateway": {
+        "description": "EXCLUSIVE_GATEWAY — routes to exactly one outgoing edge, chosen by string-matching an AnswerProvider's resolved answer against each edge's expectedAnswer.",
+        "allOf": [
+          { "$ref": "#/$defs/common/baseNodeFields" },
+          {
+            "if": { "properties": { "providerType": { "const": "BEAN" } } },
+            "then": { "properties": { "providerBean": { "type": "string", "minLength": 1 } }, "required": ["providerBean"] }
+          },
+          {
+            "if": { "properties": { "providerType": { "const": "VARIABLE" } } },
+            "then": { "properties": { "providerVariable": { "type": "string", "minLength": 1 } }, "required": ["providerVariable"] }
+          }
+        ],
+        "required": ["providerType"],
+        "properties": {
+          "type": { "const": "EXCLUSIVE_GATEWAY" },
+          "defaultFlow": {
+            "type": ["string", "null"],
+            "description": "Informational only — the Navigator never reads this field at runtime; only outgoing[].isDefault decides the actual default edge."
+          },
+          "providerType": { "enum": ["BEAN", "VARIABLE"] },
+          "providerBean": {
+            "type": ["string", "null"],
+            "description": "AnswerProvider Spring bean name — required non-blank and resolved at deploy time when providerType=BEAN."
+          },
+          "providerVariable": {
+            "type": ["string", "null"],
+            "description": "Process variable name — required non-blank at deploy time when providerType=VARIABLE."
+          },
+          "outgoing": {
+            "type": ["array", "null"],
+            "description": "Same shape as the common sequence flow, plus a gateway-specific constraint: at most one entry may set isDefault=true — DeployValidator rejects a gateway with more than one default edge (tier A). Zero default edges is legal (routing may rely purely on handlesNull/expectedAnswer matches).",
+            "items": { "$ref": "#/$defs/common/sequenceFlow" },
+            "minContains": 0,
+            "maxContains": 1,
+            "contains": { "required": ["isDefault"], "properties": { "isDefault": { "const": true } } }
+          }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "parallelGateway": {
+        "description": "PARALLEL_GATEWAY — fans out to every outgoing edge unconditionally.",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "required": ["targetJoinId"],
+        "properties": {
+          "type": { "const": "PARALLEL_GATEWAY" },
+          "targetJoinId": {
+            "type": "string",
+            "description": "Id of the JOIN_GATEWAY that closes this fork. NOT validated at deploy time — DeployValidator has no branch at all for PARALLEL_GATEWAY/JOIN_GATEWAY today; an unresolved or wrong-typed target only fails at runtime. There is also no minimum-outgoing-branches check — a PARALLEL_GATEWAY with 0 or 1 outgoing edges deploys fine, it just won't behave like a real fork."
+          }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "joinGateway": {
+        "description": "JOIN_GATEWAY — waits for every branch spawned by the matching PARALLEL_GATEWAY, then continues via its own outgoing[0].",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "properties": {
+          "type": { "const": "JOIN_GATEWAY" },
+          "sourceSplitId": {
+            "type": ["string", "null"],
+            "description": "Id of the originating PARALLEL_GATEWAY. Purely informational — never read by the Navigator at runtime; the join's own outgoing[0] is what actually continues the flow after all branches complete."
+          }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "boundaryInterruptiveTimer": {
+        "description": "BOUNDARY_INTERRUPTIVE_TIMER — a single-fire timer attached to a host node; firing interrupts the host.",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "required": ["attachedToRef"],
+        "properties": {
+          "type": { "const": "BOUNDARY_INTERRUPTIVE_TIMER" },
+          "attachedToRef": {
+            "type": "string",
+            "description": "Id of the node this boundary timer is attached to."
+          },
+          "executor": {
+            "type": ["string", "null"],
+            "description": "Present on this record but appears vestigial for timer nodes — not observed to be read anywhere in kikwi-core for this type."
+          },
+          "providerType": {
+            "enum": ["STATIC", "VARIABLE", "BEAN", null],
+            "description": "NOT enforced at deploy time (tier B) — unlike EXCLUSIVE_GATEWAY/correlation nodes, DeployValidator has no branch validating this node's own provider fields. A missing/mismatched provider only fails at runtime, inside TimerDueDateEvaluator."
+          },
+          "providerVariable": { "type": ["string", "null"] },
+          "providerBean": { "type": ["string", "null"] },
+          "staticValue": {
+            "type": ["string", "null"],
+            "description": "ISO-8601 duration (e.g. \"PT1H\") or an absolute ISO-8601 instant (e.g. \"2026-12-31T23:59:59Z\") — the evaluator tries Instant.parse first, then falls back to Duration.parse added to Instant.now()."
+          }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "boundaryNonInterruptiveTimer": {
+        "description": "BOUNDARY_NON_INTERRUPTIVE_TIMER — a recurring timer attached to a host node; firing does NOT interrupt the host.",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "required": ["attachedToRef", "schedulePolicy"],
+        "properties": {
+          "type": { "const": "BOUNDARY_NON_INTERRUPTIVE_TIMER" },
+          "attachedToRef": { "type": "string" },
+          "executor": {
+            "type": ["string", "null"],
+            "description": "Present on this record but appears vestigial — not observed to be read anywhere in kikwi-core for this type."
+          },
+          "schedulePolicy": { "$ref": "#/$defs/policies/schedulePolicy" }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "boundaryErrorHandler": {
+        "description": "BOUNDARY_ERROR_HANDLER — synchronous try/catch semantics on the host's thrown error code. The only boundary event type allowed on an EXECUTABLE_TASK.",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "required": ["attachedToRef"],
+        "properties": {
+          "type": { "const": "BOUNDARY_ERROR_HANDLER" },
+          "attachedToRef": { "type": "string" },
+          "errorCode": {
+            "type": ["string", "null"],
+            "description": "null means a wildcard/catch-all handler. The Navigator picks the first boundary handler — in the host's boundaryEventIds list order — whose errorCode is null or equals the thrown code; there is no explicit most-specific-first ordering."
+          }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "boundaryInterruptiveCatchEvent": {
+        "description": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT — waits for a correlated event; firing interrupts the host.",
+        "allOf": [
+          { "$ref": "#/$defs/common/baseNodeFields" },
+          { "$ref": "#/$defs/policies/correlationKeySourceBase" }
+        ],
+        "required": ["attachedToRef"],
+        "properties": {
+          "type": { "const": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT" },
+          "attachedToRef": {
+            "type": "string",
+            "description": "Deploy-time enforced (tier A): must point to a node whose type is EXTERNAL_TASK or TIMER_TASK — no other host is accepted, not even EXECUTABLE_TASK or EVENT_CATCHER. This is one of the few boundaryEventIds/attachedToRef rules that IS a real deploy-blocking check today, even though this schema can't verify the referenced node's actual type (cross-node reference, outside JSON Schema's reach)."
+          }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "timerTask": {
+        "description": "TIMER_TASK — a main-flow (not boundary) single-fire timer. Not a WaitState, not Executable.",
+        "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
+        "properties": {
+          "type": { "const": "TIMER_TASK" },
+          "commitBefore": {
+            "type": ["boolean", "null"],
+            "description": "Whatever value is declared here is overridden at runtime — ProcessExecutionManager always treats a TIMER_TASK as commitBefore=true, since a timer can never execute synchronously. That override has no JSON-level signal; this field is accepted either way."
+          },
+          "providerType": {
+            "enum": ["STATIC", "VARIABLE", "BEAN", null],
+            "description": "NOT enforced at deploy time (tier B) — DeployValidator has no branch validating this node's own provider fields. A missing/mismatched provider only fails at runtime, inside TimerDueDateEvaluator."
+          },
+          "providerVariable": { "type": ["string", "null"] },
+          "providerBean": { "type": ["string", "null"] },
+          "staticValue": {
+            "type": ["string", "null"],
+            "description": "ISO-8601 duration or absolute ISO-8601 instant — same parsing rule as BOUNDARY_INTERRUPTIVE_TIMER.staticValue."
+          },
+          "boundaryEventIds": {
+            "type": ["array", "null"],
+            "description": "Deploy-time allowlist (tier A, referenced node types not checkable by this schema): BOUNDARY_INTERRUPTIVE_TIMER, BOUNDARY_NON_INTERRUPTIVE_TIMER or BOUNDARY_INTERRUPTIVE_CATCH_EVENT. No BOUNDARY_ERROR_HANDLER — a TIMER_TASK has no synchronous handler to try/catch.",
+            "items": { "type": "string" }
+          }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "eventCatcher": {
+        "description": "EVENT_CATCHER — a wait state that resolves one or more correlation keys and waits for matching correlated events (STANDALONE = 1 key, GROUP = scatter-gather over N keys).",
+        "allOf": [
+          { "$ref": "#/$defs/common/baseNodeFields" },
+          { "$ref": "#/$defs/policies/correlationKeySourceBase" },
+          {
+            "if": { "properties": { "catchType": { "const": "GROUP" } } },
+            "then": {
+              "properties": { "providerType": { "not": { "const": "STATIC" } } },
+              "$comment": "Deploy-time enforced (tier A): STATIC always resolves exactly one key, which makes no sense combined with GROUP's scatter-gather semantics."
+            }
+          }
+        ],
+        "properties": {
+          "type": { "const": "EVENT_CATCHER" },
+          "boundaryEventIds": {
+            "type": ["array", "null"],
+            "description": "Deploy-time allowlist (tier A, referenced node types not checkable by this schema): only BOUNDARY_INTERRUPTIVE_TIMER or BOUNDARY_NON_INTERRUPTIVE_TIMER node ids.",
+            "items": { "type": "string" }
+          },
+          "catchType": {
+            "enum": ["STANDALONE", "GROUP", null],
+            "description": "STANDALONE resolves exactly one key; GROUP is a scatter-gather over N keys (matchPolicy decides ALL vs ANY). GROUP combined with providerType=STATIC is rejected at deploy time."
+          },
+          "matchPolicy": {
+            "enum": ["ALL", "ANY", null],
+            "description": "Only meaningful when catchType=GROUP."
+          }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "eventThrower": {
+        "description": "EVENT_THROWER — a main-flow node (not a WaitState) that fires a correlated event and continues immediately. v1 policy is FAIL: if no catcher is currently waiting for the thrown key, the node fails and goes through the normal incident/retry path — it is never silently ignored.",
+        "allOf": [
+          { "$ref": "#/$defs/common/baseNodeFields" },
+          { "$ref": "#/$defs/policies/correlationKeySourceBase" }
+        ],
+        "properties": {
+          "type": { "const": "EVENT_THROWER" }
+        },
+        "unevaluatedProperties": false
+      },
+
+      "callActivityCoordinator": {
+        "description": "CALL_ACTIVITY_COORDINATOR — starts one or more independent child ProcessInstances (a subprocess call). Simplified subprocess-only model: no bodyType/EMBEDDED, no branches list, no matchPolicy — each iteration is a full child process started via its own dedicated STARTER task.",
+        "allOf": [
+          { "$ref": "#/$defs/common/baseNodeFields" },
+          {
+            "if": {
+              "required": ["elementVariable"],
+              "properties": { "elementVariable": { "type": "string", "minLength": 1 } }
+            },
+            "then": {
+              "properties": { "collectionVariable": { "type": "string", "minLength": 1 } },
+              "required": ["collectionVariable"]
+            }
+          }
+        ],
+        "required": ["calledElement"],
+        "properties": {
+          "type": { "const": "CALL_ACTIVITY_COORDINATOR" },
+          "boundaryEventIds": {
+            "type": ["array", "null"],
+            "description": "Deploy-time allowlist (tier A, referenced node types not checkable by this schema): only BOUNDARY_INTERRUPTIVE_TIMER or BOUNDARY_NON_INTERRUPTIVE_TIMER node ids — no error handler, no catch event.",
+            "items": { "type": "string" }
+          },
+          "calledElement": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Key of the process to call as a subprocess. Required non-blank at deploy time (tier A). NOT validated that a process with this key actually exists/is deployed."
+          },
+          "collectionVariable": {
+            "type": ["string", "null"],
+            "description": "Process variable expected to resolve to a List at runtime — one child ProcessInstance is started per element (or a single implicit null element if this is omitted). Not validatable at deploy time; the engine has no variable-type system."
+          },
+          "elementVariable": {
+            "type": ["string", "null"],
+            "description": "Only valid together with collectionVariable — deploy-time error (tier A) if set without it."
+          },
+          "iterationMode": {
+            "enum": ["PARALLEL", "SEQUENTIAL", null],
+            "description": "null is treated as PARALLEL at runtime. SEQUENTIAL starts only the first branch's child process and drips the rest as earlier children complete."
+          }
+        },
+        "unevaluatedProperties": false
+      }
+    }
+  }
+}

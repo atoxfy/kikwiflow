@@ -1,0 +1,50 @@
+{
+  "key": "parallel-gateway-missing-target-join-invalid",
+  "name": "Fixture Negativa: PARALLEL_GATEWAY sem targetJoinId",
+  "description": "Fixture de teste: PARALLEL_SPLIT não declara targetJoinId — rejeitado por DeployValidator (KIKWI-024).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-split", "name": "", "targetNodeId": "PARALLEL_SPLIT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "PARALLEL_SPLIT": {
+      "id": "PARALLEL_SPLIT",
+      "name": "Divisao Paralela",
+      "type": "PARALLEL_GATEWAY",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-split-to-a", "name": "", "targetNodeId": "END_A", "isDefault": false, "extensionProperties": {} },
+        { "id": "flow-split-to-b", "name": "", "targetNodeId": "END_B", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_A": {
+      "id": "END_A",
+      "name": "End A",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    },
+    "END_B": {
+      "id": "END_B",
+      "name": "End B",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

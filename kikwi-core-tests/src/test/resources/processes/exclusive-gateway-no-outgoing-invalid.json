@@ -1,0 +1,31 @@
+{
+  "key": "exclusive-gateway-no-outgoing-invalid",
+  "name": "Fixture Negativa: EXCLUSIVE_GATEWAY sem nenhuma saída",
+  "description": "Fixture de teste: RISK_GATEWAY não declara nenhuma sequence flow em outgoing — rejeitado por DeployValidator (KIKWI-021).",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-gateway", "name": "", "targetNodeId": "RISK_GATEWAY", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "RISK_GATEWAY": {
+      "id": "RISK_GATEWAY",
+      "name": "Gateway de Risco",
+      "type": "EXCLUSIVE_GATEWAY",
+      "providerType": "VARIABLE",
+      "providerVariable": "risk",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

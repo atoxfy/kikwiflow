@@ -18,7 +18,6 @@
 package io.kikwiflow.model.execution.enumerated;
 
 public enum ScheduleType {
-    CRON,
     RATE_DURATION,
     FIXED_DATES
 }
