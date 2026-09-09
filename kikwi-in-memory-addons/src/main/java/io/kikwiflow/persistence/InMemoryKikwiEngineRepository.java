@@ -40,6 +40,7 @@ import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.persistence.api.exception.OptimisticLockingFailureException;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
+import io.kikwiflow.persistence.api.query.IncidentQuery;
 import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
@@ -831,6 +832,11 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public IncidentQuery createIncidentQuery() {
+        return new InMemoryIncidentQuery();
+    }
+
+    @Override
     public Map<String, KKFMetrics> getMetricsByNodeForProcessDefinition(String processDefinitionId) {
         Map<String, KKFMetrics> result = new HashMap<>();
 
@@ -1163,6 +1169,179 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                 case "businessKey" -> Comparator.comparing(ProcessInstance::businessKey, Comparator.nullsFirst(Comparator.naturalOrder()));
                 case "id" -> Comparator.comparing(ProcessInstance::id);
                 default -> Comparator.comparing(ProcessInstance::startedAt, Comparator.nullsFirst(Comparator.naturalOrder()));
+            };
+        }
+    }
+
+    /**
+     * Espelha {@code MongoIncidentQuery}, via {@link Predicate} em vez de Bson. O filtro por tenant é
+     * resolvido pela instância dona do incidente (o record {@code Incident} não carrega tenant).
+     */
+    private class InMemoryIncidentQuery implements IncidentQuery {
+        private final List<Predicate<Incident>> predicates = new ArrayList<>();
+        private int page = 0;
+        private int size = 20;
+        private String orderByField = "createdAt";
+        private boolean ascending = false;
+
+        @Override
+        public IncidentQuery processDefinitionId(String processDefinitionId) {
+            if (processDefinitionId != null && !processDefinitionId.isBlank()) {
+                predicates.add(i -> processDefinitionId.equals(i.processDefinitionId()));
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery processDefinitionIdIn(List<String> processDefinitionIds) {
+            if (processDefinitionIds != null && !processDefinitionIds.isEmpty()) {
+                Set<String> ids = new HashSet<>(processDefinitionIds);
+                predicates.add(i -> ids.contains(i.processDefinitionId()));
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery tenantId(String tenantId) {
+            if (tenantId != null && !tenantId.isBlank()) {
+                predicates.add(i -> {
+                    ProcessInstance pi = processInstanceCollection.get(i.processInstanceId());
+                    return pi != null && tenantId.equals(pi.tenantId());
+                });
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery tenantIdIn(List<String> tenantIds) {
+            if (tenantIds != null && !tenantIds.isEmpty()) {
+                Set<String> ids = new HashSet<>(tenantIds);
+                predicates.add(i -> {
+                    ProcessInstance pi = processInstanceCollection.get(i.processInstanceId());
+                    return pi != null && ids.contains(pi.tenantId());
+                });
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery taskDefinitionId(String taskDefinitionId) {
+            if (taskDefinitionId != null && !taskDefinitionId.isBlank()) {
+                predicates.add(i -> taskDefinitionId.equals(i.taskDefinitionId()));
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery processInstanceId(String processInstanceId) {
+            if (processInstanceId != null && !processInstanceId.isBlank()) {
+                predicates.add(i -> processInstanceId.equals(i.processInstanceId()));
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery statusIn(List<IncidentStatus> statuses) {
+            if (statuses != null && !statuses.isEmpty()) {
+                Set<IncidentStatus> statusSet = new HashSet<>(statuses);
+                predicates.add(i -> statusSet.contains(i.status()));
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery type(String type) {
+            if (type != null && !type.isBlank()) {
+                predicates.add(i -> type.equals(i.type()));
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery messageLike(String messageSubstring) {
+            if (messageSubstring != null && !messageSubstring.isBlank()) {
+                String needle = messageSubstring.toLowerCase();
+                predicates.add(i -> i.message() != null && i.message().toLowerCase().contains(needle));
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery createdAfter(Instant createdAfter) {
+            if (createdAfter != null) {
+                predicates.add(i -> i.createdAt() != null && !i.createdAt().isBefore(createdAfter));
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery createdBefore(Instant createdBefore) {
+            if (createdBefore != null) {
+                predicates.add(i -> i.createdAt() != null && !i.createdAt().isAfter(createdBefore));
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery orderBy(String field, boolean ascending) {
+            if (field != null && !field.isBlank()) {
+                this.orderByField = field;
+                this.ascending = ascending;
+            }
+            return this;
+        }
+
+        @Override
+        public IncidentQuery page(int page) {
+            this.page = Math.max(0, page);
+            return this;
+        }
+
+        @Override
+        public IncidentQuery size(int size) {
+            this.size = size > 0 ? size : 20;
+            return this;
+        }
+
+        @Override
+        public PageResult<Incident> list() {
+            Comparator<Incident> comparator = comparatorFor(orderByField);
+            if (!ascending) {
+                comparator = comparator.reversed();
+            }
+
+            List<Incident> matched = incidentCollection.values().stream()
+                    .filter(this::matches)
+                    .sorted(comparator)
+                    .toList();
+
+            long totalElements = matched.size();
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+
+            List<Incident> content = matched.stream()
+                    .skip((long) page * size)
+                    .limit(size)
+                    .toList();
+
+            return new PageResult<>(content, totalElements, totalPages, page, size);
+        }
+
+        @Override
+        public long count() {
+            return incidentCollection.values().stream().filter(this::matches).count();
+        }
+
+        private boolean matches(Incident incident) {
+            return predicates.stream().allMatch(p -> p.test(incident));
+        }
+
+        private Comparator<Incident> comparatorFor(String field) {
+            return switch (field) {
+                case "id" -> Comparator.comparing(Incident::id, Comparator.nullsFirst(Comparator.naturalOrder()));
+                case "status" -> Comparator.comparing(i -> i.status() == null ? null : i.status().name(), Comparator.nullsFirst(Comparator.naturalOrder()));
+                case "processDefinitionId" -> Comparator.comparing(Incident::processDefinitionId, Comparator.nullsFirst(Comparator.naturalOrder()));
+                case "taskDefinitionId" -> Comparator.comparing(Incident::taskDefinitionId, Comparator.nullsFirst(Comparator.naturalOrder()));
+                default -> Comparator.comparing(Incident::createdAt, Comparator.nullsFirst(Comparator.naturalOrder()));
             };
         }
     }

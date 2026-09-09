@@ -1051,6 +1051,17 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 new IndexOptions().name("inc_proc_inst_idx")
         );
 
+        // cobre o filtro mais comum de POST /incidents/search: incidentes de um processo por status,
+        // ordenados por data (mais recente primeiro). Ver especificacao-incidentes-busca-e-retry-em-lote.md §2.2.
+        getDatabase().getCollection(INCIDENTS_COLLECTION).createIndex(
+                Indexes.compoundIndex(
+                        Indexes.ascending("processDefinitionId"),
+                        Indexes.ascending("status"),
+                        Indexes.descending("createdAt")
+                ),
+                new IndexOptions().name("inc_proc_def_status_created_idx")
+        );
+
 
         // indice de tarefas externas por process instance id
         MongoCollection<Document> externalTaskCollection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
@@ -1301,6 +1312,11 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         return new MongoProcessInstanceQuery();
     }
 
+    @Override
+    public io.kikwiflow.persistence.api.query.IncidentQuery createIncidentQuery() {
+        return new MongoIncidentQuery();
+    }
+
     private class MongoProcessInstanceQuery implements ProcessInstanceQuery {
         private final List<Bson> filters = new ArrayList<>();
         private int page = 0;
@@ -1512,6 +1528,169 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     });
 
             return new PageResult<>(content, totalElements, totalPages, page, size);
+        }
+    }
+
+
+    /**
+     * Implementação interna da API de query fluente para Incidentes. Mesmo desenho de
+     * {@code MongoProcessInstanceQuery}: acumula {@code Filters} e resolve na terminal.
+     * O incidente não persiste {@code tenantId}, então o filtro por tenant resolve os
+     * {@code _id}s das instâncias daquele tenant e casa por {@code processInstanceId}.
+     */
+    private class MongoIncidentQuery implements io.kikwiflow.persistence.api.query.IncidentQuery {
+        private final List<Bson> filters = new ArrayList<>();
+        private int page = 0;
+        private int size = 20;
+        private Bson sort = Sorts.descending("createdAt");
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery processDefinitionId(String processDefinitionId) {
+            if (processDefinitionId != null && !processDefinitionId.isBlank()) {
+                filters.add(Filters.eq("processDefinitionId", processDefinitionId));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery processDefinitionIdIn(List<String> processDefinitionIds) {
+            if (processDefinitionIds != null && !processDefinitionIds.isEmpty()) {
+                filters.add(Filters.in("processDefinitionId", processDefinitionIds));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery tenantId(String tenantId) {
+            if (tenantId != null && !tenantId.isBlank()) {
+                filters.add(Filters.in("processInstanceId", resolveInstanceIdsForTenants(List.of(tenantId))));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery tenantIdIn(List<String> tenantIds) {
+            if (tenantIds != null && !tenantIds.isEmpty()) {
+                filters.add(Filters.in("processInstanceId", resolveInstanceIdsForTenants(tenantIds)));
+            }
+            return this;
+        }
+
+        private List<String> resolveInstanceIdsForTenants(List<String> tenantIds) {
+            List<String> instanceIds = new ArrayList<>();
+            getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION)
+                    .find(Filters.in("tenantId", tenantIds))
+                    .projection(Projections.include("_id"))
+                    .forEach(doc -> instanceIds.add(doc.getString("_id")));
+            // lista vazia em Filters.in casa com nada — comportamento correto para "tenant sem instâncias".
+            return instanceIds;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery taskDefinitionId(String taskDefinitionId) {
+            if (taskDefinitionId != null && !taskDefinitionId.isBlank()) {
+                filters.add(Filters.eq("taskDefinitionId", taskDefinitionId));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery processInstanceId(String processInstanceId) {
+            if (processInstanceId != null && !processInstanceId.isBlank()) {
+                filters.add(Filters.eq("processInstanceId", processInstanceId));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery statusIn(List<io.kikwiflow.model.execution.enumerated.IncidentStatus> statuses) {
+            if (statuses != null && !statuses.isEmpty()) {
+                filters.add(Filters.in("status", statuses.stream().map(Enum::name).toList()));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery type(String type) {
+            if (type != null && !type.isBlank()) {
+                filters.add(Filters.eq("type", type));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery messageLike(String messageSubstring) {
+            if (messageSubstring != null && !messageSubstring.isBlank()) {
+                filters.add(Filters.regex("message", java.util.regex.Pattern.quote(messageSubstring), "i"));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery createdAfter(Instant createdAfter) {
+            if (createdAfter != null) {
+                filters.add(Filters.gte("createdAt", java.util.Date.from(createdAfter)));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery createdBefore(Instant createdBefore) {
+            if (createdBefore != null) {
+                filters.add(Filters.lte("createdAt", java.util.Date.from(createdBefore)));
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery orderBy(String field, boolean ascending) {
+            if (field != null && !field.isBlank()) {
+                String resolvedField = "id".equals(field) ? "_id" : field;
+                this.sort = ascending ? Sorts.ascending(resolvedField) : Sorts.descending(resolvedField);
+            }
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery page(int page) {
+            this.page = Math.max(0, page);
+            return this;
+        }
+
+        @Override
+        public io.kikwiflow.persistence.api.query.IncidentQuery size(int size) {
+            this.size = size > 0 ? Math.min(size, MAX_PAGE_SIZE) : 20;
+            return this;
+        }
+
+        private Bson finalFilter() {
+            return filters.isEmpty() ? new Document() : Filters.and(filters);
+        }
+
+        @Override
+        public PageResult<Incident> list() {
+            MongoCollection<Document> collection = getDatabase().getCollection(INCIDENTS_COLLECTION)
+                    .withReadPreference(ReadPreference.secondaryPreferred());
+            Bson filter = finalFilter();
+
+            long totalElements = collection.countDocuments(filter);
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+
+            List<Incident> content = new ArrayList<>();
+            collection.find(filter)
+                    .sort(sort)
+                    .skip(page * size)
+                    .limit(size)
+                    .forEach(doc -> content.add(IncidentMapper.fromDocument(doc)));
+
+            return new PageResult<>(content, totalElements, totalPages, page, size);
+        }
+
+        @Override
+        public long count() {
+            return getDatabase().getCollection(INCIDENTS_COLLECTION)
+                    .withReadPreference(ReadPreference.secondaryPreferred())
+                    .countDocuments(finalFilter());
         }
     }
 

@@ -25,6 +25,7 @@ import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
+import io.kikwiflow.persistence.api.query.IncidentQuery;
 import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
 
 import java.util.ArrayList;
@@ -76,6 +77,8 @@ public interface QueryRepository {
     ExternalTaskQuery createExternalTaskQuery();
 
     ProcessInstanceQuery createProcessInstanceQuery();
+
+    IncidentQuery createIncidentQuery();
 
     Map<String, KKFMetrics> getMetricsByNodeForProcessDefinition(String processDefinitionId);
 

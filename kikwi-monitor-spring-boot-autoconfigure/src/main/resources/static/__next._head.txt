@@ -1,6 +1,6 @@
 1:"$Sreact.fragment"
-2:I[15013,["/monitor-ui/_next/static/chunks/a7771d308c1a6695.js"],"ViewportBoundary"]
-3:I[15013,["/monitor-ui/_next/static/chunks/a7771d308c1a6695.js"],"MetadataBoundary"]
+2:I[15013,["/monitor-ui/_next/static/chunks/f26331e1ba25782b.js","/monitor-ui/_next/static/chunks/676c0bbfe8ec6bfb.js"],"ViewportBoundary"]
+3:I[15013,["/monitor-ui/_next/static/chunks/f26331e1ba25782b.js","/monitor-ui/_next/static/chunks/676c0bbfe8ec6bfb.js"],"MetadataBoundary"]
 4:"$Sreact.suspense"
-5:I[2624,["/monitor-ui/_next/static/chunks/a7771d308c1a6695.js"],"IconMark"]
-0:{"buildId":"6oQfz3fRYR-bdA9NZy_Wj","rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Kikwiflow Monitor"}],["$","meta","1",{"name":"description","content":"kikwiflow process monitor"}],["$","link","2",{"rel":"icon","href":"/favicon.ico"}],["$","$L5","3",{}]]}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}],"loading":null,"isPartial":false}
+5:I[2624,["/monitor-ui/_next/static/chunks/f26331e1ba25782b.js","/monitor-ui/_next/static/chunks/676c0bbfe8ec6bfb.js"],"IconMark"]
+0:{"buildId":"1QtkzskEj9nAP8qg85-NB","rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Kikwiflow Monitor"}],["$","meta","1",{"name":"description","content":"kikwiflow process monitor"}],["$","link","2",{"rel":"icon","href":"/favicon.ico"}],["$","$L5","3",{}]]}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}],"loading":null,"isPartial":false}
