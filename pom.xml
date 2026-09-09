@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.kikwiflow</groupId>
     <artifactId>kikwiflow-parent</artifactId>
-    <version>0.1.71</version>
+    <version>0.1.73</version>
     <packaging>pom</packaging>
     <name>kikwiflow :: Parent</name>
     <url>https://kikwiflow.io</url>
@@ -192,12 +192,4 @@
             </plugin>
         </plugins>
     </build>
-    <profiles>
-        <profile>
-            <id>sample</id>
-            <modules>
-                <module>sample-onboarding-process</module>
-            </modules>
-        </profile>
-    </profiles>
 </project>

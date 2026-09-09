@@ -238,6 +238,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public io.kikwiflow.persistence.api.query.IncidentQuery createIncidentQuery() {
+        return inMemoryKikwiEngineRepository.createIncidentQuery();
+    }
+
+    @Override
     public Map<String, KKFMetrics> getMetricsByNodeForProcessDefinition(String processDefinitionId) {
         return this.inMemoryKikwiEngineRepository.getMetricsByNodeForProcessDefinition(processDefinitionId);
     }
