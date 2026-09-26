@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package io.kikwiflow.model.definition.process;
-
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
+package io.kikwiflow.model.execution.form;
 
 import java.util.List;
-import java.util.Map;
 
-public record ProcessDefinitionDeployRequest(
-        String key,
-        String name,
-        String description,
-        String sla,
-        String defaultStartPoint,
-        Map<String, FlowNodeDefinition> flowNodes,
-        Map<String, String> extensionProperties,
-        List<VariableDeclaration> variableDeclarations
-) {}
+/**
+ * Descrição, gerada pelo motor, dos campos que um frontend deve renderizar para iniciar um processo
+ * ({@code nodeId} = start event) ou concluir uma {@code EXTERNAL_TASK}. Os campos vêm dos {@code inputs} do
+ * nó, na ordem declarada.
+ */
+public record FormDescriptor(String processDefinitionId,
+                             String processDefinitionKey,
+                             String nodeId,
+                             String nodeName,
+                             List<FormField> fields) {
+
+    public FormDescriptor {
+        fields = fields != null ? List.copyOf(fields) : List.of();
+    }
+}

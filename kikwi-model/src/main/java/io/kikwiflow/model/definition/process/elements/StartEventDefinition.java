@@ -18,12 +18,18 @@
 package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
+import io.kikwiflow.model.definition.process.variable.VariableBindings;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @param variableBindings {@code inputs} = variáveis exigidas para iniciar a instância (validadas em
+ *                         {@code ProcessStarter.execute()} antes de qualquer persistência).
+ */
 public record StartEventDefinition(String id,
                                    String name,
                                    String description,
@@ -32,7 +38,8 @@ public record StartEventDefinition(String id,
                                    Boolean commitBefore,
                                    List<SequenceFlowDefinition> outgoing,
                                    Map<String, String> extensionProperties,
-                                   LayoutCoordinates layout) implements FlowNodeDefinition {
+                                   LayoutCoordinates layout,
+                                   VariableBindings variableBindings) implements FlowNodeDefinition, VariableBindingAware {
 
     public static Builder builder() {
         return new Builder();
@@ -47,8 +54,14 @@ public record StartEventDefinition(String id,
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private Map<String, String> extensionProperties;
         private LayoutCoordinates layout;
+        private VariableBindings variableBindings;
 
         private Builder() {}
+
+        public Builder variableBindings(VariableBindings variableBindings) {
+            this.variableBindings = variableBindings;
+            return this;
+        }
 
         public Builder id(String id) {
             this.id = id;
@@ -93,7 +106,7 @@ public record StartEventDefinition(String id,
         }
 
         public StartEventDefinition build() {
-            return new StartEventDefinition(id, name, description, "DEFAULT_START_EVENT", commitAfter, commitBefore, outgoing, extensionProperties, layout);
+            return new StartEventDefinition(id, name, description, "DEFAULT_START_EVENT", commitAfter, commitBefore, outgoing, extensionProperties, layout, variableBindings);
         }
     }
 }

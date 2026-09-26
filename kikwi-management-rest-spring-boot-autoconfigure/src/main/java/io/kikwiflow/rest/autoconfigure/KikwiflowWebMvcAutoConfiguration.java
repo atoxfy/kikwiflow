@@ -48,6 +48,9 @@ public class KikwiflowWebMvcAutoConfiguration implements WebMvcConfigurer {
         }
 
         FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
+        // Restrito ao basePath: sem isso o filtro roda em todas as URLs do host e responde (e encerra) o
+        // preflight de endpoints do próprio app, que nunca chega ao @CrossOrigin/CORS do Spring MVC.
+        bean.addUrlPatterns(properties.getBasePath() + "/*");
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return bean;
     }

@@ -36,7 +36,9 @@ import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveCatchEventDefinition;
+import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.lightweight.SyncContinuationFailed;
@@ -54,6 +56,7 @@ import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.util.KikwiflowBanner;
+import io.kikwiflow.variable.VariableContractValidator;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -78,6 +81,8 @@ public class KikwiflowEngine {
     private final ContinuationService continuationService;
     private final FailureHandler failureHandler;
     private final CriticalEventRecorder criticalEventRecorder;
+    // Sem estado relevante nem dependências: instanciado aqui para não alterar o construtor/wiring do motor.
+    private final VariableContractValidator variableContractValidator = new VariableContractValidator();
 
     public KikwiflowEngine(
             ProcessDefinitionService processDefinitionService,
@@ -299,6 +304,17 @@ public class KikwiflowEngine {
         }
 
         FlowNodeDefinition completedNode = processDefinition.flowNodes().get(taskToComplete.taskDefinitionId());
+
+        // inputs de uma EXTERNAL_TASK = dados exigidos para concluí-la (docs/engine/26). Validados contra o estado
+        // já mesclado (um campo obrigatório pode ter vindo de uma etapa anterior), numa cópia — getVariables()
+        // devolve um decorador que grava de volta na execução. Só EXTERNAL_TASK: EVENT_CATCHER e afins também
+        // passam por aqui (correlateMessage/correlateFromThrow) e não declaram contrato de dados. Nada foi
+        // persistido ainda, então a falha deixa a tarefa pendente como estava.
+        if (completedNode instanceof ExternalTaskDefinition externalTaskDefinition) {
+            variableContractValidator.validateOrThrow(taskToComplete.taskDefinitionId(),
+                    externalTaskDefinition.variableBindingsOrEmpty().inputs(), processDefinition,
+                    new HashMap<>(processInstanceExecution.getVariables()));
+        }
 
         // completedNode.commitAfter(): quando true, força a continuação a ser tratada como assíncrona mesmo
         // que o próximo nó não declare commitBefore — a mesma semântica que ProcessExecutionManager já aplica
@@ -758,6 +774,15 @@ public class KikwiflowEngine {
             String defaultStartPointId  = processDefinition.defaultStartPoint();
             FlowNodeDefinition defaultStartPoint = processDefinition.flowNodes().get(defaultStartPointId);
             Objects.requireNonNull(defaultStartPoint, "Malformed process definition: unknown default start point. The default start point needs to be declared in flow nodes map");
+
+            // inputs do start = variáveis exigidas para iniciar (docs/engine/26). Falha antes de qualquer
+            // persistência. Vale também para filhos de CALL_ACTIVITY, que chegam aqui pelo mesmo ProcessStarter
+            // com as variáveis repassadas pelo pai.
+            if (defaultStartPoint instanceof VariableBindingAware aware) {
+                engine.variableContractValidator.validateOrThrow(defaultStartPointId,
+                        aware.variableBindingsOrEmpty().inputs(), processDefinition,
+                        variables != null ? variables : Map.of());
+            }
 
             ExecutionResult executionResult;
             try {

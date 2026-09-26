@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -14,22 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.kikwiflow.model.definition.process.variable;
 
-package io.kikwiflow.model.definition.process;
+/**
+ * Vínculo de um nó a uma entrada do catálogo {@code variableDeclarations} do processo, por {@code key} —
+ * nunca redeclara label/formato. {@code required} ausente equivale a {@code false}: o campo aparece no
+ * formulário e, se preenchido, tem o formato validado, mas não bloqueia.
+ */
+public record VariableBinding(String variable, Boolean required) {
 
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
-
-import java.util.List;
-import java.util.Map;
-
-public record ProcessDefinitionDeployRequest(
-        String key,
-        String name,
-        String description,
-        String sla,
-        String defaultStartPoint,
-        Map<String, FlowNodeDefinition> flowNodes,
-        Map<String, String> extensionProperties,
-        List<VariableDeclaration> variableDeclarations
-) {}
+    /** Não usa prefixo {@code is}: evitaria colisão com a propriedade {@code required} na serialização Jackson. */
+    public boolean requiresValue() {
+        return Boolean.TRUE.equals(required);
+    }
+}

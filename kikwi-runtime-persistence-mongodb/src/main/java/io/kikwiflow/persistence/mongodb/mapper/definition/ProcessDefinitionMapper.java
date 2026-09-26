@@ -36,7 +36,9 @@ import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.CallActivityDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.DefaultEndEventDefinitionMapper;
+import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.DefaultStartEventDefinitionMapper;
+import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.VariableBindingsMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.ErrorHandlerDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.EventCatcherDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.EventThrowerDefinitionMapper;
@@ -97,7 +99,8 @@ public final class ProcessDefinitionMapper {
                 .append("version", definition.version())
                 .append("checksum", definition.checksum())
                 .append("description", definition.description())
-                .append("extensionProperties", definition.extensionProperties() != null ? new Document(definition.extensionProperties()) : new Document());
+                .append("extensionProperties", definition.extensionProperties() != null ? new Document(definition.extensionProperties()) : new Document())
+                .append("variableDeclarations", VariableDeclarationMapper.toDocuments(definition.variableDeclarations()));
 
 
         if (definition.flowNodes() != null) {
@@ -132,6 +135,10 @@ public final class ProcessDefinitionMapper {
                 .append("extensionProperties", node.extensionProperties() != null ? new Document(node.extensionProperties()) : new Document());
 
         doc.append("_class", node.getClass().getName());
+
+        if (node instanceof VariableBindingAware aware && aware.variableBindings() != null) {
+            doc.append("variableBindings", VariableBindingsMapper.toDocument(aware.variableBindings()));
+        }
 
         if (node.outgoing() != null) {
             doc.append("outgoing", node.outgoing().stream()
@@ -253,6 +260,7 @@ public final class ProcessDefinitionMapper {
                 .flowNodes(flowNodes)
                 .defaultStartPoint(defaultStartPointId)
                 .extensionProperties(extensionProperties)
+                .variableDeclarations(VariableDeclarationMapper.fromDocuments(doc.getList("variableDeclarations", Document.class)))
                 .build();
     }
 

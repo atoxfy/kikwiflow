@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 Atoxfy and/or licensed to Atoxfy
+ * Copyright 2025 Atoxfy and/or licensed to Atoxfy
  * under one or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information regarding copyright
  * ownership. Atoxfy licenses this file to you under the Apache License,
@@ -14,22 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.kikwiflow.model.definition.process.variable;
 
-package io.kikwiflow.model.definition.process;
-
-import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
-import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
-
-import java.util.List;
-import java.util.Map;
-
-public record ProcessDefinitionDeployRequest(
-        String key,
-        String name,
-        String description,
-        String sla,
-        String defaultStartPoint,
-        Map<String, FlowNodeDefinition> flowNodes,
-        Map<String, String> extensionProperties,
-        List<VariableDeclaration> variableDeclarations
-) {}
+/**
+ * Opção de uma variável {@link VariableFormat#SINGLE_SELECT}/{@link VariableFormat#MULTI_SELECT}: {@code value}
+ * é o que fica gravado na variável do processo, {@code label} é o texto exibido.
+ */
+public record VariableOption(String value, String label) {
+}

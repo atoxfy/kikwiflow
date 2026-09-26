@@ -32,6 +32,7 @@ public class DefaultStartEventDefinitionMapper {
                 .extensionProperties(ExtensionPropertiesMapper.mapToDefinition(doc.get("extensionProperties", Document.class)))
                 .outgoing(SequenceFlowMapper.mapToDefinitionList(doc))
                 .layout(LayoutCoordinatesMapper.mapToDefinition(doc.get("layout", Document.class)))
+                .variableBindings(VariableBindingsMapper.mapToDefinition(doc.get("variableBindings", Document.class)))
                 .build();
     }
 }

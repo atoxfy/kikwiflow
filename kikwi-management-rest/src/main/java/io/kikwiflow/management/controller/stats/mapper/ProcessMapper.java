@@ -264,7 +264,8 @@ public class ProcessMapper {
                     s.commitBefore(),
                     mapOutgoingK(s.outgoing()),
                     s.extensionProperties(),
-                    mapLayout(s.layout())
+                    mapLayout(s.layout()),
+                    s.variableBindings()
             );
 
             case EndEventDefinition e -> new KKFEndEventDefinition(
@@ -332,7 +333,8 @@ public class ProcessMapper {
                     mapOutgoingK(t.outgoing()),
                     t.boundaryEventIds(),
                     t.extensionProperties(),
-                    mapLayout(t.layout())
+                    mapLayout(t.layout()),
+                    t.variableBindings()
             );
 
             case InterruptiveTimerEventDefinition interruptiveTimerEventDefinition ->
@@ -356,7 +358,8 @@ public class ProcessMapper {
                     exect.boundaryEventIds(),
                     exect.extensionProperties(),
                     mapLayout(exect.layout()),
-                    exect.retryPolicy()
+                    exect.retryPolicy(),
+                    exect.variableBindings()
             );
 
             case EventCatcherDefinition eventCatcher -> mapEventCatcherDefinition(eventCatcher, metrics);

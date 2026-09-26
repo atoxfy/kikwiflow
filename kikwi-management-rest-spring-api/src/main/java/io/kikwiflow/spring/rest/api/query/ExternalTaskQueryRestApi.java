@@ -19,6 +19,7 @@ package io.kikwiflow.spring.rest.api.query;
 
 import io.kikwiflow.api.dto.CountResponse;
 import io.kikwiflow.api.query.ExternalTaskQueryApi;
+import io.kikwiflow.model.execution.form.FormDescriptor;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,6 +48,11 @@ public interface ExternalTaskQueryRestApi extends ExternalTaskQueryApi {
     @GetMapping("{id}")
     @ResponseStatus(HttpStatus.OK)
     ExternalTask findExternalTaskById(@PathVariable(value = "id") String id);
+
+    @Override
+    @GetMapping("{id}/form")
+    @ResponseStatus(HttpStatus.OK)
+    FormDescriptor findExternalTaskForm(@PathVariable(value = "id") String id);
 
 
     @Override

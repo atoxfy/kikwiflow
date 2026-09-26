@@ -3,7 +3,7 @@
   "$id": "https://kikwiflow.io/schema/kikwi-process.schema.json",
   "title": "Kikwiflow Process Definition (.kikwi)",
   "description": "Schema for ProcessDefinitionDeployRequest — the JSON payload deployed via POST /process-definitions to the Kikwiflow engine (see kikwi-model's io.kikwiflow.model.definition.process.ProcessDefinitionDeployRequest and each FlowNodeDefinition subtype). Source of truth for every field/rule here: kikwi-model (plain Java records, no Bean Validation annotations — nothing is truly 'required' at the model level) and kikwi-core's DeployValidator (the only place that actually rejects a deploy). Verified against commit b21da09 (2026-08-21) plus the uncommitted addition of SequenceFlowDefinition.extensionProperties/labelPosition/sourceHandle on the same date (added to support the kikwi-pulse-ui edge-label/edge-documentation feature), and the ~50 fixtures under kikwi-core-tests/src/test/resources/processes. If the engine evolves, re-check field lists against those two locations before trusting this file over the source.",
-  "$comment": "Deliberately excluded (confirmed by grep — zero hits in any .java file as of the commit above): variableDeclarations / preConditions / postConditions / postConditionsProviderBean (docs/engine/26 — an unimplemented spec), candidateRoles / role-based task authorization (docs/engine/24 Part B — unimplemented), FormDefinition/FormComponentDefinition (exists in kikwi-model but orphaned — never referenced by any FlowNodeDefinition), transitionType on sequence flows (appears in some prose docs and in the document-java-as-kikwi skill's examples, but SequenceFlowDefinition has no such field). Two validation tiers are used throughout this schema: tier A = actually enforced today by DeployValidator, modeled here as real if/then/required constraints; tier B = documented behavior/expectation that the engine does NOT enforce at deploy time (e.g. defaultStartPoint or targetNodeId resolving to a real node) — these are described in prose only and never turned into a required/enum constraint, so this schema never rejects a process the engine would accept.",
+  "$comment": "variableDeclarations (process level) and variableBindings (DEFAULT_START_EVENT, EXTERNAL_TASK, EXECUTABLE_TASK) implement docs/engine/26 as of 2026-09-25; the older preConditions/postConditions/postConditionsProviderBean names from earlier drafts of that doc were never implemented. Deliberately excluded (confirmed by grep — zero hits in any .java file as of the commit above): candidateRoles / role-based task authorization (docs/engine/24 Part B — unimplemented), FormDefinition/FormComponentDefinition (exists in kikwi-model but orphaned — never referenced by any FlowNodeDefinition), transitionType on sequence flows (appears in some prose docs and in the document-java-as-kikwi skill's examples, but SequenceFlowDefinition has no such field). Two validation tiers are used throughout this schema: tier A = actually enforced today by DeployValidator, modeled here as real if/then/required constraints; tier B = documented behavior/expectation that the engine does NOT enforce at deploy time (e.g. defaultStartPoint or targetNodeId resolving to a real node) — these are described in prose only and never turned into a required/enum constraint, so this schema never rejects a process the engine would accept.",
 
   "type": "object",
   "required": ["key", "flowNodes"],
@@ -30,11 +30,72 @@
       "description": "Keyed by node id — each value is a polymorphic FlowNodeDefinition dispatched by its own \"type\" field. By convention the map key should equal the node's own \"id\" field, but that consistency is never checked by the engine.",
       "additionalProperties": { "$ref": "#/$defs/flowNodeUnion" }
     },
-    "extensionProperties": { "$ref": "#/$defs/common/extensionProperties" }
+    "extensionProperties": { "$ref": "#/$defs/common/extensionProperties" },
+    "variableDeclarations": {
+      "type": ["array", "null"],
+      "description": "Process-level variable catalog (docs/engine/26). Declared once; nodes reference entries by key via variableBindings. Drives both runtime validation (start / EXTERNAL_TASK completion) and the server-driven form APIs. Keys must be unique (tier A, KIKWI-060).",
+      "items": { "$ref": "#/$defs/common/variableDeclaration" }
+    }
   },
 
   "$defs": {
     "common": {
+      "variableDeclaration": {
+        "type": "object",
+        "unevaluatedProperties": false,
+        "required": ["key", "label", "format"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1, "description": "Name of the ProcessVariable this entry describes." },
+          "label": { "type": "string", "minLength": 1 },
+          "description": { "type": ["string", "null"] },
+          "format": {
+            "enum": ["SHORT_TEXT", "LONG_TEXT", "INTEGER", "DECIMAL", "MONEY", "BOOLEAN", "DATE", "DATETIME", "SINGLE_SELECT", "MULTI_SELECT"],
+            "description": "Semantic/rendering format — also the value check applied at runtime (e.g. MONEY/DECIMAL accept numbers or numeric strings, DATE an ISO yyyy-MM-dd, MULTI_SELECT a list of option values)."
+          },
+          "options": {
+            "type": ["array", "null"],
+            "description": "Required (non-empty, unique values) for SINGLE_SELECT/MULTI_SELECT, forbidden otherwise (tier A, KIKWI-061).",
+            "items": {
+              "type": "object",
+              "unevaluatedProperties": false,
+              "required": ["value"],
+              "properties": {
+                "value": { "type": "string", "minLength": 1 },
+                "label": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "currency": { "type": ["string", "null"], "description": "ISO-4217 code, required for MONEY (tier A, KIKWI-062)." },
+          "validationRegex": { "type": ["string", "null"], "maxLength": 512, "description": "Only for SHORT_TEXT/LONG_TEXT; must compile; whole value must match (tier A, KIKWI-063)." },
+          "validationMessage": { "type": ["string", "null"], "description": "Returned when validationRegex does not match." },
+          "extensionProperties": { "$ref": "#/$defs/common/extensionProperties" }
+        },
+        "allOf": [
+          { "if": { "properties": { "format": { "enum": ["SINGLE_SELECT", "MULTI_SELECT"] } } }, "then": { "required": ["options"], "properties": { "options": { "type": "array", "minItems": 1 } } } },
+          { "if": { "properties": { "format": { "const": "MONEY" } } }, "then": { "required": ["currency"], "properties": { "currency": { "type": "string" } } } }
+        ]
+      },
+
+      "variableBindings": {
+        "type": ["object", "null"],
+        "description": "Per-node data contract (docs/engine/26). inputs = data the actor supplies (start: required to start; EXTERNAL_TASK: required to complete — validated against the merged instance state). outputs = assertion that data exists after the step (validated at deploy, not yet enforced at runtime). Every variable must exist in variableDeclarations and appear at most once per list (tier A, KIKWI-064).",
+        "unevaluatedProperties": false,
+        "properties": {
+          "inputs": { "type": ["array", "null"], "items": { "$ref": "#/$defs/common/variableBinding" } },
+          "outputs": { "type": ["array", "null"], "items": { "$ref": "#/$defs/common/variableBinding" } }
+        }
+      },
+
+      "variableBinding": {
+        "type": "object",
+        "unevaluatedProperties": false,
+        "required": ["variable"],
+        "properties": {
+          "variable": { "type": "string", "minLength": 1, "description": "A key from variableDeclarations." },
+          "required": { "type": ["boolean", "null"], "default": false }
+        }
+      },
+
       "extensionProperties": {
         "type": ["object", "null"],
         "description": "Free-form string-to-string bag (Map<String,String> in the model) — untyped/unused by the engine core itself, available to downstream consumers (UI, custom extensions). Two reserved keys are used by convention (kikwiflow-pulse-ui, the visual modeler): 'kikwi:documentation' (free-form Markdown, may include ```mermaid fenced blocks) and 'kikwi:documentationLink' (a URL, opened in a new tab, or a path relative to the project, which only resolves inside the VS Code extension) — by UI convention the two are mutually exclusive (embedded doc vs. link), but the engine treats extensionProperties as an opaque bag and enforces nothing about these keys; this schema doesn't either. Present at process, node and (as of this addition) sequence-flow level.",
@@ -295,9 +356,12 @@
 
     "nodeTypes": {
       "startEvent": {
-        "description": "DEFAULT_START_EVENT — no node-specific fields beyond the common base.",
+        "description": "DEFAULT_START_EVENT — variableBindings.inputs are the variables required to start an instance.",
         "allOf": [ { "$ref": "#/$defs/common/baseNodeFields" } ],
-        "properties": { "type": { "const": "DEFAULT_START_EVENT" } },
+        "properties": {
+          "type": { "const": "DEFAULT_START_EVENT" },
+          "variableBindings": { "$ref": "#/$defs/common/variableBindings" }
+        },
         "unevaluatedProperties": false
       },
 
@@ -322,7 +386,12 @@
             "description": "Ids of boundary events attached to this task. Deploy-time allowlist (tier A, but the referenced ids' own types are NOT checkable by this schema — cross-node reference): only BOUNDARY_NON_INTERRUPTIVE_TIMER or BOUNDARY_ERROR_HANDLER. Interruptive timers/catch events are forbidden here — this task runs its handler synchronously with real side effects and has no safe interruption point mid-execution.",
             "items": { "type": "string" }
           },
-          "retryPolicy": { "$ref": "#/$defs/policies/retryPolicy" }
+          "retryPolicy": { "$ref": "#/$defs/policies/retryPolicy" },
+          "variableBindings": {
+            "description": "Only outputs are allowed here — inputs on an EXECUTABLE_TASK is rejected at deploy (tier A, KIKWI-065).",
+            "allOf": [ { "$ref": "#/$defs/common/variableBindings" } ],
+            "properties": { "inputs": { "type": ["array", "null"], "maxItems": 0 } }
+          }
         },
         "unevaluatedProperties": false
       },
@@ -336,6 +405,10 @@
             "type": ["array", "null"],
             "description": "Ids of boundary events attached to this task. No dedicated allowlist branch exists in DeployValidator for this host type — each boundary event enforces its own rule instead (e.g. BOUNDARY_INTERRUPTIVE_CATCH_EVENT independently requires its attachedToRef to resolve to an EXTERNAL_TASK or TIMER_TASK).",
             "items": { "type": "string" }
+          },
+          "variableBindings": {
+            "description": "inputs = variables required to complete this task (the server-driven form served by GET /external-tasks/{id}/form).",
+            "$ref": "#/$defs/common/variableBindings"
           }
         },
         "unevaluatedProperties": false

@@ -1,0 +1,70 @@
+{
+  "key": "variable-bindings",
+  "name": "Catálogo de Variáveis e Inputs por Nó",
+  "description": "Fixture de teste (docs/engine/26): start com inputs obrigatórios -> EXTERNAL_TASK com inputs para concluir -> end.",
+  "extensionProperties": {},
+  "variableDeclarations": [
+    { "key": "customerName", "label": "Nome do Cliente", "format": "SHORT_TEXT" },
+    { "key": "email", "label": "E-mail", "format": "SHORT_TEXT",
+      "validationRegex": "^[^@\\s]+@[^@\\s]+$", "validationMessage": "Informe um e-mail válido." },
+    { "key": "segment", "label": "Segmento", "format": "SINGLE_SELECT",
+      "options": [ { "value": "PF", "label": "Pessoa Física" }, { "value": "PJ", "label": "Pessoa Jurídica" } ] },
+    { "key": "amount", "label": "Valor Solicitado", "format": "MONEY", "currency": "BRL",
+      "extensionProperties": { "placeholder": "0,00" } },
+    { "key": "approved", "label": "Aprovado?", "format": "BOOLEAN" },
+    { "key": "tags", "label": "Etiquetas", "format": "MULTI_SELECT",
+      "options": [ { "value": "VIP", "label": "VIP" }, { "value": "NEW", "label": "Novo" } ] },
+    { "key": "notes", "label": "Observações", "format": "LONG_TEXT" }
+  ],
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT",
+      "name": "Start Event",
+      "type": "DEFAULT_START_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-start-to-review", "name": "", "targetNodeId": "REVIEW", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {},
+      "variableBindings": {
+        "inputs": [
+          { "variable": "customerName", "required": true },
+          { "variable": "segment", "required": true },
+          { "variable": "email" }
+        ]
+      }
+    },
+    "REVIEW": {
+      "id": "REVIEW",
+      "name": "Analisar Solicitação",
+      "type": "EXTERNAL_TASK",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [
+        { "id": "flow-review-to-end", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} }
+      ],
+      "extensionProperties": {},
+      "variableBindings": {
+        "inputs": [
+          { "variable": "customerName", "required": true },
+          { "variable": "amount", "required": true },
+          { "variable": "approved", "required": true },
+          { "variable": "tags" },
+          { "variable": "notes", "required": false }
+        ],
+        "outputs": []
+      }
+    },
+    "END_EVENT": {
+      "id": "END_EVENT",
+      "name": "End Event",
+      "type": "DEFAULT_END_EVENT",
+      "commitBefore": false,
+      "commitAfter": false,
+      "outgoing": [],
+      "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

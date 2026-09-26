@@ -76,7 +76,8 @@ public class StatsService {
                     return new KKFProcessStats(
                             definition.id(), definition.key(), definition.name(),
                             definition.description(), definition.sla(), macroMetrics, definition.checksum(),
-                            flowNodes, definition.defaultStartPoint(), definition.extensionProperties()
+                            flowNodes, definition.defaultStartPoint(), definition.extensionProperties(),
+                            definition.variableDeclarations()
                     );
                 }).orElseThrow(() -> new NotFoundException("Process Not Found With id " + processDefinitionId));
     }

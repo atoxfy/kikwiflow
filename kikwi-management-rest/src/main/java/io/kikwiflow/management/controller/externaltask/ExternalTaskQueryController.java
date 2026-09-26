@@ -21,10 +21,14 @@ import io.kikwiflow.api.dto.CountResponse;
 import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.management.exception.NotImplementedException;
+import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.execution.ProcessInstance;
+import io.kikwiflow.model.execution.form.FormDescriptor;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
 import io.kikwiflow.spring.rest.api.query.ExternalTaskQueryRestApi;
+import io.kikwiflow.variable.FormDescriptorFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -80,6 +84,18 @@ public class ExternalTaskQueryController implements ExternalTaskQueryRestApi {
     public ExternalTask findExternalTaskById(String id) {
         return queryRepository.findExternalTaskById(id)
                 .orElseThrow(() -> new NotFoundException(""));
+    }
+
+    @Override
+    public FormDescriptor findExternalTaskForm(String id) {
+        ExternalTask task = findExternalTaskById(id);
+        ProcessDefinition processDefinition = queryRepository.findProcessDefinitionById(task.processDefinitionId())
+                .orElseThrow(() -> new NotFoundException("ProcessDefinition not found with id " + task.processDefinitionId()));
+        ProcessInstance processInstance = queryRepository.findProcessInstanceById(task.processInstanceId())
+                .orElseThrow(() -> new NotFoundException("ProcessInstance not found with id " + task.processInstanceId()));
+
+        return FormDescriptorFactory.forNode(processDefinition, task.taskDefinitionId(),
+                processDefinition.flowNodes().get(task.taskDefinitionId()), processInstance.variables());
     }
 
     @Override

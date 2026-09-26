@@ -20,10 +20,17 @@ package io.kikwiflow.persistence.mongodb.mapper.definition;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.EventCatcherDefinition;
+import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveCatchEventDefinition;
+import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
+import io.kikwiflow.model.definition.process.variable.VariableBinding;
+import io.kikwiflow.model.definition.process.variable.VariableBindings;
+import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
+import io.kikwiflow.model.definition.process.variable.VariableFormat;
+import io.kikwiflow.model.definition.process.variable.VariableOption;
 import io.kikwiflow.model.definition.process.policies.CorrelationTemplateDefinition;
 import io.kikwiflow.model.definition.process.policies.CorrelationTemplateSegment;
 import io.kikwiflow.model.execution.enumerated.CallActivityIterationMode;
@@ -50,6 +57,40 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * deploy real via MongoDB.
  */
 class ProcessDefinitionMapperTest {
+
+    @Test
+    void roundTripsVariableCatalogAndBindings() {
+        List<VariableDeclaration> catalog = List.of(
+                VariableDeclaration.builder().key("amount").label("Valor").format(VariableFormat.MONEY).currency("BRL")
+                        .extensionProperties(Map.of("placeholder", "0,00")).build(),
+                VariableDeclaration.builder().key("segment").label("Segmento").description("PF ou PJ")
+                        .format(VariableFormat.SINGLE_SELECT)
+                        .options(List.of(new VariableOption("PF", "Pessoa Física"), new VariableOption("PJ", "Pessoa Jurídica")))
+                        .build(),
+                VariableDeclaration.builder().key("email").label("E-mail").format(VariableFormat.SHORT_TEXT)
+                        .validationRegex("^[^@]+@[^@]+$").validationMessage("E-mail inválido").build());
+        VariableBindings bindings = new VariableBindings(
+                List.of(new VariableBinding("amount", true), new VariableBinding("segment", null)),
+                List.of(new VariableBinding("email", false)));
+
+        ProcessDefinition definition = ProcessDefinition.builder()
+                .id("def-vars").key("proc-vars").version(1)
+                .variableDeclarations(catalog)
+                .flowNodes(Map.of(
+                        "START", StartEventDefinition.builder().id("START").name("Start").variableBindings(bindings).build(),
+                        "REVIEW", ExternalTaskDefinition.builder().id("REVIEW").name("Review").variableBindings(bindings).build(),
+                        "CALC", ExecutableTaskDefinition.builder().id("CALC").name("Calc").executor("calc").variableBindings(bindings).build(),
+                        "PLAIN", ExternalTaskDefinition.builder().id("PLAIN").name("Plain").build()))
+                .build();
+
+        ProcessDefinition restored = ProcessDefinitionMapper.fromDocument(ProcessDefinitionMapper.toDocument(definition));
+
+        assertEquals(catalog, restored.variableDeclarations());
+        assertEquals(bindings, ((StartEventDefinition) restored.flowNodes().get("START")).variableBindings());
+        assertEquals(bindings, ((ExternalTaskDefinition) restored.flowNodes().get("REVIEW")).variableBindings());
+        assertEquals(bindings, ((ExecutableTaskDefinition) restored.flowNodes().get("CALC")).variableBindings());
+        assertNull(((ExternalTaskDefinition) restored.flowNodes().get("PLAIN")).variableBindings());
+    }
 
     @Test
     void roundTripsEventCatcherGroupTemplateFields() {
