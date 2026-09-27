@@ -1,0 +1,48 @@
+{
+  "key": "variable-outputs",
+  "name": "Contrato de saída (outputs)",
+  "description": "Fixture de teste: start -> EXECUTABLE_TASK assíncrona com outputs (análise por IA simulada) -> EXTERNAL_TASK com outputs -> end.",
+  "extensionProperties": {},
+  "variableDeclarations": [
+    { "key": "decisao", "label": "Decisão da IA", "format": "SINGLE_SELECT",
+      "options": [ { "value": "APROVAR", "label": "Aprovar" }, { "value": "REPROVAR", "label": "Reprovar" } ] },
+    { "key": "confianca", "label": "Confiança", "format": "DECIMAL" },
+    { "key": "motivo", "label": "Motivo", "format": "LONG_TEXT" },
+    { "key": "parecer", "label": "Parecer do analista", "format": "SHORT_TEXT" }
+  ],
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT", "name": "Start Event", "type": "DEFAULT_START_EVENT",
+      "commitBefore": false, "commitAfter": false,
+      "outgoing": [ { "id": "f1", "name": "", "targetNodeId": "ANALISAR", "isDefault": false, "extensionProperties": {} } ],
+      "extensionProperties": {}
+    },
+    "ANALISAR": {
+      "id": "ANALISAR", "name": "Analisar documento", "type": "EXECUTABLE_TASK", "executor": "analisar",
+      "commitBefore": true, "commitAfter": false,
+      "retryPolicy": { "strategy": "LINEAR", "maxRetries": 2, "intervals": ["PT0S", "PT0S"] },
+      "variableBindings": {
+        "inputs": [],
+        "outputs": [
+          { "variable": "decisao", "required": true },
+          { "variable": "confianca", "required": true },
+          { "variable": "motivo", "required": false }
+        ]
+      },
+      "outgoing": [ { "id": "f2", "name": "", "targetNodeId": "REVISAR", "isDefault": false, "extensionProperties": {} } ],
+      "extensionProperties": {}
+    },
+    "REVISAR": {
+      "id": "REVISAR", "name": "Revisar", "type": "EXTERNAL_TASK",
+      "commitBefore": false, "commitAfter": false,
+      "variableBindings": { "inputs": [], "outputs": [ { "variable": "parecer", "required": true } ] },
+      "outgoing": [ { "id": "f3", "name": "", "targetNodeId": "END_EVENT", "isDefault": false, "extensionProperties": {} } ],
+      "extensionProperties": {}
+    },
+    "END_EVENT": {
+      "id": "END_EVENT", "name": "End Event", "type": "DEFAULT_END_EVENT",
+      "commitBefore": false, "commitAfter": false, "outgoing": [], "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

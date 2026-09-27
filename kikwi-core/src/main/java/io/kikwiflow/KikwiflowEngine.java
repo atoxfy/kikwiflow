@@ -56,7 +56,9 @@ import io.kikwiflow.persistence.api.data.UnitOfWork;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.util.KikwiflowBanner;
+import io.kikwiflow.exception.VariableValidationException;
 import io.kikwiflow.variable.VariableContractValidator;
+import io.kikwiflow.variable.VariableValidationError;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -310,10 +312,18 @@ public class KikwiflowEngine {
         // devolve um decorador que grava de volta na execução. Só EXTERNAL_TASK: EVENT_CATCHER e afins também
         // passam por aqui (correlateMessage/correlateFromThrow) e não declaram contrato de dados. Nada foi
         // persistido ainda, então a falha deixa a tarefa pendente como estava.
+        // outputs (fase 2): o que precisa existir depois desta etapa — validado no mesmo estado mesclado e com a
+        // mesma semântica síncrona (422 na API, tarefa continua pendente), já que quem conclui está esperando a
+        // resposta. Numa EXECUTABLE_TASK a falha de output vira retry/incidente (ProcessExecutionManager).
         if (completedNode instanceof ExternalTaskDefinition externalTaskDefinition) {
-            variableContractValidator.validateOrThrow(taskToComplete.taskDefinitionId(),
-                    externalTaskDefinition.variableBindingsOrEmpty().inputs(), processDefinition,
-                    new HashMap<>(processInstanceExecution.getVariables()));
+            Map<String, ProcessVariable> mergedState = new HashMap<>(processInstanceExecution.getVariables());
+            List<VariableValidationError> errors = new ArrayList<>(variableContractValidator.validate(
+                    externalTaskDefinition.variableBindingsOrEmpty().inputs(), processDefinition, mergedState));
+            errors.addAll(variableContractValidator.validate(
+                    externalTaskDefinition.variableBindingsOrEmpty().outputs(), processDefinition, mergedState));
+            if (!errors.isEmpty()) {
+                throw new VariableValidationException(taskToComplete.taskDefinitionId(), errors);
+            }
         }
 
         // completedNode.commitAfter(): quando true, força a continuação a ser tratada como assíncrona mesmo
