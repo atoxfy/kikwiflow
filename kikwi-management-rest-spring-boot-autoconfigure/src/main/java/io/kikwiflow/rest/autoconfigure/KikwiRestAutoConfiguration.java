@@ -21,6 +21,7 @@ import io.kikwiflow.management.controller.event.EventCorrelationCommandControlle
 import io.kikwiflow.management.controller.externaltask.ExternalTaskCommandController;
 import io.kikwiflow.management.controller.externaltask.ExternalTaskQueryController;
 import io.kikwiflow.management.controller.history.EventHistoryQueryController;
+import io.kikwiflow.management.controller.history.HistoryExplorerController;
 import io.kikwiflow.management.controller.incidents.IncidentsCommandController;
 import io.kikwiflow.management.controller.incidents.IncidentsQueryController;
 import io.kikwiflow.management.controller.processdefinition.ProcessDefinitionCommandController;
@@ -46,6 +47,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Import;
 
 import java.util.concurrent.ExecutorService;
@@ -74,6 +76,8 @@ import java.util.concurrent.ScheduledExecutorService;
         EventCorrelationCommandController.class
 })
 public class KikwiRestAutoConfiguration {
+
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(KikwiRestAutoConfiguration.class);
 
     @Bean
     @ConditionalOnMissingBean(KikwiflowJacksonModule.class)
@@ -126,5 +130,19 @@ public class KikwiRestAutoConfiguration {
     public EventHistoryQueryController eventHistoryQueryController(QueryRepository queryRepository,
                                                                     VariableSecurityPolicyManager variableSecurityPolicyManager) {
         return new EventHistoryQueryController(queryRepository, variableSecurityPolicyManager);
+    }
+
+    @Bean
+    @ConditionalOnBean(QueryRepository.class)
+    @ConditionalOnProperty(prefix = "kikwiflow.history.explorer", name = "enabled", havingValue = "true")
+    public HistoryExplorerController historyExplorerController(QueryRepository queryRepository,
+                                                               VariableSecurityPolicyManager variableSecurityPolicyManager,
+                                                               Environment environment) {
+        if (!environment.getProperty("kikwiflow.outbox.events-enabled", Boolean.class, false)) {
+            LOGGER.warn("kikwiflow.history.explorer.enabled=true, mas kikwiflow.outbox.events-enabled está desligado: "
+                    + "o explorador de histórico lê o outbox e não vai encontrar nenhuma instância. "
+                    + "Ligue kikwiflow.outbox.events-enabled para gravar o histórico.");
+        }
+        return new HistoryExplorerController(queryRepository, variableSecurityPolicyManager);
     }
 }

@@ -18,11 +18,13 @@
 package io.kikwiflow.persistence.mongodb.mapper.event;
 
 import io.kikwiflow.model.event.ExternalTaskCompleted;
+import io.kikwiflow.model.execution.ProcessVariable;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -38,7 +40,10 @@ class ExternalTaskCompletedMapperTest {
                 "APPROVE_ORDER_MT",
                 "worker-1",
                 "supervisor-1",
-                Instant.now().truncatedTo(ChronoUnit.MILLIS)
+                Instant.now().truncatedTo(ChronoUnit.MILLIS),
+                // chave com ponto: exercita o escape de MongoKeyEncoder
+                Map.of("decisao", new ProcessVariable("decisao", "APROVAR"),
+                        "cliente.cpf", new ProcessVariable("cliente.cpf", "757.491.186-06"))
         );
 
         Document doc = ExternalTaskCompletedMapper.toDocument(original);
@@ -57,12 +62,22 @@ class ExternalTaskCompletedMapperTest {
                 "APPROVE_ORDER_MT",
                 null,
                 "worker-2",
-                Instant.now().truncatedTo(ChronoUnit.MILLIS)
+                Instant.now().truncatedTo(ChronoUnit.MILLIS),
+                Map.of()
         );
 
         Document doc = ExternalTaskCompletedMapper.toDocument(original);
         ExternalTaskCompleted restored = ExternalTaskCompletedMapper.fromDocument(doc);
 
         assertEquals(original, restored);
+    }
+
+    @Test
+    void readsDocumentWrittenBeforeSubmittedVariablesExisted() {
+        Document legacy = ExternalTaskCompletedMapper.toDocument(new ExternalTaskCompleted("external-task-3", "proc-def-1",
+                "proc-instance-3", null, "APPROVE_ORDER_MT", null, "worker-3", Instant.now().truncatedTo(ChronoUnit.MILLIS), Map.of()));
+        legacy.remove("submittedVariables");
+
+        assertEquals(Map.of(), ExternalTaskCompletedMapper.fromDocument(legacy).submittedVariables());
     }
 }

@@ -24,6 +24,8 @@ import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.stats.KKFMetrics;
+import io.kikwiflow.persistence.api.history.HistoricInstanceCriteria;
+import io.kikwiflow.persistence.api.history.HistoricInstancePage;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.query.IncidentQuery;
 import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
@@ -95,4 +97,10 @@ public interface QueryRepository {
      * está habilitada; caso contrário, a lista é sempre vazia.
      */
     List<OutboxEventEntity> findEventHistoryByProcessInstanceId(String processInstanceId);
+
+    /**
+     * Busca instâncias no histórico durável (outbox), inclusive as que já terminaram e saíram de
+     * {@code process_instances}. Base do explorador de histórico (docs/engine/29).
+     */
+    HistoricInstancePage searchHistoricInstances(HistoricInstanceCriteria criteria);
 }

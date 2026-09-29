@@ -24,7 +24,8 @@ import java.time.Instant;
  * {@code ProcessInstanceSummary}: promove ao topo os campos comuns a qualquer evento crítico
  * ({@code eventType}, identificadores, {@code tenantId}, {@code actorId}, {@code timestamp}) para que um
  * cliente (UI, agente) não precise inspecionar o payload polimórfico só para exibir uma linha de timeline,
- * mantendo o {@code payload} completo disponível para o detalhamento.
+ * mantendo o {@code payload} completo disponível para o detalhamento. A ordem do histórico é
+ * {@code timestamp} (um por commit) e, dentro dele, {@code sequence}.
  */
 public record HistoryEventSummary(
         String id,
@@ -34,5 +35,6 @@ public record HistoryEventSummary(
         String tenantId,
         String actorId,
         Instant timestamp,
+        long sequence,
         CriticalEvent payload
 ) {}

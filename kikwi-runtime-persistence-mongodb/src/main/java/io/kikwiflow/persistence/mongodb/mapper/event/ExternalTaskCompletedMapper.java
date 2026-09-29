@@ -18,8 +18,15 @@
 package io.kikwiflow.persistence.mongodb.mapper.event;
 
 import io.kikwiflow.model.event.ExternalTaskCompleted;
+import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.persistence.mongodb.mapper.InstantMapper;
+import io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper;
+import io.kikwiflow.persistence.mongodb.util.MongoKeyEncoder;
 import org.bson.Document;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class ExternalTaskCompletedMapper {
 
@@ -33,7 +40,8 @@ public final class ExternalTaskCompletedMapper {
                 .append("taskDefinitionId", event.taskDefinitionId())
                 .append("assignee", event.assignee())
                 .append("actorId", event.actorId())
-                .append("completedAt", event.completedAt() != null ? java.util.Date.from(event.completedAt()) : null);
+                .append("completedAt", event.completedAt() != null ? java.util.Date.from(event.completedAt()) : null)
+                .append("submittedVariables", variablesToDocument(event.submittedVariables()));
     }
 
     public static ExternalTaskCompleted fromDocument(Document doc) {
@@ -45,7 +53,27 @@ public final class ExternalTaskCompletedMapper {
                 doc.getString("taskDefinitionId"),
                 doc.getString("assignee"),
                 doc.getString("actorId"),
-                InstantMapper.mapToInstant("completedAt", doc)
+                InstantMapper.mapToInstant("completedAt", doc),
+                variablesFromDocument(doc.get("submittedVariables", Document.class))
         );
+    }
+
+    // Mesmo formato das variáveis de ProcessInstanceFinishedMapper: chave escapada para caminhos com ponto.
+    private static Document variablesToDocument(Map<String, ProcessVariable> variables) {
+        Document variablesDoc = new Document();
+        variables.forEach((key, variable) ->
+                variablesDoc.put(MongoKeyEncoder.encode(key), ProcessVariableMapper.toDocument(variable)));
+        return variablesDoc;
+    }
+
+    private static Map<String, ProcessVariable> variablesFromDocument(Document variablesDoc) {
+        if (variablesDoc == null) {
+            return Collections.emptyMap();
+        }
+        return variablesDoc.entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> MongoKeyEncoder.decode(entry.getKey()),
+                        entry -> ProcessVariableMapper.fromDocumentToVariable((Document) entry.getValue())
+                ));
     }
 }

@@ -292,6 +292,30 @@ public class KikwiflowEngine {
      * {@code EventThrowExecutor} de um nó EVENT_THROWER). {@code actorId} pode ser {@code null} quando não há
      * um ator humano/externo por trás do complete (ex.: correlação disparada internamente por um throw).
      */
+    private static Map<String, ProcessVariable> changedVariables(Map<String, ProcessVariable> current,
+                                                                 Map<String, ProcessVariable> submitted) {
+        if (submitted == null || submitted.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, ProcessVariable> changed = new java.util.LinkedHashMap<>();
+        submitted.forEach((name, variable) -> {
+            ProcessVariable before = current != null ? current.get(name) : null;
+            Object newValue = variable != null ? variable.value() : null;
+            if (before == null || !sameValue(before.value(), newValue)) {
+                changed.put(name, variable);
+            }
+        });
+        return changed;
+    }
+
+    // 5000 (Integer, lido do Mongo) e 5000L/5000.0 (vindo do JSON) são o mesmo valor para quem lê o histórico.
+    private static boolean sameValue(Object a, Object b) {
+        if (a instanceof Number na && b instanceof Number nb) {
+            return new java.math.BigDecimal(na.toString()).compareTo(new java.math.BigDecimal(nb.toString())) == 0;
+        }
+        return Objects.equals(a, b);
+    }
+
     ProcessInstance completeExternalTask(ExternalTask taskToComplete, Map<String, ProcessVariable> variables, String actorId) {
         ProcessInstance processInstanceRecord = kikwiEngineRepository.findProcessInstanceById(taskToComplete.processInstanceId())
                 .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found with id: " + taskToComplete.processInstanceId()));
@@ -300,6 +324,10 @@ public class KikwiflowEngine {
                 .orElseThrow();
 
         ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
+
+        // Para o histórico, "o que este ator informou" é o que a conclusão acrescentou ou mudou — telas genéricas
+        // (como o Monitor) reenviam a instância inteira, e gravar tudo esconderia a decisão no meio do payload.
+        Map<String, ProcessVariable> changedVariables = changedVariables(processInstanceRecord.variables(), variables);
 
         if (variables != null) {
             processInstanceExecution.addVariables(variables);
@@ -392,7 +420,7 @@ public class KikwiflowEngine {
             }
         }
 
-        return continuationService.handleContinuation(executionResult, taskToComplete, processDefinition, actorId);
+        return continuationService.handleContinuation(executionResult, taskToComplete, processDefinition, actorId, changedVariables);
     }
 
     /**

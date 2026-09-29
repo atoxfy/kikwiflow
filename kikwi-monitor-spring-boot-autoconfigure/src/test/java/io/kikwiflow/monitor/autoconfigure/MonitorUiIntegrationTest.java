@@ -53,7 +53,8 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
                 "kikwiflow.monitor-ui.oidc-client-id=kikwiflow-test",
                 "kikwiflow.monitor-ui.oidc-redirect-uri=http://localhost:3000/",
                 "kikwiflow.monitor-ui.require-auth=false",
-                "kikwiflow.monitor-ui.read-only=true"
+                "kikwiflow.monitor-ui.read-only=true",
+                "kikwiflow.monitor-ui.acting-as.actors=ana.analista,carlos.coordenador"
         }
 )
 @DisplayName("Monitor UI - integração HTTP real")
@@ -81,6 +82,8 @@ class MonitorUiIntegrationTest {
             assertThat(body.oidcRedirectUri()).isEqualTo("http://localhost:3000/");
             assertThat(body.requireAuth()).isFalse();
             assertThat(body.readOnly()).isTrue();
+            assertThat(body.actingAs().actors()).containsExactly("ana.analista", "carlos.coordenador");
+            assertThat(body.actingAs().header()).isEqualTo("X-User-Id");
         }
     }
 

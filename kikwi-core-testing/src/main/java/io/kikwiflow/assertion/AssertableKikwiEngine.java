@@ -31,6 +31,8 @@ import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.model.stats.KKFMetrics;
 import io.kikwiflow.persistence.InMemoryKikwiEngineRepository;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
+import io.kikwiflow.persistence.api.history.HistoricInstanceCriteria;
+import io.kikwiflow.persistence.api.history.HistoricInstancePage;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
@@ -265,6 +267,11 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public List<OutboxEventEntity> findEventHistoryByProcessInstanceId(String processInstanceId) {
         return this.inMemoryKikwiEngineRepository.findEventHistoryByProcessInstanceId(processInstanceId);
+    }
+
+    @Override
+    public HistoricInstancePage searchHistoricInstances(HistoricInstanceCriteria criteria) {
+        return this.inMemoryKikwiEngineRepository.searchHistoricInstances(criteria);
     }
 
     public void evaluateEvents(){

@@ -19,8 +19,11 @@ package io.kikwiflow.management.mapper;
 
 import io.kikwiflow.model.event.CriticalEvent;
 import io.kikwiflow.model.event.CriticalEventType;
+import io.kikwiflow.model.event.ExternalTaskCompleted;
 import io.kikwiflow.model.event.HistoryEventSummary;
 import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.event.ProcessInstanceFinished;
+import io.kikwiflow.model.event.ProcessInstanceStarted;
 import io.kikwiflow.model.event.ProcessVariableChanged;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.security.IdentityContext;
@@ -30,9 +33,9 @@ import java.util.Map;
 
 /**
  * Mapeia {@link OutboxEventEntity} para {@link HistoryEventSummary}, aplicando
- * {@link VariableSecurityPolicyManager#applyReadPoliciesAndMasking} sobre o valor de {@link ProcessVariableChanged}
- * antes de expor o payload — o único dos 11 tipos de evento crítico que carrega dado de variável de negócio
- * (os outros só carregam metadados de execução).
+ * {@link VariableSecurityPolicyManager#applyReadPoliciesAndMasking} a todo evento que carrega dado de variável de
+ * negócio antes de expor o payload: {@link ProcessVariableChanged}, as variáveis de início/fim da instância e as
+ * variáveis enviadas em {@link ExternalTaskCompleted}. O outbox grava tudo sem máscara; a máscara é na leitura.
  */
 public final class HistoryEventSummaryMapper {
 
@@ -50,12 +53,25 @@ public final class HistoryEventSummaryMapper {
                 payload.tenantId(),
                 payload.actorId(),
                 entity.getTimestamp(),
+                entity.getSequence(),
                 payload
         );
     }
 
     private static CriticalEvent maskIfNeeded(CriticalEvent payload, VariableSecurityPolicyManager securityPolicyManager,
                                               IdentityContext identityContext) {
+        String definitionId = payload.processDefinitionId();
+        switch (payload) {
+            case ExternalTaskCompleted completed:
+                return completed.withSubmittedVariables(
+                        mask(completed.submittedVariables(), definitionId, securityPolicyManager, identityContext));
+            case ProcessInstanceStarted started:
+                return started.withVariables(mask(started.variables(), definitionId, securityPolicyManager, identityContext));
+            case ProcessInstanceFinished finished:
+                return finished.withVariables(mask(finished.getVariables(), definitionId, securityPolicyManager, identityContext));
+            default:
+                break;
+        }
         if (!(payload instanceof ProcessVariableChanged variableChanged)) {
             return payload;
         }
@@ -84,5 +100,14 @@ public final class HistoryEventSummaryMapper {
                 variableChanged.changedAt(),
                 variableChanged.removed()
         );
+    }
+
+    private static Map<String, ProcessVariable> mask(Map<String, ProcessVariable> raw, String processDefinitionId,
+                                                     VariableSecurityPolicyManager securityPolicyManager,
+                                                     IdentityContext identityContext) {
+        if (raw == null || raw.isEmpty()) {
+            return raw;
+        }
+        return securityPolicyManager.applyReadPoliciesAndMasking(processDefinitionId, identityContext, raw);
     }
 }

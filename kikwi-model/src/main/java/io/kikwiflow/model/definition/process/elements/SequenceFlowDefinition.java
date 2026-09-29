@@ -19,6 +19,8 @@ package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +38,7 @@ public record SequenceFlowDefinition(
         String sourceHandle) {
 
     public SequenceFlowDefinition {
-        extensionProperties = extensionProperties != null ? Map.copyOf(extensionProperties) : Map.of();
+        // LinkedHashMap, não Map.copyOf: a ordem de iteração do Map.copyOf muda a cada JVM e entra no checksum do deploy.
+        extensionProperties = extensionProperties != null ? Collections.unmodifiableMap(new LinkedHashMap<>(extensionProperties)) : Map.of();
     }
 }

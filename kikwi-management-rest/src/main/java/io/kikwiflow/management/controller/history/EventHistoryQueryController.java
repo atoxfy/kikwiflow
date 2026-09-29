@@ -21,6 +21,7 @@ import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.management.mapper.HistoryEventSummaryMapper;
 import io.kikwiflow.model.event.HistoryEventSummary;
+import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
 import io.kikwiflow.security.api.VariableSecurityPolicyManager;
@@ -57,10 +58,14 @@ public class EventHistoryQueryController {
     @GetMapping("/{id}/events")
     @ResponseStatus(HttpStatus.OK)
     public List<HistoryEventSummary> getEventHistory(@PathVariable("id") String id, IdentityContext identityContext) {
-        queryRepository.findProcessInstanceById(id)
-                .orElseThrow(() -> new NotFoundException("Process instance not found with id: " + id));
+        // O outbox sobrevive à instância: uma instância concluída sai de process_instances, mas o rastro dela
+        // continua aqui. Por isso o 404 só vale quando não há nem instância ativa nem evento nenhum.
+        List<OutboxEventEntity> events = queryRepository.findEventHistoryByProcessInstanceId(id);
+        if (events.isEmpty() && queryRepository.findProcessInstanceById(id).isEmpty()) {
+            throw new NotFoundException("Process instance not found with id: " + id);
+        }
 
-        return queryRepository.findEventHistoryByProcessInstanceId(id).stream()
+        return events.stream()
                 .map(entity -> HistoryEventSummaryMapper.from(entity, variableSecurityPolicyManager, identityContext))
                 .toList();
     }

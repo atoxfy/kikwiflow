@@ -1,0 +1,36 @@
+{
+  "key": "history-review-flow",
+  "name": "Revisão com Histórico",
+  "description": "Fixture de teste do explorador de histórico: start -> EXTERNAL_TASK (revisão) -> EXCLUSIVE_GATEWAY (VARIABLE decisao) -> fim aprovado ou fim reprovado.",
+  "extensionProperties": {},
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT", "name": "Start Event", "type": "DEFAULT_START_EVENT", "commitBefore": false, "commitAfter": false,
+      "outgoing": [ { "id": "flow-start-to-review", "name": "", "targetNodeId": "REVIEW", "isDefault": false, "extensionProperties": {} } ],
+      "extensionProperties": {}
+    },
+    "REVIEW": {
+      "id": "REVIEW", "name": "Revisar Pedido", "type": "EXTERNAL_TASK", "commitBefore": false, "commitAfter": false,
+      "outgoing": [ { "id": "flow-review-to-decision", "name": "", "targetNodeId": "DECISION", "isDefault": false, "extensionProperties": {} } ],
+      "extensionProperties": {}
+    },
+    "DECISION": {
+      "id": "DECISION", "name": "Aprovado?", "type": "EXCLUSIVE_GATEWAY", "commitBefore": false, "commitAfter": false,
+      "providerType": "VARIABLE", "providerVariable": "decisao",
+      "outgoing": [
+        { "id": "flow-decision-approved", "name": "Sim", "targetNodeId": "END_APPROVED", "expectedAnswer": "APROVAR", "extensionProperties": {} },
+        { "id": "flow-decision-rejected", "name": "Não", "targetNodeId": "END_REJECTED", "expectedAnswer": "REPROVAR", "isDefault": true, "extensionProperties": {} }
+      ],
+      "extensionProperties": {}
+    },
+    "END_APPROVED": {
+      "id": "END_APPROVED", "name": "Aprovado", "type": "DEFAULT_END_EVENT", "commitBefore": false, "commitAfter": false,
+      "outgoing": [], "extensionProperties": {}
+    },
+    "END_REJECTED": {
+      "id": "END_REJECTED", "name": "Reprovado", "type": "DEFAULT_END_EVENT", "commitBefore": false, "commitAfter": false,
+      "outgoing": [], "extensionProperties": {}
+    }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

@@ -45,7 +45,8 @@ public class MonitorUiConfigController {
                 properties.oidcClientId(),
                 properties.oidcRedirectUri(),
                 properties.requireAuth(),
-                properties.readOnly()
+                properties.readOnly(),
+                new MonitorUiConfigResponse.ActingAs(properties.actingAs().actors(), properties.actingAs().header())
         );
     }
 }

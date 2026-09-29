@@ -16,6 +16,8 @@
  */
 package io.kikwiflow.model.definition.process.variable;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +47,8 @@ public record VariableDeclaration(String key,
 
     public VariableDeclaration {
         options = options != null ? List.copyOf(options) : List.of();
-        extensionProperties = extensionProperties != null ? Map.copyOf(extensionProperties) : null;
+        // LinkedHashMap, não Map.copyOf: a ordem de iteração do Map.copyOf muda a cada JVM e entra no checksum do deploy.
+        extensionProperties = extensionProperties != null ? Collections.unmodifiableMap(new LinkedHashMap<>(extensionProperties)) : null;
     }
 
     public static Builder builder() {

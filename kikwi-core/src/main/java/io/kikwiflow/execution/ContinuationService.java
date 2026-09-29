@@ -82,7 +82,7 @@ public class ContinuationService {
     }
 
     public ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask, ProcessDefinition processDefinition){
-        return this.handleContinuation(executionResult, completedExternalTask, null, processDefinition, null);
+        return this.handleContinuation(executionResult, completedExternalTask, null, processDefinition, null, null);
     }
 
     /**
@@ -92,11 +92,21 @@ public class ContinuationService {
      *               o assignee da tarefa.
      */
     public ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask, ProcessDefinition processDefinition, String actorId){
-        return this.handleContinuation(executionResult, completedExternalTask, null, processDefinition, actorId);
+        return this.handleContinuation(executionResult, completedExternalTask, processDefinition, actorId, null);
+    }
+
+    /**
+     * @param submittedVariables o que o complete (ou o evento correlacionado) acrescentou ou mudou — gravado no
+     *                           {@code EXTERNAL_TASK_COMPLETED} para o histórico mostrar o que cada ator informou
+     *                           em cada etapa. Pode ser {@code null}.
+     */
+    public ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask, ProcessDefinition processDefinition,
+                                              String actorId, Map<String, ProcessVariable> submittedVariables){
+        return this.handleContinuation(executionResult, completedExternalTask, null, processDefinition, actorId, submittedVariables);
     }
 
     public ProcessInstance handleContinuation(ExecutionResult executionResult, ExecutableTask completedExecutableTask, ProcessDefinition processDefinition){
-        return this.handleContinuation(executionResult, null, completedExecutableTask, processDefinition, null);
+        return this.handleContinuation(executionResult, null, completedExecutableTask, processDefinition, null, null);
     }
 
     /**
@@ -104,12 +114,12 @@ public class ContinuationService {
      *               para o evento {@code PROCESS_INSTANCE_STARTED} — pode ser {@code null} quando não informado.
      */
     public ProcessInstance handleContinuation(ExecutionResult executionResult, ProcessDefinition processDefinition, String actorId){
-        return this.handleContinuation(executionResult, null, null, processDefinition, actorId);
+        return this.handleContinuation(executionResult, null, null, processDefinition, actorId, null);
     }
 
     private ProcessInstance handleContinuation(ExecutionResult executionResult, ExternalTask completedExternalTask,
                                                ExecutableTask completedExecutableTask, ProcessDefinition processDefinition,
-                                               String actorId) {
+                                               String actorId, Map<String, ProcessVariable> submittedVariables) {
 
         Continuation continuation = executionResult.continuation();
         ExecutionOutcome executionOutcome = executionResult.outcome();
@@ -196,8 +206,12 @@ public class ContinuationService {
         // O overload de 2 argumentos (sem tarefa concluída) só é chamado por ProcessStarter.execute() — é o
         // único ponto de entrada onde tanto completedExternalTask quanto completedExecutableTask são null,
         // o que o torna um sinal confiável de "esta é a primeira continuação da instância".
+        // Causa antes dos efeitos: o início da instância (e, mais abaixo, a conclusão da tarefa externa) entra na
+        // frente da lista, antes dos nós e gateways que ele disparou — é essa a ordem que o histórico mostra.
         if (completedExternalTask == null && completedExecutableTask == null) {
-            criticalEventRecorder.recordProcessInstanceStarted(events, processInstanceExecution, processDefinition, actorId);
+            List<OutboxEventEntity> startEvents = new ArrayList<>();
+            criticalEventRecorder.recordProcessInstanceStarted(startEvents, processInstanceExecution, processDefinition, actorId);
+            events.addAll(0, startEvents);
         }
 
         ProcessInstance processInstanceToSave = ProcessInstanceMapper.mapToRecord(processInstanceExecution);
@@ -289,7 +303,9 @@ public class ContinuationService {
         if (completedExternalTask != null) {
             externalTasksToDelete.add(completedExternalTask.id());
             finishedNodeDefinitions.add(completedExternalTask.taskDefinitionId());
-            criticalEventRecorder.recordExternalTaskCompleted(events, completedExternalTask, actorId);
+            List<OutboxEventEntity> completionEvents = new ArrayList<>();
+            criticalEventRecorder.recordExternalTaskCompleted(completionEvents, completedExternalTask, actorId, submittedVariables);
+            events.addAll(0, completionEvents);
             if (completedExternalTask.attachedToRefId() != null) {
                 finalizingNodeId = completedExternalTask.attachedToRefId();
                 finalizingNodeType = completedExternalTask.attachedToRefType();
