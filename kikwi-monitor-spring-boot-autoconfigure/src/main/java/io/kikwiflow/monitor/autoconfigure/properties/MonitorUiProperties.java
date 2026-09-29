@@ -20,6 +20,8 @@ package io.kikwiflow.monitor.autoconfigure.properties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
+import java.util.List;
+
 /**
  * Configures the Kikwiflow Monitor (Pulse) UI embedded by {@code kikwi-monitor-spring-boot-autoconfigure}.
  *
@@ -35,6 +37,22 @@ public record MonitorUiProperties(
         @DefaultValue("") String oidcClientId,
         @DefaultValue("") String oidcRedirectUri,
         @DefaultValue("true") boolean requireAuth,
-        @DefaultValue("false") boolean readOnly
+        @DefaultValue("false") boolean readOnly,
+        @DefaultValue ActingAs actingAs
 ) {
+
+    /**
+     * {@code kikwiflow.monitor-ui.acting-as.*} — seletor "Atuando como" do Monitor, para ambientes sem login
+     * (demo, homologação): o usuário escolhe um dos {@code actors} e o Monitor manda o nome no cabeçalho
+     * {@code header} em cada chamada à API de gestão. Sem {@code actors}, o seletor não aparece; com
+     * {@code require-auth=true}, também não (o usuário vem do token).
+     * <p>
+     * O Monitor só <b>envia</b> o cabeçalho. Quem decide confiar nele é o {@code HttpIdentityResolver} do host —
+     * o padrão do Kikwiflow não lê esse cabeçalho, e em produção o usuário deve vir do token autenticado.
+     */
+    public record ActingAs(
+            @DefaultValue List<String> actors,
+            @DefaultValue("X-User-Id") String header
+    ) {
+    }
 }

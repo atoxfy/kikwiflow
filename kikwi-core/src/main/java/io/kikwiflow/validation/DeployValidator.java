@@ -42,6 +42,12 @@ import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
+import io.kikwiflow.model.definition.process.variable.VariableBinding;
+import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
+import io.kikwiflow.model.definition.process.variable.VariableBindings;
+import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
+import io.kikwiflow.model.definition.process.variable.VariableFormat;
+import io.kikwiflow.model.definition.process.variable.VariableOption;
 import io.kikwiflow.model.definition.process.policies.SchedulePolicy;
 import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
 import io.kikwiflow.model.execution.enumerated.CatchType;
@@ -51,8 +57,12 @@ import io.kikwiflow.model.execution.enumerated.ScheduleType;
 import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 
 import java.util.ArrayList;
+import java.util.Currency;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Validates a ProcessDefinition at deploy-time to ensure all its required
@@ -66,6 +76,8 @@ import java.util.Set;
  * para o racional completo de cada uma.
  */
 public class DeployValidator {
+
+    static final int MAX_VALIDATION_REGEX_LENGTH = 512;
 
     private final TaskHandlerResolver taskHandlerResolver;
     private final AnswerProviderResolver answerProviderResolver;
@@ -81,6 +93,7 @@ public class DeployValidator {
     public void validate(ProcessDefinition definition) {
         validateDefaultStartPoint(definition);
         validateSequenceFlowTargetsExist(definition);
+        validateVariableCatalog(definition);
 
         definition.flowNodes().values().forEach(node -> {
             if (node instanceof StartEventDefinition startEvent) {
@@ -345,6 +358,133 @@ public class DeployValidator {
                 }
             }
         });
+    }
+
+    /**
+     * KIKWI-060..065 (Bloqueante): catálogo {@code variableDeclarations} e vínculos {@code variableBindings}
+     * (docs/engine/26). Sem isso, uma declaração malformada (select sem opções, MONEY sem moeda, regex que não
+     * compila) ou um vínculo para uma key inexistente só apareceria como erro em runtime, no primeiro start ou
+     * complete — o mesmo "falhar no deploy, não em runtime" já aplicado a providerBean/executor.
+     */
+    private void validateVariableCatalog(ProcessDefinition definition) {
+        Set<String> declaredKeys = new HashSet<>();
+
+        for (VariableDeclaration declaration : definition.variableDeclarations()) {
+            String key = declaration.key();
+
+            // KIKWI-060: key obrigatória e única; label e format obrigatórios.
+            if (key == null || key.isBlank()) {
+                throw new InvalidProcessDefinitionException(
+                        "Validation failed for variableDeclarations: every declaration needs a non-empty 'key'.");
+            }
+            if (!declaredKeys.add(key)) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for variable '%s': key is declared more than once in variableDeclarations.", key));
+            }
+            if (declaration.label() == null || declaration.label().isBlank()) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for variable '%s': 'label' is empty.", key));
+            }
+            VariableFormat format = declaration.format();
+            if (format == null) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for variable '%s': 'format' is required (one of %s).",
+                        key, List.of(VariableFormat.values())));
+            }
+
+            // KIKWI-061: selects precisam de opções com value não-vazio e único; os demais formatos não aceitam opções.
+            if (format.isSelect()) {
+                if (declaration.options().isEmpty()) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': format %s requires a non-empty 'options' list.", key, format));
+                }
+                Set<String> optionValues = new HashSet<>();
+                for (VariableOption option : declaration.options()) {
+                    if (option == null || option.value() == null || option.value().isBlank()) {
+                        throw new InvalidProcessDefinitionException(String.format(
+                                "Validation failed for variable '%s': every option needs a non-empty 'value'.", key));
+                    }
+                    if (!optionValues.add(option.value())) {
+                        throw new InvalidProcessDefinitionException(String.format(
+                                "Validation failed for variable '%s': option value '%s' is duplicated.", key, option.value()));
+                    }
+                }
+            } else if (!declaration.options().isEmpty()) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for variable '%s': 'options' is only allowed for SINGLE_SELECT/MULTI_SELECT (format is %s).",
+                        key, format));
+            }
+
+            // KIKWI-062: MONEY precisa de uma moeda ISO-4217 válida.
+            if (format == VariableFormat.MONEY) {
+                try {
+                    Currency.getInstance(declaration.currency());
+                } catch (Exception e) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': format MONEY requires a valid ISO-4217 'currency' (found '%s').",
+                            key, declaration.currency()), e);
+                }
+            }
+
+            // KIKWI-063: regex só em texto, com tamanho limitado e compilável. O limite de tamanho é a mitigação
+            // de baixo custo para ReDoS descrita em docs/engine/26 (Segurança) — quem escreve o regex já é o
+            // autor do deploy, dentro da fronteira de confiança existente.
+            String regex = declaration.validationRegex();
+            if (regex != null && !regex.isBlank()) {
+                if (!format.isText()) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': 'validationRegex' is only allowed for SHORT_TEXT/LONG_TEXT (format is %s).",
+                            key, format));
+                }
+                if (regex.length() > MAX_VALIDATION_REGEX_LENGTH) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': 'validationRegex' exceeds %d characters.",
+                            key, MAX_VALIDATION_REGEX_LENGTH));
+                }
+                try {
+                    Pattern.compile(regex);
+                } catch (PatternSyntaxException e) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': 'validationRegex' does not compile: %s", key, e.getDescription()), e);
+                }
+            }
+        }
+
+        definition.flowNodes().forEach((nodeKey, node) -> {
+            if (!(node instanceof VariableBindingAware aware) || aware.variableBindings() == null) {
+                return;
+            }
+            VariableBindings bindings = aware.variableBindings();
+
+            // KIKWI-065: EXECUTABLE_TASK não tem ator fornecendo dados — só outputs fazem sentido ali.
+            if (node instanceof ExecutableTaskDefinition && !bindings.inputs().isEmpty()) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for Executable Task '%s' (id: %s): 'variableBindings.inputs' is not supported — use 'outputs'.",
+                        node.name(), node.id()));
+            }
+
+            // KIKWI-064: todo vínculo referencia uma key do catálogo, sem duplicatas na mesma lista.
+            validateBindingList(node, "inputs", bindings.inputs(), declaredKeys);
+            validateBindingList(node, "outputs", bindings.outputs(), declaredKeys);
+        });
+    }
+
+    private void validateBindingList(FlowNodeDefinition node, String listName, List<VariableBinding> bindings,
+                                     Set<String> declaredKeys) {
+        Set<String> seen = new HashSet<>();
+        for (VariableBinding binding : bindings) {
+            String variable = binding == null ? null : binding.variable();
+            if (variable == null || !declaredKeys.contains(variable)) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for node '%s' (id: %s): variableBindings.%s references '%s', which is not declared in variableDeclarations.",
+                        node.name(), node.id(), listName, variable));
+            }
+            if (!seen.add(variable)) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for node '%s' (id: %s): variable '%s' is bound more than once in variableBindings.%s.",
+                        node.name(), node.id(), variable, listName));
+            }
+        }
     }
 
     /**

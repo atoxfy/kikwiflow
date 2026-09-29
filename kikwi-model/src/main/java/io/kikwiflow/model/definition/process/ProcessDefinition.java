@@ -17,20 +17,30 @@
 package io.kikwiflow.model.definition.process;
 
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public record ProcessDefinition(
         String id, String sla, Integer version, String key, String name, String description,
-        Map<String, FlowNodeDefinition> flowNodes, String defaultStartPoint, String checksum, Map<String, String> extensionProperties
+        Map<String, FlowNodeDefinition> flowNodes, String defaultStartPoint, String checksum, Map<String, String> extensionProperties,
+        List<VariableDeclaration> variableDeclarations
 ) {
     public ProcessDefinition {
         Objects.requireNonNull(key, "key cannot be null");
         Objects.requireNonNull(flowNodes, "flowNodes cannot be null");
         flowNodes = Map.copyOf(flowNodes);
         extensionProperties = extensionProperties != null ? Map.copyOf(extensionProperties) : null;
+        variableDeclarations = variableDeclarations != null ? List.copyOf(variableDeclarations) : List.of();
+    }
+
+    /** Busca uma entrada do catálogo de variáveis pela {@code key}. */
+    public Optional<VariableDeclaration> findVariableDeclaration(String variableKey) {
+        return variableDeclarations.stream().filter(d -> Objects.equals(d.key(), variableKey)).findFirst();
     }
 
     public Builder toBuilder() {
@@ -44,7 +54,8 @@ public record ProcessDefinition(
                 .flowNodes(this.flowNodes)
                 .defaultStartPoint(this.defaultStartPoint)
                 .checksum(this.checksum)
-                .extensionProperties(this.extensionProperties);
+                .extensionProperties(this.extensionProperties)
+                .variableDeclarations(this.variableDeclarations);
     }
 
     public static Builder builder() {
@@ -62,7 +73,15 @@ public record ProcessDefinition(
         private Map<String, FlowNodeDefinition> flowNodes = Collections.emptyMap();
         private String defaultStartPoint;
         private  Map<String, String> extensionProperties;
+        private List<VariableDeclaration> variableDeclarations = Collections.emptyList();
         private Builder() {}
+
+        public Builder variableDeclarations(List<VariableDeclaration> variableDeclarations) {
+            if (variableDeclarations != null) {
+                this.variableDeclarations = variableDeclarations;
+            }
+            return this;
+        }
 
         public Builder id(String id) {
             this.id = id;
@@ -115,7 +134,7 @@ public record ProcessDefinition(
         }
 
         public ProcessDefinition build() {
-            return new ProcessDefinition(id, sla, version, key, name, description, flowNodes, defaultStartPoint, checksum, extensionProperties);
+            return new ProcessDefinition(id, sla, version, key, name, description, flowNodes, defaultStartPoint, checksum, extensionProperties, variableDeclarations);
         }
     }
 }

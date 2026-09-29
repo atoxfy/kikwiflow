@@ -20,8 +20,10 @@ package io.kikwiflow.management.dtos;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kikwiflow.management.dtos.elements.KKFFlowNodeDefinition;
+import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
 import io.kikwiflow.model.stats.KKFMetrics;
 
+import java.util.List;
 import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -35,5 +37,6 @@ public record KKFProcessStats(
         @JsonProperty("checksum") String checksum,
         @JsonProperty("flowNodes") Map<String, KKFFlowNodeDefinition> flowNodes,
         @JsonProperty("defaultStartPoint") String defaultStartPoint,
-        @JsonProperty("extensionProperties") Map<String, String> extensionProperties
+        @JsonProperty("extensionProperties") Map<String, String> extensionProperties,
+        @JsonProperty("variableDeclarations") List<VariableDeclaration> variableDeclarations
 ) {}

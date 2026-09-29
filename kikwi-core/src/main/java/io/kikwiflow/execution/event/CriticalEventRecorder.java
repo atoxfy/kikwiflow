@@ -321,6 +321,15 @@ public class CriticalEventRecorder {
      * independentemente de quem a comandou. Esse par existe só para auditoria/observabilidade.
      */
     public void recordExternalTaskCompleted(List<OutboxEventEntity> events, ExternalTask task, String actorId) {
+        recordExternalTaskCompleted(events, task, actorId, null);
+    }
+
+    /**
+     * @param submittedVariables o que foi enviado junto com o complete, gravado como veio (sem máscara — a
+     *                           máscara é aplicada na leitura, ver {@code HistoryEventSummaryMapper}).
+     */
+    public void recordExternalTaskCompleted(List<OutboxEventEntity> events, ExternalTask task, String actorId,
+                                            Map<String, ProcessVariable> submittedVariables) {
         if (!isEnabled()) return;
 
         ExternalTaskCompleted completedEvent = new ExternalTaskCompleted(
@@ -331,7 +340,8 @@ public class CriticalEventRecorder {
                 task.taskDefinitionId(),
                 task.assignee(),
                 actorId,
-                Instant.now()
+                Instant.now(),
+                submittedVariables != null ? submittedVariables : Map.of()
         );
 
         events.add(new OutboxEventEntity(CriticalEventType.EXTERNAL_TASK_COMPLETED, completedEvent));

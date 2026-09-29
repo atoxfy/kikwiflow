@@ -18,7 +18,9 @@
 package io.kikwiflow.model.definition.process;
 
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
 
+import java.util.List;
 import java.util.Map;
 
 public record ProcessDefinitionDeployRequest(
@@ -28,5 +30,6 @@ public record ProcessDefinitionDeployRequest(
         String sla,
         String defaultStartPoint,
         Map<String, FlowNodeDefinition> flowNodes,
-        Map<String, String> extensionProperties
+        Map<String, String> extensionProperties,
+        List<VariableDeclaration> variableDeclarations
 ) {}

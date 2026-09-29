@@ -91,6 +91,7 @@ public final class OutboxEventMapper {
                 .append("processInstanceId", entity.getPayload().processInstanceId())
                 .append("processDefinitionId", entity.getPayload().processDefinitionId())
                 .append("timestamp", entity.getTimestamp() != null ? java.util.Date.from(entity.getTimestamp()) : null)
+                .append("sequence", entity.getSequence())
                 .append("relayStatus", COLLECTION_RELAY_STATUS_PENDING)
                 .append("lockedUntil", null)
                 .append("payload", payloadDoc);
@@ -107,6 +108,9 @@ public final class OutboxEventMapper {
         OutboxEventEntity entity = new OutboxEventEntity(eventType, payload);
         entity.setId(doc.getString("_id"));
         entity.setTimestamp(InstantMapper.mapToInstant("timestamp", doc));
+        // Documentos gravados antes deste campo existir não têm "sequence": ficam com 0 e caem na ordem de timestamp.
+        Object sequence = doc.get("sequence");
+        entity.setSequence(sequence instanceof Number number ? number.longValue() : 0L);
         return entity;
     }
 }

@@ -27,6 +27,16 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  */
 @ConfigurationProperties(prefix = "kikwiflow.history")
 public record KikwiflowHistoryProperties(
-        @DefaultValue("true") boolean enabled
+        @DefaultValue("true") boolean enabled,
+        @DefaultValue Explorer explorer
 ) {
+
+    /**
+     * {@code kikwiflow.history.explorer.*} — o explorador de histórico (docs/engine/29): busca de instâncias,
+     * inclusive finalizadas, e trace de cada uma, lidos do outbox. Desligado por padrão: expõe dado de negócio de
+     * todas as instâncias, então é uma escolha explícita do host. Só tem o que mostrar com
+     * {@code kikwiflow.outbox.events-enabled=true}.
+     */
+    public record Explorer(@DefaultValue("false") boolean enabled) {
+    }
 }

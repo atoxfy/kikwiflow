@@ -44,4 +44,10 @@ public record ProcessInstanceStarted(
     public String processInstanceId() {
         return id;
     }
+
+    /** Cópia com outras variáveis — usada para mascarar na leitura sem mexer no evento gravado. */
+    public ProcessInstanceStarted withVariables(Map<String, ProcessVariable> newVariables) {
+        return new ProcessInstanceStarted(id, businessKey, processDefinitionId, processDefinitionKey, processDefinitionVersion,
+                newVariables, startedAt, businessValue, tenantId, origin, parentInstanceId, callerTaskId, callerBranchId, actorId);
+    }
 }

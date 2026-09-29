@@ -18,6 +18,7 @@
 package io.kikwiflow.api.query;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.execution.form.FormDescriptor;
 
 import java.util.List;
 
@@ -25,5 +26,8 @@ public interface ProcessDefinitionQueryApi {
     List<ProcessDefinition> findAll(String key);
     ProcessDefinition findProcessDefinitionByKey(String processDefinitionKey);
     ProcessDefinition findProcessDefinitionById(String processDefinitionId);
+
+    /** Formulário server-driven de start: os {@code inputs} do start event da versão atual (docs/engine/26). */
+    FormDescriptor findStartFormByKey(String processDefinitionKey);
 
 }

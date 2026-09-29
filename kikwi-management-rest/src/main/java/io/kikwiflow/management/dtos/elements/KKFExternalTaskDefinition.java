@@ -17,6 +17,7 @@
 
 package io.kikwiflow.management.dtos.elements;
 
+import io.kikwiflow.model.definition.process.variable.VariableBindings;
 
 import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
 import io.kikwiflow.model.stats.KKFMetrics;
@@ -34,7 +35,8 @@ public  record KKFExternalTaskDefinition(String id,
                                          List<KKFSequenceFlowDefinition> outgoing,
                                          List<String> boundaryEventIds,
                                          Map<String, String> extensionProperties,
-                                         KKFLayoutCoordinates layout) implements KKFFlowNodeDefinition {
+                                         KKFLayoutCoordinates layout,
+                                         VariableBindings variableBindings) implements KKFFlowNodeDefinition {
 
 
 }

@@ -21,6 +21,7 @@ import io.kikwiflow.model.event.CriticalEventType;
 import io.kikwiflow.model.event.OrphanedChildCompletion;
 import io.kikwiflow.model.event.OutboxEventEntity;
 import io.kikwiflow.model.event.ProcessInstanceFinished;
+import io.kikwiflow.model.event.ProcessInstanceStarted;
 import io.kikwiflow.model.execution.BranchPullIntention;
 import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
@@ -45,6 +46,10 @@ import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
+import io.kikwiflow.persistence.api.history.HistoricInstanceCriteria;
+import io.kikwiflow.persistence.api.history.HistoricInstancePage;
+import io.kikwiflow.persistence.api.history.HistoricInstanceSummary;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -416,6 +421,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         allEvents.addAll(cancelledChildEvents);
 
         if (outboxPersistenceEnabled && !allEvents.isEmpty()) {
+            OutboxEventEntity.stampCommitOrder(allEvents);
             this.outboxEventQueue.addAll(allEvents);
             this.eventHistory.addAll(allEvents);
         }
@@ -750,6 +756,7 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
      */
     private void writeOutboxEvents(List<OutboxEventEntity> events) {
         if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {
+            OutboxEventEntity.stampCommitOrder(events);
             this.outboxEventQueue.addAll(events);
             this.eventHistory.addAll(events);
         }
@@ -896,8 +903,41 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     public List<OutboxEventEntity> findEventHistoryByProcessInstanceId(String processInstanceId) {
         return eventHistory.stream()
                 .filter(entity -> entity.getPayload() != null && processInstanceId.equals(entity.getPayload().processInstanceId()))
-                .sorted(Comparator.comparing(OutboxEventEntity::getTimestamp))
+                .sorted(OutboxEventEntity.HISTORY_ORDER)
                 .toList();
+    }
+
+    @Override
+    public HistoricInstancePage searchHistoricInstances(HistoricInstanceCriteria criteria) {
+        Map<String, ProcessInstanceFinished> finishedById = new HashMap<>();
+        Set<String> actedBy = new HashSet<>();
+        for (OutboxEventEntity entity : eventHistory) {
+            if (entity.getPayload() instanceof ProcessInstanceFinished finished) {
+                finishedById.put(finished.processInstanceId(), finished);
+            }
+            if (criteria.actorId() != null && criteria.actorId().equals(entity.getPayload().actorId())) {
+                actedBy.add(entity.getPayload().processInstanceId());
+            }
+        }
+
+        List<HistoricInstanceSummary> matches = eventHistory.stream()
+                .filter(entity -> entity.getPayload() instanceof ProcessInstanceStarted)
+                .sorted(OutboxEventEntity.HISTORY_ORDER.reversed())
+                .map(entity -> (ProcessInstanceStarted) entity.getPayload())
+                .filter(started -> criteria.processDefinitionKey() == null || criteria.processDefinitionKey().equals(started.processDefinitionKey()))
+                .filter(started -> criteria.businessKey() == null || criteria.businessKey().equals(started.businessKey()))
+                .filter(started -> criteria.startedFrom() == null || !started.startedAt().isBefore(criteria.startedFrom()))
+                .filter(started -> criteria.startedTo() == null || started.startedAt().isBefore(criteria.startedTo()))
+                .filter(started -> criteria.actorId() == null || actedBy.contains(started.id()))
+                .map(started -> HistoricInstanceSummary.of(started, finishedById.get(started.id())))
+                .filter(summary -> criteria.status() == null || criteria.status() == summary.status())
+                .toList();
+
+        List<HistoricInstanceSummary> page = matches.stream()
+                .skip((long) criteria.page() * criteria.size())
+                .limit(criteria.size())
+                .toList();
+        return new HistoricInstancePage(page, matches.size(), criteria.page(), criteria.size());
     }
 
     @Override

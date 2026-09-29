@@ -19,6 +19,7 @@ package io.kikwiflow.spring.rest.api.query;
 
 import io.kikwiflow.api.query.ProcessDefinitionQueryApi;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.execution.form.FormDescriptor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,5 +46,10 @@ public interface ProcessDefinitionQueryRestApi extends ProcessDefinitionQueryApi
     @GetMapping("{id}")
     @ResponseStatus(HttpStatus.OK)
     ProcessDefinition findProcessDefinitionById(@PathVariable(value = "id") String id);
+
+    @Override
+    @GetMapping("one-by-key/{process-definition-key}/start-form")
+    @ResponseStatus(HttpStatus.OK)
+    FormDescriptor findStartFormByKey(@PathVariable(value = "process-definition-key") String processDefinitionKey);
 
 }

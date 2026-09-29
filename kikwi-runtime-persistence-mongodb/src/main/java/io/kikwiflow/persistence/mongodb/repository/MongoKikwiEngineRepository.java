@@ -76,6 +76,12 @@ import io.kikwiflow.persistence.mongodb.mapper.ProcessInstanceMapper;
 import io.kikwiflow.persistence.mongodb.mapper.ProcessVariableMapper;
 import io.kikwiflow.persistence.mongodb.mapper.event.OutboxEventMapper;
 import io.kikwiflow.persistence.mongodb.util.MongoKeyEncoder;
+import io.kikwiflow.model.event.ProcessInstanceFinished;
+import io.kikwiflow.model.event.ProcessInstanceStarted;
+import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
+import io.kikwiflow.persistence.api.history.HistoricInstanceCriteria;
+import io.kikwiflow.persistence.api.history.HistoricInstancePage;
+import io.kikwiflow.persistence.api.history.HistoricInstanceSummary;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
@@ -499,6 +505,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 allEvents.addAll(cancelledChildEvents);
 
                 if (outboxPersistenceEnabled && !allEvents.isEmpty()) {
+                    OutboxEventEntity.stampCommitOrder(allEvents);
                     MongoCollection<Document> outboxEvents = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
                     List<InsertOneModel<Document>> eventWrites = allEvents.stream()
                             .map(OutboxEventMapper::toDocument)
@@ -746,6 +753,7 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
      * seja gravado na mesma transação Mongo da mudança de estado.
      */
     private void writeOutboxEvents(ClientSession clientSession, List<OutboxEventEntity> events) {
+        OutboxEventEntity.stampCommitOrder(events);
         MongoCollection<Document> outboxEvents = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
         List<InsertOneModel<Document>> eventWrites = events.stream()
                 .map(OutboxEventMapper::toDocument)
@@ -1166,6 +1174,20 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 Indexes.ascending("processDefinitionId"),
                 new IndexOptions().name("proc_def_idx")
         );
+        // explorador de histórico (docs/engine/29): lista de instâncias a partir dos PROCESS_INSTANCE_STARTED
+        outboxEventsCollection.createIndex(
+                Indexes.compoundIndex(Indexes.ascending("eventType"), Indexes.ascending("payload.processDefinitionKey"),
+                        Indexes.descending("timestamp")),
+                new IndexOptions().name("history_started_idx")
+        );
+        outboxEventsCollection.createIndex(
+                Indexes.ascending("payload.businessKey"),
+                new IndexOptions().name("history_business_key_idx").sparse(true)
+        );
+        outboxEventsCollection.createIndex(
+                Indexes.ascending("payload.actorId"),
+                new IndexOptions().name("history_actor_idx").sparse(true)
+        );
         outboxEventsCollection.createIndex(
                 Indexes.compoundIndex(Indexes.ascending("relayStatus"), Indexes.ascending("timestamp")),
                 new IndexOptions().name("relay_status_timestamp_idx")
@@ -1294,12 +1316,81 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         return tasks;
     }
 
+    /**
+     * Parte dos {@code PROCESS_INSTANCE_STARTED} (filtros e ordenação no índice {@code history_started_idx}),
+     * junta o {@code PROCESS_INSTANCE_FINISHED} de cada instância por {@code $lookup} (índice por
+     * {@code processInstanceId}) e só então filtra por status e pagina — status depende do evento de fim.
+     */
+    @Override
+    public HistoricInstancePage searchHistoricInstances(HistoricInstanceCriteria criteria) {
+        MongoCollection<Document> outbox = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
+
+        List<Bson> startedFilters = new ArrayList<>();
+        startedFilters.add(eq("eventType", CriticalEventType.PROCESS_INSTANCE_STARTED.name()));
+        if (criteria.processDefinitionKey() != null) {
+            startedFilters.add(eq("payload.processDefinitionKey", criteria.processDefinitionKey()));
+        }
+        if (criteria.businessKey() != null) {
+            startedFilters.add(eq("payload.businessKey", criteria.businessKey()));
+        }
+        // "timestamp" do STARTED é o instante do commit que iniciou a instância — mesmo valor de startedAt, mas indexado.
+        if (criteria.startedFrom() != null) {
+            startedFilters.add(Filters.gte("timestamp", java.util.Date.from(criteria.startedFrom())));
+        }
+        if (criteria.startedTo() != null) {
+            startedFilters.add(Filters.lt("timestamp", java.util.Date.from(criteria.startedTo())));
+        }
+        if (criteria.actorId() != null) {
+            List<String> actedIn = outbox.distinct("processInstanceId", eq("payload.actorId", criteria.actorId()), String.class)
+                    .into(new ArrayList<>());
+            startedFilters.add(Filters.in("processInstanceId", actedIn));
+        }
+
+        List<Bson> pipeline = new ArrayList<>();
+        pipeline.add(Aggregates.match(Filters.and(startedFilters)));
+        pipeline.add(Aggregates.sort(Sorts.descending("timestamp")));
+        pipeline.add(new Document("$lookup", new Document("from", OUTBOX_EVENTS_COLLECTION)
+                .append("let", new Document("pid", "$processInstanceId"))
+                .append("pipeline", List.of(
+                        new Document("$match", new Document("$expr", new Document("$and", List.of(
+                                new Document("$eq", List.of("$processInstanceId", "$$pid")),
+                                new Document("$eq", List.of("$eventType", CriticalEventType.PROCESS_INSTANCE_FINISHED.name()))
+                        )))),
+                        new Document("$limit", 1)))
+                .append("as", "finished")));
+        if (criteria.status() == ProcessInstanceStatus.ACTIVE) {
+            pipeline.add(Aggregates.match(eq("finished", List.of())));
+        } else if (criteria.status() != null) {
+            pipeline.add(Aggregates.match(eq("finished.payload.status", criteria.status().name())));
+        }
+        pipeline.add(new Document("$facet", new Document("total", List.of(new Document("$count", "n")))
+                .append("content", List.of(
+                        new Document("$skip", (long) criteria.page() * criteria.size()),
+                        new Document("$limit", criteria.size())))));
+
+        Document result = outbox.aggregate(pipeline).first();
+        List<HistoricInstanceSummary> content = new ArrayList<>();
+        long total = 0;
+        if (result != null) {
+            List<Document> totalDocs = result.getList("total", Document.class);
+            total = totalDocs.isEmpty() ? 0 : ((Number) totalDocs.get(0).get("n")).longValue();
+            for (Document startedDoc : result.getList("content", Document.class)) {
+                ProcessInstanceStarted started = (ProcessInstanceStarted) OutboxEventMapper.fromDocument(startedDoc).getPayload();
+                List<Document> finishedDocs = startedDoc.getList("finished", Document.class);
+                ProcessInstanceFinished finished = finishedDocs.isEmpty() ? null
+                        : (ProcessInstanceFinished) OutboxEventMapper.fromDocument(finishedDocs.get(0)).getPayload();
+                content.add(HistoricInstanceSummary.of(started, finished));
+            }
+        }
+        return new HistoricInstancePage(content, total, criteria.page(), criteria.size());
+    }
+
     @Override
     public List<OutboxEventEntity> findEventHistoryByProcessInstanceId(String processInstanceId) {
         MongoCollection<Document> collection = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
         List<OutboxEventEntity> events = new ArrayList<>();
         collection.find(eq("processInstanceId", processInstanceId))
-                .sort(Sorts.ascending("timestamp"))
+                .sort(Sorts.ascending("timestamp", "sequence"))
                 .map(OutboxEventMapper::fromDocument)
                 .into(events);
 

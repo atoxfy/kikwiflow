@@ -17,6 +17,7 @@
 package io.kikwiflow.execution;
 
 import io.kikwiflow.exception.ProcessErrorException;
+import io.kikwiflow.variable.VariableContractValidator;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
@@ -37,6 +38,7 @@ import io.kikwiflow.navigation.Navigator;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +56,7 @@ public class ProcessExecutionManager {
     private final FlowNodeExecutor flowNodeExecutor;
     private final Navigator navigator;
     private final CriticalEventRecorder criticalEventRecorder;
+    private final VariableContractValidator variableContractValidator = new VariableContractValidator();
 
     /**
      * Encapsula o contexto móvel e imutável de uma linha de execução (Branch).
@@ -141,6 +144,19 @@ public class ProcessExecutionManager {
 
             try {
                 flowNodeExecutor.execute(processInstance, processDefinition, currentNode);
+
+                // outputs de uma EXECUTABLE_TASK = o que precisa existir depois do handler (docs/engine/26, fase 2).
+                // Validado antes de navegar, para um gateway nunca decidir sobre uma saída fora do contrato — o
+                // caso típico é um handler que chama um LLM e devolve um campo faltando ou no formato errado. A
+                // VariableValidationException cai no catch abaixo como qualquer falha de handler: FLOW_NODE_FINISHED
+                // (ERROR), retry pela RetryPolicy do nó e, esgotado, incidente. Cópia porque getVariables() grava
+                // de volta na execução.
+                if (currentNode instanceof ExecutableTaskDefinition executableTask) {
+                    variableContractValidator.validateOrThrow(currentNode.id(),
+                            executableTask.variableBindingsOrEmpty().outputs(), processDefinition,
+                            new HashMap<>(processInstance.getVariables()));
+                }
+
                 boolean isCommitAfter = Boolean.TRUE.equals(currentNode.commitAfter());
 
                 continuation = navigator.determineNextContinuation(currentNode, processDefinition, processInstance.getVariables(), isCommitAfter);

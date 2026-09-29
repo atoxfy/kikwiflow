@@ -18,12 +18,18 @@
 package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
+import io.kikwiflow.model.definition.process.variable.VariableBindings;
 import io.kikwiflow.model.execution.node.WaitState;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @param variableBindings {@code inputs} = variáveis exigidas para concluir a tarefa (validadas no complete,
+ *                         contra o estado mesclado da instância); {@code outputs} reservado (fase 2).
+ */
 public  record ExternalTaskDefinition(String id,
                                      String name,
                                      String type,
@@ -33,7 +39,8 @@ public  record ExternalTaskDefinition(String id,
                                      List<SequenceFlowDefinition> outgoing,
                                       List<String> boundaryEventIds,
                                      Map<String, String> extensionProperties,
-                                     LayoutCoordinates layout) implements FlowNodeDefinition, WaitState {
+                                     LayoutCoordinates layout,
+                                     VariableBindings variableBindings) implements FlowNodeDefinition, WaitState, VariableBindingAware {
 
     public static Builder builder() {
         return new Builder();
@@ -49,8 +56,14 @@ public  record ExternalTaskDefinition(String id,
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private List<String> boundaryEventIds = Collections.emptyList();
         private Map<String, String> extensionProperties;
+        private VariableBindings variableBindings;
 
         private Builder() {}
+
+        public Builder variableBindings(VariableBindings variableBindings) {
+            this.variableBindings = variableBindings;
+            return this;
+        }
 
         public Builder id(String id) {
             this.id = id;
@@ -104,7 +117,7 @@ public  record ExternalTaskDefinition(String id,
         }
 
         public ExternalTaskDefinition build() {
-            return new ExternalTaskDefinition(id, name, "EXTERNAL_TASK", description, commitAfter, commitBefore, outgoing, boundaryEventIds, extensionProperties, layout);
+            return new ExternalTaskDefinition(id, name, "EXTERNAL_TASK", description, commitAfter, commitBefore, outgoing, boundaryEventIds, extensionProperties, layout, variableBindings);
         }
     }
 }

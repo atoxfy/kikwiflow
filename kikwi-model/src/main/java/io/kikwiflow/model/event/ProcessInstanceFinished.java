@@ -98,6 +98,18 @@ public class ProcessInstanceFinished implements CriticalEvent {
         return Duration.between(startedAt, endedAt).toMillis();
     }
 
+    /** Cópia com outras variáveis — usada para mascarar na leitura sem mexer no evento gravado. */
+    public ProcessInstanceFinished withVariables(Map<String, ProcessVariable> newVariables) {
+        return builder()
+                .id(id).businessKey(businessKey).status(status)
+                .processDefinitionId(processDefinitionId).processDefinitionKey(processDefinitionKey)
+                .processDefinitionVersion(processDefinitionVersion)
+                .variables(newVariables)
+                .startedAt(startedAt).endedAt(endedAt).businessValue(businessValue).tenantId(tenantId)
+                .origin(origin).parentInstanceId(parentInstanceId).callerTaskId(callerTaskId).callerBranchId(callerBranchId)
+                .build();
+    }
+
     public static Builder builder() {
         return new Builder();
     }

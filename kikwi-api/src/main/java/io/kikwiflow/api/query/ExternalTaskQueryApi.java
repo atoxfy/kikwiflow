@@ -18,6 +18,7 @@
 package io.kikwiflow.api.query;
 
 import io.kikwiflow.api.dto.CountResponse;
+import io.kikwiflow.model.execution.form.FormDescriptor;
 import io.kikwiflow.model.execution.node.ExternalTask;
 
 import java.util.List;
@@ -33,6 +34,12 @@ public interface ExternalTaskQueryApi {
                         List<String> tenantIds);
 
     ExternalTask findExternalTaskById(String id);
+
+    /**
+     * Formulário server-driven para concluir a tarefa: os {@code inputs} do nó resolvidos contra o catálogo de
+     * variáveis do processo, com o valor atual de cada variável da instância (docs/engine/26).
+     */
+    FormDescriptor findExternalTaskForm(String id);
 
 
     List<ExternalTask> findAll(String processDefinitionId,

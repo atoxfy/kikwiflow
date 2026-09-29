@@ -34,6 +34,7 @@ public class ExternalTaskDefinitionMapper {
                 .outgoing(SequenceFlowMapper.mapToDefinitionList(doc))
                 .boundaryEventIds(doc.getList("boundaryEventIds", String.class))
                 .layout(LayoutCoordinatesMapper.mapToDefinition(doc.get("layout", Document.class)))
+                .variableBindings(VariableBindingsMapper.mapToDefinition(doc.get("variableBindings", Document.class)))
                 .build();
     }
 

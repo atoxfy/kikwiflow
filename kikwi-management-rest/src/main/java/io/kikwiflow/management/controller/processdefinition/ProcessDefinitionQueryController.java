@@ -20,8 +20,10 @@ package io.kikwiflow.management.controller.processdefinition;
 import io.kikwiflow.management.annotation.KikwiRestController;
 import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.execution.form.FormDescriptor;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
 import io.kikwiflow.spring.rest.api.query.ProcessDefinitionQueryRestApi;
+import io.kikwiflow.variable.FormDescriptorFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -56,5 +58,10 @@ public class ProcessDefinitionQueryController implements ProcessDefinitionQueryR
     public ProcessDefinition findProcessDefinitionById(String id) {
         return queryRepository.findProcessDefinitionById(id)
                 .orElseThrow(() -> new NotFoundException("ProcessDefinition not found with id " + id));
+    }
+
+    @Override
+    public FormDescriptor findStartFormByKey(String processDefinitionKey) {
+        return FormDescriptorFactory.forStart(findProcessDefinitionByKey(processDefinitionKey));
     }
 }

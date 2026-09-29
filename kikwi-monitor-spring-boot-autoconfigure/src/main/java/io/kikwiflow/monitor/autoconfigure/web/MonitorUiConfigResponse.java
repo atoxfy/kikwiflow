@@ -17,6 +17,8 @@
 
 package io.kikwiflow.monitor.autoconfigure.web;
 
+import java.util.List;
+
 /**
  * Body returned by {@code GET /monitor-ui/config.json}. Field names are camelCase on purpose — they are read
  * as-is by the Monitor SPA's runtime config store (no custom Jackson naming strategy is configured anywhere in
@@ -28,6 +30,11 @@ public record MonitorUiConfigResponse(
         String oidcClientId,
         String oidcRedirectUri,
         boolean requireAuth,
-        boolean readOnly
+        boolean readOnly,
+        ActingAs actingAs
 ) {
+
+    /** Seletor "Atuando como"; {@code actors} vazio = seletor escondido. */
+    public record ActingAs(List<String> actors, String header) {
+    }
 }

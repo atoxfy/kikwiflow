@@ -17,12 +17,17 @@
 
 package io.kikwiflow.management.exception;
 
+import io.kikwiflow.exception.InvalidProcessDefinitionException;
 import io.kikwiflow.exception.TaskNotFoundException;
+import io.kikwiflow.exception.VariableValidationException;
+import io.kikwiflow.variable.VariableValidationError;
 import io.kikwiflow.management.annotation.KikwiRestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.List;
 
 @RestControllerAdvice(annotations = KikwiRestController.class)
 public class KikwiflowExceptionHandler {
@@ -62,5 +67,24 @@ public class KikwiflowExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    // Start ou complete de EXTERNAL_TASK com variáveis que não satisfazem os inputs do nó (docs/engine/26). 422 e
+    // não 400: o payload é sintaticamente válido, o que falha é a regra de negócio declarada no processo — e o
+    // frontend precisa de errors[] por campo para marcar o formulário.
+    @ExceptionHandler(VariableValidationException.class)
+    public ResponseEntity<VariableValidationErrorResponse> handleVariableValidation(VariableValidationException ex) {
+        var error = new VariableValidationErrorResponse("VARIABLE_VALIDATION_FAILED", ex.getMessage(), ex.getNodeId(), ex.getErrors());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+    }
+
+    // Deploy rejeitado pelo DeployValidator. Sem este handler, virava 500 genérico.
+    @ExceptionHandler(InvalidProcessDefinitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidProcessDefinition(InvalidProcessDefinitionException ex) {
+        var error = new ErrorResponse("INVALID_PROCESS_DEFINITION", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
     public record ErrorResponse(String code, String message) {}
+
+    public record VariableValidationErrorResponse(String code, String message, String nodeId,
+                                                  List<VariableValidationError> errors) {}
 }
