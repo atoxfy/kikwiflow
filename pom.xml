@@ -35,6 +35,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.parameters>true</maven.compiler.parameters>
+        <mcp-sdk.version>2.0.1</mcp-sdk.version>
     </properties>
 
     <modules>
@@ -82,6 +83,9 @@
         <module>kikwi-monitor-spring-boot-starter</module>
         <module>kikwi-security-api</module>
         <module>kikwi-security-spring-starter</module>
+        <module>kikwi-mcp-server</module>
+        <module>kikwi-mcp-server-spring-boot-autoconfigure</module>
+        <module>kikwi-mcp-server-spring-boot-starter</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -91,6 +95,18 @@
                 <version>3.5.4</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- SDK oficial do MCP (spec 2025-11-25), usado só atrás do adaptador de kikwi-mcp-server. mcp-core +
+                 mcp-json-jackson2 em vez do agregador "mcp", que puxa Jackson 3. -->
+            <dependency>
+                <groupId>io.modelcontextprotocol.sdk</groupId>
+                <artifactId>mcp-core</artifactId>
+                <version>${mcp-sdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.modelcontextprotocol.sdk</groupId>
+                <artifactId>mcp-json-jackson2</artifactId>
+                <version>${mcp-sdk.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

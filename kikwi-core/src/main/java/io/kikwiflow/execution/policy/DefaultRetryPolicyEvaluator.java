@@ -26,14 +26,23 @@ import io.kikwiflow.model.execution.node.ExecutableTask;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.DoubleSupplier;
 
 public class DefaultRetryPolicyEvaluator implements RetryPolicyEvaluator {
 
     private final KikwiflowConfig config;
     private final Set<String> fatalExceptionsSet;
+    // Fonte do jitter, em [0, 1). Só JDK; injetável para testes determinísticos.
+    private final DoubleSupplier random;
 
     public DefaultRetryPolicyEvaluator(KikwiflowConfig config) {
+        this(config, () -> ThreadLocalRandom.current().nextDouble());
+    }
+
+    DefaultRetryPolicyEvaluator(KikwiflowConfig config, DoubleSupplier random) {
         this.config = config;
+        this.random = random;
         this.fatalExceptionsSet = config.getFatalExceptions() != null
                 ? new java.util.HashSet<>(config.getFatalExceptions())
                 : java.util.Collections.emptySet();
@@ -95,6 +104,21 @@ public class DefaultRetryPolicyEvaluator implements RetryPolicyEvaluator {
             }
         }
 
+        if (config.isRetryJitterEnabled()) {
+            calculatedDuration = equalJitter(calculatedDuration);
+        }
+
         return Instant.now().plus(calculatedDuration);
+    }
+
+    /**
+     * "Equal jitter": sorteia o atraso entre 50% e 100% do intervalo calculado. Sem isso, tarefas que falham
+     * juntas (ex.: a mesma API externa fora do ar) voltam todas no mesmo instante, em todas as tentativas.
+     * Nunca passa do intervalo calculado — e portanto nunca passa do {@code maxInterval}.
+     */
+    private Duration equalJitter(Duration duration) {
+        long millis = duration.toMillis();
+        long half = millis / 2;
+        return Duration.ofMillis(half + (long) (random.getAsDouble() * (millis - half + 1)));
     }
 }

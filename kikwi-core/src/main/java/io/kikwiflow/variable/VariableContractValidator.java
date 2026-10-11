@@ -20,6 +20,7 @@ import io.kikwiflow.exception.VariableValidationException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.variable.VariableBinding;
 import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
+import io.kikwiflow.model.definition.process.variable.VariableNumberFormat;
 import io.kikwiflow.model.definition.process.variable.VariableOption;
 import io.kikwiflow.model.execution.ProcessVariable;
 
@@ -121,7 +122,16 @@ public class VariableContractValidator {
                 yield null;
             }
             case INTEGER -> isInteger(value) ? null : invalidFormat(key, "an integer number");
-            case DECIMAL, MONEY -> isDecimal(value) ? null : invalidFormat(key, "a decimal number");
+            case DECIMAL, MONEY -> {
+                // Com kikwi:numberFormat declarado, texto só vale no formato do catálogo (a mesma leitura estrita da
+                // agregação: o que passa aqui é o que soma lá). Sem ele, a gramática do BigDecimal de sempre.
+                VariableNumberFormat numberFormat = numberFormatOf(declaration);
+                if (numberFormat == null) {
+                    yield isDecimal(value) ? null : invalidFormat(key, "a decimal number");
+                }
+                yield numberFormat.toDecimal(value) != null ? null
+                        : invalidFormat(key, "a decimal number written as " + example(numberFormat));
+            }
             case BOOLEAN -> value instanceof Boolean ? null : invalidFormat(key, "a boolean");
             case DATE -> isDate(value) ? null : invalidFormat(key, "a date (yyyy-MM-dd)");
             case DATETIME -> isDateTime(value) ? null : invalidFormat(key, "an ISO-8601 date-time with offset");
@@ -143,6 +153,19 @@ public class VariableContractValidator {
                 }
                 yield null;
             }
+        };
+    }
+
+    private static VariableNumberFormat numberFormatOf(VariableDeclaration declaration) {
+        Map<String, String> properties = declaration.extensionProperties();
+        return properties == null ? null : VariableNumberFormat.fromCatalog(properties.get(VariableNumberFormat.CATALOG_PROPERTY));
+    }
+
+    private static String example(VariableNumberFormat format) {
+        return switch (format) {
+            case PLAIN -> "45000.00";
+            case PT_BR -> "45.000,00";
+            case AUTO -> "45000.00 or 45.000,00";
         };
     }
 

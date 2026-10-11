@@ -54,7 +54,9 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
                 "kikwiflow.monitor-ui.oidc-redirect-uri=http://localhost:3000/",
                 "kikwiflow.monitor-ui.require-auth=false",
                 "kikwiflow.monitor-ui.read-only=true",
-                "kikwiflow.monitor-ui.acting-as.actors=ana.analista,carlos.coordenador"
+                "kikwiflow.monitor-ui.acting-as.actors=ana.analista,carlos.coordenador",
+                // Só o Environment é lido: o servidor MCP não está no classpath deste módulo.
+                "kikwiflow.mcp.enabled=true"
         }
 )
 @DisplayName("Monitor UI - integração HTTP real")
@@ -84,6 +86,9 @@ class MonitorUiIntegrationTest {
             assertThat(body.readOnly()).isTrue();
             assertThat(body.actingAs().actors()).containsExactly("ana.analista", "carlos.coordenador");
             assertThat(body.actingAs().header()).isEqualTo("X-User-Id");
+            assertThat(body.mcp().enabled()).isTrue();
+            assertThat(body.mcp().url()).isEqualTo("http://test-engine:9999/kikwiflow/api/v1/mcp");
+            assertThat(body.mcp().writeTools()).isFalse();
         }
     }
 

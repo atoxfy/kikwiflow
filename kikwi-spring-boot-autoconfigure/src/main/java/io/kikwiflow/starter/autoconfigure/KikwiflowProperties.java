@@ -119,6 +119,17 @@ public class KikwiflowProperties {
 
         private List<String> fatalExceptions = new ArrayList<>();
 
+        // null = mantém o default do KikwiflowConfig (ligado).
+        private Boolean jitterEnabled;
+
+        public Boolean getJitterEnabled() {
+            return jitterEnabled;
+        }
+
+        public void setJitterEnabled(Boolean jitterEnabled) {
+            this.jitterEnabled = jitterEnabled;
+        }
+
         public List<String> getFatalExceptions() {
             return fatalExceptions;
         }
@@ -145,6 +156,19 @@ public class KikwiflowProperties {
         // 12ms é inútil contra dois workers na mesma tarefa. Realinhado com o default de fábrica que
         // KikwiflowConfig já usa quando não há Spring Boot no caminho (kikwi-core, sem este módulo).
         private long lockTimeoutMillis = 5000;
+        /**
+         * {@code false} sobe um nó passivo: API de gestão, Monitor e MCP funcionam sobre o banco, mas esta instância
+         * nunca adquire tarefas — útil para observar um ambiente cuja engine já roda em outro lugar.
+         */
+        private boolean taskAcquisitionEnabled = true;
+
+        public boolean isTaskAcquisitionEnabled() {
+            return taskAcquisitionEnabled;
+        }
+
+        public void setTaskAcquisitionEnabled(boolean taskAcquisitionEnabled) {
+            this.taskAcquisitionEnabled = taskAcquisitionEnabled;
+        }
 
         public void setTaskAcquisitionIntervalMillis(long taskAcquisitionIntervalMillis) {
             this.taskAcquisitionIntervalMillis = taskAcquisitionIntervalMillis;

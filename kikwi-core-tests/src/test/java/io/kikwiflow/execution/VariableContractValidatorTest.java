@@ -101,6 +101,42 @@ class VariableContractValidatorTest {
         assertEquals(expectedCode, errors.isEmpty() ? null : errors.get(0).code());
     }
 
+    /**
+     * DECIMAL/MONEY com {@code kikwi:numberFormat}: texto só vale no formato declarado (leitura estrita, a mesma da
+     * agregação); números nativos valem sempre. Tabela portada para forms-core/src/validate.test.ts.
+     */
+    static Stream<Arguments> numberFormatCases() {
+        return Stream.of(
+                Arguments.of("PT_BR", "45.000,00", null),
+                Arguments.of("PT_BR", "R$ 1.234,50", null),
+                Arguments.of("PT_BR", 45000, null),
+                Arguments.of("PT_BR", new BigDecimal("10.5"), null),
+                Arguments.of("PT_BR", "45000.00", VariableValidationError.INVALID_FORMAT),
+                Arguments.of("PT_BR", true, VariableValidationError.INVALID_FORMAT),
+                Arguments.of("PLAIN", "45000.00", null),
+                Arguments.of("PLAIN", "45.000,00", VariableValidationError.INVALID_FORMAT),
+                Arguments.of("PLAIN", "1e5", VariableValidationError.INVALID_FORMAT),
+                Arguments.of("AUTO", "45.000,00", null),
+                Arguments.of("AUTO", "45000.00", null),
+                Arguments.of("AUTO", "abc", VariableValidationError.INVALID_FORMAT)
+        );
+    }
+
+    @ParameterizedTest(name = "MONEY em {0} com valor {1} → {2}")
+    @MethodSource("numberFormatCases")
+    @DisplayName("Quando o catálogo declara kikwi:numberFormat, então o texto é conferido nesse formato")
+    void checksDeclaredNumberFormat(String numberFormat, Object value, String expectedCode) {
+        ProcessDefinition definition = definitionWith(VariableDeclaration.builder()
+                .key("v").label("V").format(VariableFormat.MONEY).currency("BRL")
+                .extensionProperties(Map.of("kikwi:numberFormat", numberFormat))
+                .build());
+
+        List<VariableValidationError> errors = validator.validate(List.of(new VariableBinding("v", false)),
+                definition, Map.of("v", new ProcessVariable("v", value)));
+
+        assertEquals(expectedCode, errors.isEmpty() ? null : errors.get(0).code());
+    }
+
     static Stream<Arguments> emptyValues() {
         return Stream.of(Arguments.of((Object) null), Arguments.of("   "), Arguments.of(List.of()));
     }

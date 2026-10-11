@@ -47,6 +47,7 @@ import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
 import io.kikwiflow.model.definition.process.variable.VariableBindings;
 import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
 import io.kikwiflow.model.definition.process.variable.VariableFormat;
+import io.kikwiflow.model.definition.process.variable.VariableNumberFormat;
 import io.kikwiflow.model.definition.process.variable.VariableOption;
 import io.kikwiflow.model.definition.process.policies.SchedulePolicy;
 import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
@@ -59,6 +60,7 @@ import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -446,6 +448,23 @@ public class DeployValidator {
                 } catch (PatternSyntaxException e) {
                     throw new InvalidProcessDefinitionException(String.format(
                             "Validation failed for variable '%s': 'validationRegex' does not compile: %s", key, e.getDescription()), e);
+                }
+            }
+
+            // KIKWI-066: kikwi:numberFormat diz como um número é gravado como texto; só faz sentido em DECIMAL/MONEY
+            // e com um valor conhecido — um formato que ninguém lê viraria validação e soma silenciosamente erradas.
+            String numberFormat = declaration.extensionProperties() == null ? null
+                    : declaration.extensionProperties().get(VariableNumberFormat.CATALOG_PROPERTY);
+            if (numberFormat != null) {
+                if (format != VariableFormat.DECIMAL && format != VariableFormat.MONEY) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': '%s' is only allowed for DECIMAL/MONEY (format is %s).",
+                            key, VariableNumberFormat.CATALOG_PROPERTY, format));
+                }
+                if (Arrays.stream(VariableNumberFormat.values()).noneMatch(f -> f.name().equals(numberFormat))) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': '%s' must be one of %s (found '%s').",
+                            key, VariableNumberFormat.CATALOG_PROPERTY, List.of(VariableNumberFormat.values()), numberFormat));
                 }
             }
         }

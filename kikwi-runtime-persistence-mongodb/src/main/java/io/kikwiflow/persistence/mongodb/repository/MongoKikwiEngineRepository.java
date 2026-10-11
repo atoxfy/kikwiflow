@@ -38,6 +38,11 @@ import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.WriteModel;
+import io.kikwiflow.persistence.api.query.VariableAggregation;
+import io.kikwiflow.persistence.api.query.VariableAggregationResult;
+import io.kikwiflow.model.definition.process.variable.VariableNumberFormat;
+import io.kikwiflow.persistence.api.query.VariableProfile;
+import org.bson.types.Decimal128;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
@@ -85,6 +90,7 @@ import io.kikwiflow.persistence.api.history.HistoricInstanceSummary;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.time.Instant;
@@ -1619,6 +1625,236 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                     });
 
             return new PageResult<>(content, totalElements, totalPages, page, size);
+        }
+
+        /**
+         * Um único pipeline: {@code $match} com os mesmos filtros de {@link #listSummary()}, {@code $project} que
+         * converte cada variável para Decimal128 ({@code m<i>}) e marca presença ({@code p<i>}), e {@code $facet} com
+         * os totais e os grupos. Nada de instância sobe para a JVM — só os acumulados.
+         */
+        @Override
+        public VariableAggregationResult aggregate(VariableAggregation aggregation) {
+            MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION)
+                    .withReadPreference(ReadPreference.secondaryPreferred());
+            List<VariableAggregation.Metric> metrics = aggregation.metrics();
+            Document projection = new Document();
+            for (int i = 0; i < metrics.size(); i++) {
+                VariableAggregation.Metric metric = metrics.get(i);
+                String a = variableValuePath(metric.variable());
+                if (!metric.isDifference()) {
+                    projection.append("m" + i, toDecimalExpr(a, aggregation.formatOf(metric.variable()))).append("p" + i, presentFlag(isPresentExpr(a)));
+                    continue;
+                }
+                String b = variableValuePath(metric.minusVariable());
+                VariableNumberFormat formatA = aggregation.formatOf(metric.variable());
+                VariableNumberFormat formatB = aggregation.formatOf(metric.minusVariable());
+                Document both = new Document("$and", List.of(
+                        new Document("$ne", Arrays.asList(toDecimalExpr(a, formatA), null)),
+                        new Document("$ne", Arrays.asList(toDecimalExpr(b, formatB), null))));
+                projection.append("m" + i, new Document("$cond", Arrays.asList(both,
+                                new Document("$subtract", List.of(toDecimalExpr(a, formatA), toDecimalExpr(b, formatB))), null)))
+                        .append("p" + i, presentFlag(new Document("$and", List.of(isPresentExpr(a), isPresentExpr(b)))));
+            }
+            switch (aggregation.groupBy()) {
+                case ACTIVE_NODE -> projection.append("g", new Document("$objectToArray",
+                        new Document("$ifNull", List.of("$activeNodes", new Document()))));
+                case VARIABLE -> projection.append("g", variableValuePath(aggregation.groupByVariable()));
+                case NONE -> { }
+            }
+
+            Document facets = new Document("totals", List.of(new Document("$group", groupStage(null, metrics.size()))));
+            if (aggregation.groupBy() != VariableAggregation.GroupBy.NONE) {
+                List<Document> groupsPipeline = new ArrayList<>();
+                Object groupKey = "$g";
+                if (aggregation.groupBy() == VariableAggregation.GroupBy.ACTIVE_NODE) {
+                    groupsPipeline.add(new Document("$unwind", "$g"));
+                    groupsPipeline.add(new Document("$match", new Document("g.v", new Document("$gt", 0))));
+                    groupKey = "$g.k";
+                }
+                groupsPipeline.add(new Document("$group", groupStage(groupKey, metrics.size())));
+                groupsPipeline.add(new Document("$sort", new Document("n", -1)));
+                groupsPipeline.add(new Document("$limit", aggregation.maxGroups() + 1));
+                facets.append("groups", groupsPipeline);
+            }
+
+            Bson match = filters.isEmpty() ? new Document() : Filters.and(filters);
+            Document result = collection.aggregate(List.of(
+                            Aggregates.match(match),
+                            new Document("$project", projection),
+                            new Document("$facet", facets)))
+                    .allowDiskUse(true)
+                    .first();
+
+            List<Document> totalsDocs = result == null ? List.of() : result.getList("totals", Document.class, List.of());
+            VariableAggregationResult.Group totals = totalsDocs.isEmpty()
+                    ? new VariableAggregationResult.Group(null, 0, VariableAggregationResult.emptyMetrics(metrics))
+                    : toGroup(totalsDocs.get(0), metrics, true);
+            List<VariableAggregationResult.Group> groups = new ArrayList<>();
+            if (result != null) {
+                result.getList("groups", Document.class, List.of()).forEach(doc -> groups.add(toGroup(doc, metrics, false)));
+            }
+            return VariableAggregationResult.of(totals, groups, aggregation.maxGroups());
+        }
+
+        /**
+         * Amostra as instâncias mais recentes ({@code $sort}+{@code $limit} depois do {@code $match}) e, num
+         * {@code $facet}, conta a amostra e agrupa {@code $objectToArray(variables)} por chave e tipo — com a mesma
+         * leitura numérica estrita da agregação, nos dois formatos. Nenhum valor sai do banco.
+         */
+        @Override
+        public VariableProfile profileVariables(int sampleSize) {
+            int limit = sampleSize <= 0 ? 1000 : Math.min(sampleSize, VariableProfile.MAX_SAMPLE);
+            MongoCollection<Document> collection = getDatabase().getCollection(PROCESS_INSTANCE_COLLECTION)
+                    .withReadPreference(ReadPreference.secondaryPreferred());
+            String value = "$kv.v.value";
+
+            List<Document> keysPipeline = List.of(
+                    new Document("$project", new Document("kv", new Document("$objectToArray",
+                            new Document("$ifNull", List.of("$variables", new Document()))))),
+                    new Document("$unwind", "$kv"),
+                    new Document("$match", new Document("kv.v.value", new Document("$ne", null))),
+                    new Document("$project", new Document("k", "$kv.k")
+                            .append("t", new Document("$type", value))
+                            .append("plain", presentFlag(new Document("$ne", Arrays.asList(toDecimalExpr(value, VariableNumberFormat.PLAIN), null))))
+                            .append("br", presentFlag(new Document("$ne", Arrays.asList(toDecimalExpr(value, VariableNumberFormat.PT_BR), null))))),
+                    new Document("$group", new Document("_id", new Document("k", "$k").append("t", "$t"))
+                            .append("n", new Document("$sum", 1))
+                            .append("plain", new Document("$sum", "$plain"))
+                            .append("br", new Document("$sum", "$br"))),
+                    new Document("$group", new Document("_id", "$_id.k")
+                            .append("present", new Document("$sum", "$n"))
+                            .append("plain", new Document("$sum", "$plain"))
+                            .append("br", new Document("$sum", "$br"))
+                            .append("types", new Document("$push", new Document("t", "$_id.t").append("n", "$n")))),
+                    new Document("$sort", new Document("present", -1).append("_id", 1)));
+
+            Bson match = filters.isEmpty() ? new Document() : Filters.and(filters);
+            Document result = collection.aggregate(List.of(
+                            Aggregates.match(match),
+                            Aggregates.sort(Sorts.descending("startedAt")),
+                            Aggregates.limit(limit),
+                            new Document("$facet", new Document("sampled", List.of(new Document("$count", "n")))
+                                    .append("keys", keysPipeline))))
+                    .allowDiskUse(true)
+                    .first();
+            if (result == null) {
+                return new VariableProfile(0, List.of());
+            }
+            List<Document> sampled = result.getList("sampled", Document.class, List.of());
+            long sampledInstances = sampled.isEmpty() ? 0 : ((Number) sampled.get(0).get("n")).longValue();
+            List<VariableProfile.KeyProfile> keys = new ArrayList<>();
+            for (Document doc : result.getList("keys", Document.class, List.of())) {
+                Map<String, Long> types = new java.util.TreeMap<>();
+                for (Document type : doc.getList("types", Document.class, List.of())) {
+                    types.merge(profileTypeName(type.getString("t")), ((Number) type.get("n")).longValue(), Long::sum);
+                }
+                keys.add(new VariableProfile.KeyProfile(MongoKeyEncoder.decode(doc.getString("_id")),
+                        ((Number) doc.get("present")).longValue(), types,
+                        ((Number) doc.get("plain")).longValue(), ((Number) doc.get("br")).longValue()));
+            }
+            return new VariableProfile(sampledInstances, keys);
+        }
+
+        /** Vocabulário de {@link VariableProfile#typeName(Object)}: tipos BSON fora dele viram "other". */
+        private static String profileTypeName(String bsonType) {
+            return switch (bsonType == null ? "" : bsonType) {
+                case "string", "int", "long", "double", "decimal", "bool", "date", "object", "array" -> bsonType;
+                default -> "other";
+            };
+        }
+
+        private static String variableValuePath(String variable) {
+            return "$variables." + MongoKeyEncoder.encode(variable) + ".value";
+        }
+
+        /**
+         * Mesma regra de {@link VariableNumberFormat#toDecimal(Object)}: número nativo converte direto; texto só se,
+         * depois da limpeza do formato, casar com o padrão dele (leitura estrita, sem palpite); o resto vira null.
+         * Usa {@code $replaceAll}/{@code $regexMatch} (MongoDB 4.4+).
+         */
+        private static Document toDecimalExpr(String path, VariableNumberFormat format) {
+            Object plain = new Document("$trim", new Document("input", path));
+            Object ptBr = replaceAll(replaceAll(replaceAll(path, "R$", ""), " ", ""), "\u00A0", "");
+            Document plainBranch = new Document("case", regexMatch(plain, VariableNumberFormat.PLAIN_REGEX))
+                    .append("then", toDecimal(plain));
+            Document ptBrBranch = new Document("case", regexMatch(ptBr, VariableNumberFormat.PT_BR_REGEX))
+                    .append("then", toDecimal(replaceAll(replaceAll(ptBr, ".", ""), ",", ".")));
+            List<Document> textBranches = switch (format) {
+                case PLAIN -> List.of(plainBranch);
+                case PT_BR -> List.of(ptBrBranch);
+                case AUTO -> List.of(plainBranch, ptBrBranch); // PLAIN primeiro, como VariableNumberFormat.AUTO
+            };
+            Document fromText = new Document("$switch", new Document("branches", textBranches).append("default", null));
+            return new Document("$switch", new Document("branches", List.of(
+                    new Document("case", new Document("$in", List.of(new Document("$type", path), List.of("int", "long", "double", "decimal"))))
+                            .append("then", toDecimal(path)),
+                    new Document("case", new Document("$eq", List.of(new Document("$type", path), "string")))
+                            .append("then", fromText)))
+                    .append("default", null));
+        }
+
+        private static Document regexMatch(Object input, String regex) {
+            return new Document("$regexMatch", new Document("input", input).append("regex", regex));
+        }
+
+        private static Document replaceAll(Object input, String find, String replacement) {
+            return new Document("$replaceAll", new Document("input", input).append("find", find).append("replacement", replacement));
+        }
+
+        private static Document toDecimal(Object input) {
+            return new Document("$convert", new Document("input", input)
+                    .append("to", "decimal")
+                    .append("onError", null)
+                    .append("onNull", null));
+        }
+
+        private static Document isPresentExpr(String path) {
+            return new Document("$not", List.of(new Document("$in", List.of(new Document("$type", path), List.of("missing", "null")))));
+        }
+
+        private static Document presentFlag(Document condition) {
+            return new Document("$cond", Arrays.asList(condition, 1, 0));
+        }
+
+        private static Document groupStage(Object key, int metricCount) {
+            Document group = new Document("_id", key).append("n", new Document("$sum", 1));
+            for (int i = 0; i < metricCount; i++) {
+                String m = "$m" + i;
+                group.append("s" + i, new Document("$sum", m))
+                        .append("a" + i, new Document("$avg", m))
+                        .append("mn" + i, new Document("$min", m))
+                        .append("mx" + i, new Document("$max", m))
+                        .append("c" + i, new Document("$sum", new Document("$cond", Arrays.asList(
+                                new Document("$eq", Arrays.asList(m, null)), 0, 1))))
+                        .append("pr" + i, new Document("$sum", "$p" + i));
+            }
+            return group;
+        }
+
+        private static VariableAggregationResult.Group toGroup(Document doc, List<VariableAggregation.Metric> metrics, boolean totals) {
+            Map<String, VariableAggregationResult.MetricValue> values = new java.util.LinkedHashMap<>();
+            for (int i = 0; i < metrics.size(); i++) {
+                BigDecimal sum = decimal(doc.get("s" + i));
+                values.put(metrics.get(i).label(), new VariableAggregationResult.MetricValue(
+                        sum == null ? BigDecimal.ZERO : sum,
+                        decimal(doc.get("a" + i)),
+                        decimal(doc.get("mn" + i)),
+                        decimal(doc.get("mx" + i)),
+                        ((Number) doc.get("c" + i)).longValue(),
+                        ((Number) doc.get("pr" + i)).longValue()));
+            }
+            Object key = totals ? null : doc.get("_id");
+            if (key instanceof Decimal128 decimal128) {
+                key = decimal(decimal128);
+            }
+            return new VariableAggregationResult.Group(key, ((Number) doc.get("n")).longValue(), values);
+        }
+
+        private static BigDecimal decimal(Object value) {
+            if (value instanceof Decimal128 d) {
+                return d.isNaN() || d.isInfinite() ? null : d.bigDecimalValue();
+            }
+            return value instanceof Number n ? new BigDecimal(n.toString()) : null;
         }
     }
 

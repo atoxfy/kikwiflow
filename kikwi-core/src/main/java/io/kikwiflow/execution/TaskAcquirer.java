@@ -53,6 +53,10 @@ public class TaskAcquirer implements Runnable {
 
     public void start(KikwiflowEngine kikwiflowEngine){
         this.engine = kikwiflowEngine;
+        if(!kikwiflowConfig.isTaskAcquisitionEnabled()){
+            System.out.println("Kikwiflow Task Acquirer desligado (task-acquisition-enabled=false): nó passivo, nenhuma tarefa será executada por esta instância.");
+            return;
+        }
         if(!running){
             this.running = true;
             this.acquirerExecutor.submit(this);

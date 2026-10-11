@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * KIKWI-060..065 (docs/engine/14 e docs/engine/26): o {@link DeployValidator} rejeita no deploy catálogos de
+ * KIKWI-060..066 (docs/engine/14 e docs/engine/26): o {@link DeployValidator} rejeita no deploy catálogos de
  * variáveis malformados e vínculos órfãos, em vez de deixá-los estourar no primeiro start/complete.
  */
 @DisplayName("Dado um processo com catálogo de variáveis sendo implantado")
@@ -115,6 +115,17 @@ class VariableCatalogDeployValidationTest {
     void rejectsMoneyWithoutCurrency() {
         assertRejected(process(List.of(VariableDeclaration.builder().key("a").label("A").format(VariableFormat.MONEY).build())));
         assertRejected(process(List.of(VariableDeclaration.builder().key("a").label("A").format(VariableFormat.MONEY).currency("XYZW").build())));
+    }
+
+    @Test
+    @DisplayName("KIKWI-066: kikwi:numberFormat só em DECIMAL/MONEY e com valor conhecido")
+    void validatesNumberFormat() {
+        VariableDeclaration.Builder money = VariableDeclaration.builder().key("a").label("A").format(VariableFormat.MONEY).currency("BRL");
+        assertDoesNotThrow(() -> deployValidator.validate(process(List.of(
+                money.extensionProperties(Map.of("kikwi:numberFormat", "PT_BR")).build()))));
+        assertRejected(process(List.of(VariableDeclaration.builder().key("a").label("A").format(VariableFormat.MONEY).currency("BRL")
+                .extensionProperties(Map.of("kikwi:numberFormat", "BR")).build())));
+        assertRejected(process(List.of(text("a").extensionProperties(Map.of("kikwi:numberFormat", "PLAIN")).build())));
     }
 
     @Test

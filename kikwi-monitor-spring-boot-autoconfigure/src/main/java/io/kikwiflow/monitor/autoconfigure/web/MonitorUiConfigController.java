@@ -19,6 +19,7 @@ package io.kikwiflow.monitor.autoconfigure.web;
 
 import io.kikwiflow.monitor.autoconfigure.KikwiMonitorWebMvcConfiguration;
 import io.kikwiflow.monitor.autoconfigure.properties.MonitorUiProperties;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,10 +32,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class MonitorUiConfigController {
 
-    private final MonitorUiProperties properties;
+    static final String DEFAULT_REST_BASE_PATH = "/kikwiflow/api/v1";
 
-    public MonitorUiConfigController(MonitorUiProperties properties) {
+    private final MonitorUiProperties properties;
+    private final Environment environment;
+
+    public MonitorUiConfigController(MonitorUiProperties properties, Environment environment) {
         this.properties = properties;
+        this.environment = environment;
     }
 
     @GetMapping(path = KikwiMonitorWebMvcConfiguration.MONITOR_UI_PATH + "/config.json", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -46,7 +51,28 @@ public class MonitorUiConfigController {
                 properties.oidcRedirectUri(),
                 properties.requireAuth(),
                 properties.readOnly(),
-                new MonitorUiConfigResponse.ActingAs(properties.actingAs().actors(), properties.actingAs().header())
+                new MonitorUiConfigResponse.ActingAs(properties.actingAs().actors(), properties.actingAs().header()),
+                mcp()
         );
+    }
+
+    /**
+     * Lido do {@link Environment} (e não de uma dependência do módulo MCP): o Monitor não precisa do servidor MCP no
+     * classpath — só reflete o que o host ligou. Mesma regra de caminho de {@code KikwiMcpAutoConfiguration}.
+     */
+    private MonitorUiConfigResponse.Mcp mcp() {
+        boolean enabled = environment.getProperty("kikwiflow.mcp.enabled", Boolean.class, false);
+        if (!enabled) {
+            return new MonitorUiConfigResponse.Mcp(false, null, false);
+        }
+        String path = environment.getProperty("kikwiflow.mcp.path");
+        if (path == null || path.isBlank()) {
+            String basePath = environment.getProperty("kikwiflow.rest.base-path", DEFAULT_REST_BASE_PATH);
+            path = (basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath) + "/mcp";
+        }
+        String apiUrl = properties.apiUrl() == null ? "" : properties.apiUrl();
+        String url = (apiUrl.endsWith("/") ? apiUrl.substring(0, apiUrl.length() - 1) : apiUrl) + path;
+        return new MonitorUiConfigResponse.Mcp(true, url,
+                environment.getProperty("kikwiflow.mcp.write-tools.enabled", Boolean.class, false));
     }
 }

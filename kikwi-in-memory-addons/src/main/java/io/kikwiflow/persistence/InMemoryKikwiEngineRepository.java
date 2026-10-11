@@ -43,6 +43,10 @@ import io.kikwiflow.persistence.api.exception.OptimisticLockingFailureException;
 import io.kikwiflow.persistence.api.query.ExternalTaskQuery;
 import io.kikwiflow.persistence.api.query.IncidentQuery;
 import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
+import io.kikwiflow.persistence.api.query.VariableAggregation;
+import io.kikwiflow.persistence.api.query.VariableAggregationResult;
+import io.kikwiflow.model.definition.process.variable.VariableNumberFormat;
+import io.kikwiflow.persistence.api.query.VariableProfile;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
@@ -1197,6 +1201,93 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
                     .toList();
 
             return new PageResult<>(content, totalElements, totalPages, page, size);
+        }
+
+        @Override
+        public VariableAggregationResult aggregate(VariableAggregation aggregation) {
+            List<ProcessInstance> matched = processInstanceCollection.values().stream().filter(this::matches).toList();
+            List<VariableAggregation.Metric> metrics = aggregation.metrics();
+
+            Map<Object, List<ProcessInstance>> buckets = new java.util.LinkedHashMap<>();
+            for (ProcessInstance pi : matched) {
+                switch (aggregation.groupBy()) {
+                    case NONE -> { }
+                    case ACTIVE_NODE -> {
+                        if (pi.activeNodes() != null) {
+                            pi.activeNodes().forEach((node, count) -> {
+                                if (count != null && count > 0) {
+                                    buckets.computeIfAbsent(node, k -> new ArrayList<>()).add(pi);
+                                }
+                            });
+                        }
+                    }
+                    case VARIABLE -> buckets.computeIfAbsent(rawValue(pi, aggregation.groupByVariable()), k -> new ArrayList<>()).add(pi);
+                }
+            }
+
+            List<VariableAggregationResult.Group> groups = new ArrayList<>();
+            buckets.forEach((key, instances) -> groups.add(group(key, instances, metrics, aggregation)));
+            return VariableAggregationResult.of(group(null, matched, metrics, aggregation), groups, aggregation.maxGroups());
+        }
+
+        private VariableAggregationResult.Group group(Object key, List<ProcessInstance> instances,
+                                                      List<VariableAggregation.Metric> metrics,
+                                                      VariableAggregation aggregation) {
+            Map<String, VariableAggregationResult.MetricValue> values = new java.util.LinkedHashMap<>();
+            for (VariableAggregation.Metric metric : metrics) {
+                VariableAggregationResult.Accumulator acc = new VariableAggregationResult.Accumulator();
+                for (ProcessInstance pi : instances) {
+                    Object a = rawValue(pi, metric.variable());
+                    if (!metric.isDifference()) {
+                        acc.add(a != null, aggregation.formatOf(metric.variable()).toDecimal(a));
+                        continue;
+                    }
+                    Object b = rawValue(pi, metric.minusVariable());
+                    java.math.BigDecimal da = aggregation.formatOf(metric.variable()).toDecimal(a);
+                    java.math.BigDecimal db = aggregation.formatOf(metric.minusVariable()).toDecimal(b);
+                    acc.add(a != null && b != null, da != null && db != null ? da.subtract(db) : null);
+                }
+                values.put(metric.label(), acc.toValue());
+            }
+            return new VariableAggregationResult.Group(key, instances.size(), values);
+        }
+
+        @Override
+        public VariableProfile profileVariables(int sampleSize) {
+            int limit = sampleSize <= 0 ? 1000 : Math.min(sampleSize, VariableProfile.MAX_SAMPLE);
+            List<ProcessInstance> sample = processInstanceCollection.values().stream()
+                    .filter(this::matches)
+                    .sorted(Comparator.comparing(ProcessInstance::startedAt, Comparator.nullsFirst(Comparator.<Instant>naturalOrder())).reversed())
+                    .limit(limit)
+                    .toList();
+
+            Map<String, long[]> counts = new java.util.TreeMap<>(); // presentes, PLAIN, PT_BR
+            Map<String, Map<String, Long>> types = new HashMap<>();
+            for (ProcessInstance pi : sample) {
+                if (pi.variables() == null) {
+                    continue;
+                }
+                pi.variables().forEach((key, variable) -> {
+                    Object value = variable == null ? null : variable.value();
+                    if (value == null) {
+                        return;
+                    }
+                    long[] c = counts.computeIfAbsent(key, k -> new long[3]);
+                    c[0]++;
+                    if (VariableNumberFormat.PLAIN.toDecimal(value) != null) c[1]++;
+                    if (VariableNumberFormat.PT_BR.toDecimal(value) != null) c[2]++;
+                    types.computeIfAbsent(key, k -> new java.util.TreeMap<>()).merge(VariableProfile.typeName(value), 1L, Long::sum);
+                });
+            }
+            List<VariableProfile.KeyProfile> keys = new ArrayList<>();
+            counts.forEach((key, c) -> keys.add(new VariableProfile.KeyProfile(key, c[0], types.get(key), c[1], c[2])));
+            keys.sort(Comparator.comparingLong(VariableProfile.KeyProfile::presentCount).reversed());
+            return new VariableProfile(sample.size(), keys);
+        }
+
+        private Object rawValue(ProcessInstance pi, String variable) {
+            ProcessVariable pv = pi.variables() == null ? null : pi.variables().get(variable);
+            return pv == null ? null : pv.value();
         }
 
         private boolean matches(ProcessInstance pi) {
