@@ -94,8 +94,22 @@ public class TaskAcquirer implements Runnable {
         System.out.println("Kikwiflow Task Acquirer stopped.");
     }
 
+    /** Teto do backoff do poller quando a aquisição falha seguidamente (ex.: Mongo fora, documento corrompido). */
+    static final long MAX_ERROR_BACKOFF_MILLIS = 60_000L;
+
+    /**
+     * Espera após {@code consecutiveErrors} falhas seguidas: o intervalo normal dobrando a cada falha, até
+     * {@link #MAX_ERROR_BACKOFF_MILLIS}. Sem isso o loop voltaria imediatamente ao repositório que acabou de falhar.
+     */
+    static long errorBackoffMillis(long intervalMillis, int consecutiveErrors) {
+        long base = Math.max(intervalMillis, 1L);
+        int shift = Math.min(Math.max(consecutiveErrors - 1, 0), 20);
+        return Math.min(base << shift, Math.max(base, MAX_ERROR_BACKOFF_MILLIS));
+    }
+
     @Override
     public void run() {
+        int consecutiveErrors = 0;
         while (running) {
             try {
                 int availablePermits = concurrencyLimit.availablePermits();
@@ -119,20 +133,38 @@ public class TaskAcquirer implements Runnable {
                         try {
                             engine.executeFromTask(task);
                         } catch (Exception ex) {
-                            System.err.println("Erro crítico na execução: " + ex.getMessage());
+                            System.err.println("Erro crítico na execução da task " + task.id() + ": " + ex);
+                            ex.printStackTrace();
                         } finally {
                             concurrencyLimit.release();
                         }
                     });
                 }
 
+                if (consecutiveErrors > 0) {
+                    System.out.println("Kikwiflow Poller recuperado após " + consecutiveErrors + " falha(s) seguida(s).");
+                    consecutiveErrors = 0;
+                }
                 Thread.sleep(kikwiflowConfig.getTaskAcquisitionIntervalMillis());
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 this.running = false;
             } catch (Exception e) {
-                System.err.println("Erro no Poller: " + e.getMessage());
+                consecutiveErrors++;
+                long backoff = errorBackoffMillis(kikwiflowConfig.getTaskAcquisitionIntervalMillis(), consecutiveErrors);
+                // toString() traz a classe: getMessage() sozinho imprimia só "null" (ex.: NPE sem mensagem).
+                System.err.println("Erro no Poller (falha " + consecutiveErrors + " seguida; nova tentativa em "
+                        + backoff + " ms): " + e);
+                if (consecutiveErrors == 1) {
+                    e.printStackTrace();
+                }
+                try {
+                    Thread.sleep(backoff);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    this.running = false;
+                }
             }
         }
     }

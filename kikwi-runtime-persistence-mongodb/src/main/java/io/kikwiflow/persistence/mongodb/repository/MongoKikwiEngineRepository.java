@@ -646,10 +646,25 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                 break;
             }
 
-            lockedTasks.add(ExecutableTaskMapper.fromDocument(lockedDoc));
+            try {
+                lockedTasks.add(ExecutableTaskMapper.fromDocument(lockedDoc));
+            } catch (RuntimeException e) {
+                // Documento já travado mas ilegível: lançar aqui perderia as tasks já travadas nesta rodada e o
+                // poller voltaria a pegá-lo a cada expiração de lock. Fica em quarentena (ERROR) para análise.
+                quarantineUnreadableTask(collection, lockedDoc.get("_id"), e);
+            }
         }
 
         return lockedTasks;
+    }
+
+    private void quarantineUnreadableTask(MongoCollection<Document> collection, Object taskId, RuntimeException cause) {
+        String reason = "Documento de executable task ilegível na aquisição: " + cause;
+        System.err.println("Kikwiflow: task " + taskId + " movida para ERROR. " + reason);
+        cause.printStackTrace();
+        collection.updateOne(eq("_id", taskId), Updates.combine(
+                Updates.set("status", ExecutableTaskStatus.ERROR.name()),
+                Updates.set("error", reason)));
     }
 
     @Override

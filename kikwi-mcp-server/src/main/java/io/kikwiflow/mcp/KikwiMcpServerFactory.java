@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.exception.VariableValidationException;
 import io.kikwiflow.management.exception.NotFoundException;
+import io.kikwiflow.mcp.support.TolerantJsonSchemaValidator;
 import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpServer;
@@ -75,8 +76,10 @@ public class KikwiMcpServerFactory {
                 .map(this::toSpecification)
                 .toList();
 
+        ObjectMapper protocolMapper = new ObjectMapper();
         return McpServer.sync(transport)
-                .jsonMapper(new JacksonMcpJsonMapper(new ObjectMapper()))
+                .jsonMapper(new JacksonMcpJsonMapper(protocolMapper))
+                .jsonSchemaValidator(new TolerantJsonSchemaValidator(protocolMapper))
                 .serverInfo(McpSchema.Implementation.builder(SERVER_NAME, version)
                         .title("Kikwiflow")
                         .description("Consulta, diagnóstico e operação governada do motor de workflow Kikwiflow.")

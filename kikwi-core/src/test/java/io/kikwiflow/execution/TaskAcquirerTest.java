@@ -27,12 +27,14 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -96,6 +98,41 @@ class TaskAcquirerTest {
             acquirer.start(engine);
 
             verify(repository, timeout(2000).atLeastOnce()).findAndLockDueTasks(any(), anyInt(), anyString(), anyLong());
+        }
+    }
+
+    @Nested
+    @DisplayName("Dado um repositório que falha em toda aquisição")
+    class FailingRepository {
+
+        @Test
+        @DisplayName("Quando o poller roda, Então espera com backoff crescente em vez de girar sem pausa")
+        void backsOffInsteadOfSpinning() {
+            when(repository.findAndLockDueTasks(any(), anyInt(), anyString(), anyLong()))
+                    .thenThrow(new NullPointerException());
+            acquirer = new TaskAcquirer(repository, config(true));
+
+            acquirer.start(engine);
+
+            // Intervalo de 20 ms dobrando a cada falha: ~5 tentativas em 600 ms. Sem backoff seriam milhares.
+            verify(repository, after(600).atMost(8)).findAndLockDueTasks(any(), anyInt(), anyString(), anyLong());
+            verify(repository, atLeast(2)).findAndLockDueTasks(any(), anyInt(), anyString(), anyLong());
+        }
+
+        @Test
+        @DisplayName("Então o backoff dobra a cada falha seguida e para no teto")
+        void backoffDoublesUpToTheCap() {
+            assertEquals(5_000L, TaskAcquirer.errorBackoffMillis(5_000L, 1));
+            assertEquals(10_000L, TaskAcquirer.errorBackoffMillis(5_000L, 2));
+            assertEquals(40_000L, TaskAcquirer.errorBackoffMillis(5_000L, 4));
+            assertEquals(TaskAcquirer.MAX_ERROR_BACKOFF_MILLIS, TaskAcquirer.errorBackoffMillis(5_000L, 5));
+            assertEquals(TaskAcquirer.MAX_ERROR_BACKOFF_MILLIS, TaskAcquirer.errorBackoffMillis(5_000L, 1_000));
+        }
+
+        @Test
+        @DisplayName("Então um intervalo configurado acima do teto é respeitado como piso")
+        void intervalAboveCapIsKept() {
+            assertEquals(120_000L, TaskAcquirer.errorBackoffMillis(120_000L, 3));
         }
     }
 }
