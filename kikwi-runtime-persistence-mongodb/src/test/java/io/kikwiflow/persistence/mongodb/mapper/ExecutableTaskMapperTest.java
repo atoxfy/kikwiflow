@@ -208,4 +208,35 @@ class ExecutableTaskMapperTest {
         assertNull(restored.loopIndex());
         assertNull(restored.loopElement());
     }
+
+    /**
+     * Documento regravado pelo driver Node (ex.: ops/kikwiflow/backups/restore.js do vaapty-bff): Int64 volta como
+     * Int32 e Double inteiro (2.0) também. Antes, {@code getLong}/{@code getDouble} lançavam ClassCastException e o
+     * poller girava sem pausa em produção.
+     */
+    @Test
+    void readsNumbersRewrittenAsInt32ByExternalTools() {
+        org.bson.Document doc = ExecutableTaskMapper.toDocument(ExecutableTask.builder()
+                .id("task-3")
+                .taskDefinitionId("PROCESS_DATA")
+                .processInstanceId("proc-3")
+                .processDefinitionId("def-1")
+                .type(ExecutableTaskType.STANDARD)
+                .status(ExecutableTaskStatus.LOCKED)
+                .build());
+        doc.put("executions", 2);
+        doc.put("retries", 1);
+        doc.put("retryPolicy", new org.bson.Document("strategy", "EXPONENTIAL_BACKOFF")
+                .append("maxRetries", 3L)
+                .append("initialInterval", "PT1M")
+                .append("multiplier", 2)
+                .append("maxInterval", "PT1H"));
+
+        ExecutableTask restored = ExecutableTaskMapper.fromDocument(doc);
+
+        assertEquals(2L, restored.executions());
+        assertEquals(1L, restored.retries());
+        assertEquals(3, restored.retryPolicy().maxRetries());
+        assertEquals(2.0, restored.retryPolicy().multiplier());
+    }
 }

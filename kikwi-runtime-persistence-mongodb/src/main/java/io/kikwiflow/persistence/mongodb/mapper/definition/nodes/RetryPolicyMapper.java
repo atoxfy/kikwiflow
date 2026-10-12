@@ -19,6 +19,7 @@ package io.kikwiflow.persistence.mongodb.mapper.definition.nodes;
 
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.execution.enumerated.RetryStrategy;
+import io.kikwiflow.persistence.mongodb.mapper.NumberMapper;
 import org.bson.Document;
 
 public class RetryPolicyMapper {
@@ -31,9 +32,9 @@ public class RetryPolicyMapper {
         if (policyDoc != null) {
             retryPolicy = new RetryPolicy(
                     RetryStrategy.valueOf(policyDoc.getString("strategy")),
-                    policyDoc.getInteger("maxRetries"),
+                    NumberMapper.getInteger(policyDoc, "maxRetries"),
                     policyDoc.getString("initialInterval"),
-                    policyDoc.getDouble("multiplier"),
+                    NumberMapper.getDouble(policyDoc, "multiplier"),
                     policyDoc.getString("maxInterval"),
                     policyDoc.getList("intervals", String.class)
             );
