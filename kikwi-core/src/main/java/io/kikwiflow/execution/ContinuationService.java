@@ -28,6 +28,7 @@ import io.kikwiflow.execution.evaluator.TimerDueDateEvaluator;
 import io.kikwiflow.execution.api.dto.CorrelationItem;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.AgentTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.EventCatcherDefinition;
@@ -420,6 +421,29 @@ public class ContinuationService {
 
             nextExternalTasks.add(externalTask);
 
+        } else if (flowNodeDefinition instanceof AgentTaskDefinition agentTask) {
+            // Mesma wait state de uma EXTERNAL_TASK, com tópico: quem a trabalha é um worker com lease
+            // (KikwiflowEngine.fetchAndLock), não a caixa de entrada humana. Boundaries idem (docs/engine/31, E1).
+            String agentTaskId = UUID.randomUUID().toString();
+            List<AttachedEventReference> boundaryEvents = generateBoundaryEvents(
+                    agentTask.boundaryEventIds(), agentTaskId, AttachedTaskType.EXTERNAL_TASK, flowNodeDefinitionId,
+                    branchId, joinTaskId, processInstanceExecution, processDefinition, nextExecutableTasks, nextExternalTasks);
+
+            nextExternalTasks.add(ExternalTask.builder()
+                    .id(agentTaskId)
+                    .processDefinitionId(processDefinitionId)
+                    .taskDefinitionId(flowNodeDefinitionId)
+                    .processInstanceId(processInstanceId)
+                    .name(flowNodeDefinition.name())
+                    .description(flowNodeDefinition.description())
+                    .type(ExternalTaskType.AGENT)
+                    .topicName(agentTask.topic())
+                    .boundaryEvents(boundaryEvents)
+                    .tenantId(processInstanceExecution.getTenantId())
+                    .branchId(branchId)
+                    .joinTaskId(joinTaskId)
+                    .build());
+
         } else if (flowNodeDefinition instanceof ExecutableTaskDefinition st) {
             String executableTaskNodeId = UUID.randomUUID().toString();
             List<AttachedEventReference> boundaryEvents = generateBoundaryEvents(
@@ -633,7 +657,8 @@ public class ContinuationService {
                 // BOUNDARY_ERROR_HANDLER não materializa task nenhuma — try/catch síncrono resolvido inline em
                 // ProcessExecutionManager.executeFlow/Navigator.findMatchingErrorHandler. Só listado aqui pra
                 // não cair no throw abaixo; DeployValidator já garante que só chega aqui quando o nó pai
-                // realmente suporta esse tipo (hoje, só ExecutableTaskDefinition).
+                // realmente suporta esse tipo (ExecutableTaskDefinition e AgentTaskDefinition — neste, o erro
+                // chega pelo worker, via KikwiflowEngine.throwBusinessError).
 
             } else {
                 throw new NotImplementedException("Processamento de tarefa de borda não implementado para o tipo "

@@ -23,9 +23,13 @@ import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
+import io.kikwiflow.model.event.AgentActivityRecorded;
 import io.kikwiflow.model.event.CriticalEventType;
+import io.kikwiflow.model.event.EventCorrelated;
 import io.kikwiflow.model.event.ExternalTaskClaimed;
 import io.kikwiflow.model.event.ExternalTaskCompleted;
+import io.kikwiflow.model.event.ExternalTaskFailed;
+import io.kikwiflow.model.event.ExternalTaskLocked;
 import io.kikwiflow.model.event.ExternalTaskUnclaimed;
 import io.kikwiflow.model.event.FlowNodeFinished;
 import io.kikwiflow.model.event.GatewayAnswerResolved;
@@ -345,6 +349,79 @@ public class CriticalEventRecorder {
         );
 
         events.add(new OutboxEventEntity(CriticalEventType.EXTERNAL_TASK_COMPLETED, completedEvent));
+    }
+
+    /** Um worker adquiriu a tarefa com lease (docs/engine/31, E2). {@code task} já é o estado travado. */
+    public void recordExternalTaskLocked(List<OutboxEventEntity> events, ExternalTask task) {
+        if (!isEnabled()) return;
+
+        events.add(new OutboxEventEntity(CriticalEventType.EXTERNAL_TASK_LOCKED, new ExternalTaskLocked(
+                task.id(),
+                task.processDefinitionId(),
+                task.processInstanceId(),
+                task.tenantId(),
+                task.taskDefinitionId(),
+                task.topicName(),
+                task.lockOwner(),
+                task.lockExpiresAt(),
+                Instant.now()
+        )));
+    }
+
+    /** Falha técnica reportada pelo worker. {@code failed} é o estado já gravado (retries, availableAt). */
+    public void recordExternalTaskFailed(List<OutboxEventEntity> events, ExternalTask failed, String workerId) {
+        if (!isEnabled()) return;
+
+        events.add(new OutboxEventEntity(CriticalEventType.EXTERNAL_TASK_FAILED, new ExternalTaskFailed(
+                failed.id(),
+                failed.processDefinitionId(),
+                failed.processInstanceId(),
+                failed.tenantId(),
+                failed.taskDefinitionId(),
+                workerId,
+                failed.errorMessage(),
+                failed.retries() != null ? failed.retries() : 0,
+                failed.availableAt(),
+                Instant.now()
+        )));
+    }
+
+    /**
+     * Atividade de uma missão de agente ({@code AGENT_*}, docs/engine/31 E3) — reportada pelo runtime ou, no
+     * caso de {@code AGENT_MISSION_COMPLETED}, gerada pelo próprio motor no complete.
+     */
+    public void recordAgentActivity(List<OutboxEventEntity> events, CriticalEventType type, ExternalTask task,
+                                    String workerId, Instant at, Map<String, Object> data) {
+        if (!isEnabled()) return;
+
+        events.add(new OutboxEventEntity(type, new AgentActivityRecorded(
+                task.id(),
+                task.processDefinitionId(),
+                task.processInstanceId(),
+                task.tenantId(),
+                task.taskDefinitionId(),
+                workerId,
+                at != null ? at : Instant.now(),
+                data
+        )));
+    }
+
+    /** Uma mensagem externa encontrou {@code task} esperando {@code correlationKey}. */
+    public void recordEventCorrelated(List<OutboxEventEntity> events, String correlationKey, ExternalTask task,
+                                      String actorId, Map<String, ProcessVariable> submittedVariables) {
+        if (!isEnabled()) return;
+
+        events.add(new OutboxEventEntity(CriticalEventType.EVENT_CORRELATED, new EventCorrelated(
+                correlationKey,
+                task.id(),
+                task.processDefinitionId(),
+                task.processInstanceId(),
+                task.tenantId(),
+                task.taskDefinitionId(),
+                actorId,
+                Instant.now(),
+                submittedVariables
+        )));
     }
 
     /**

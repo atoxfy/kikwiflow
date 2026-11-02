@@ -21,9 +21,17 @@ import io.kikwiflow.model.execution.ProcessVariable;
 
 import java.util.Map;
 
+/**
+ * @param workerId      dono do lease (docs/engine/31, E2): obrigatório para concluir uma missão de
+ *                      {@code AGENT_TASK}; ausente = complete humano de sempre
+ * @param missionReport resumo opcional do runtime de agentes (ex.: {@code turns}, {@code usage}), gravado no
+ *                      {@code AGENT_MISSION_COMPLETED}
+ */
 public record CompleteExternalTaskRequest(
         String tenant,
         String targetFlowNodeId,
-        Map<String, ProcessVariable> variables
+        Map<String, ProcessVariable> variables,
+        String workerId,
+        Map<String, Object> missionReport
 ) {
 }

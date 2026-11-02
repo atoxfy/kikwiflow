@@ -1,0 +1,70 @@
+{
+  "key": "agent-task",
+  "name": "Missão de agente (pré-vendas)",
+  "description": "Fixture de teste (docs/engine/31): start -> QUALIFICAR (AGENT_TASK com contrato de saída, error handler OPT_OUT e catch interruptivo 'humano assumiu') -> GW por resultado -> fins.",
+  "extensionProperties": {},
+  "variableDeclarations": [
+    { "key": "conversationId", "label": "Conversa", "format": "SHORT_TEXT" },
+    { "key": "leadNome", "label": "Nome do lead", "format": "SHORT_TEXT" },
+    { "key": "resultado", "label": "Resultado", "format": "SINGLE_SELECT",
+      "options": [ { "value": "AGENDADO", "label": "Agendado" }, { "value": "PERDIDO", "label": "Perdido" } ] },
+    { "key": "fotosVeiculo", "label": "Fotos do veículo", "format": "FILE",
+      "extensionProperties": { "kikwi:file.multiple": "true", "kikwi:file.mimeTypes": "image/*", "kikwi:file.maxCount": "3" } }
+  ],
+  "flowNodes": {
+    "START_EVENT": {
+      "id": "START_EVENT", "name": "Lead recebido", "type": "DEFAULT_START_EVENT",
+      "commitBefore": false, "commitAfter": false,
+      "variableBindings": { "inputs": [ { "variable": "conversationId", "required": true } ], "outputs": [] },
+      "outgoing": [ { "id": "f1", "name": "", "targetNodeId": "QUALIFICAR", "isDefault": false } ],
+      "extensionProperties": {}
+    },
+    "QUALIFICAR": {
+      "id": "QUALIFICAR", "name": "Qualificar e agendar", "type": "AGENT_TASK",
+      "commitBefore": false, "commitAfter": false,
+      "topic": "kikwi.agents",
+      "agentRef": { "key": "pre-vendas", "version": null },
+      "tools": ["solicitar_midia", "agendar_visita"],
+      "limits": { "maxTurns": 80, "ttl": "P7D" },
+      "boundaryEventIds": ["OPT_OUT", "HUMANO_ASSUMIU"],
+      "variableBindings": {
+        "inputs": [ { "variable": "conversationId", "required": true } ],
+        "outputs": [
+          { "variable": "resultado", "required": true },
+          { "variable": "fotosVeiculo", "required": false }
+        ]
+      },
+      "outgoing": [ { "id": "f2", "name": "", "targetNodeId": "GW_RESULTADO", "isDefault": false } ],
+      "extensionProperties": { "kikwi:prompt": "Convença {{leadNome}} a agendar uma visita." }
+    },
+    "OPT_OUT": {
+      "id": "OPT_OUT", "name": "Lead pediu opt-out", "type": "BOUNDARY_ERROR_HANDLER",
+      "attachedToRef": "QUALIFICAR", "errorCode": "OPT_OUT",
+      "commitBefore": false, "commitAfter": false,
+      "outgoing": [ { "id": "f3", "name": "", "targetNodeId": "FIM_OPT_OUT", "isDefault": false } ],
+      "extensionProperties": {}
+    },
+    "HUMANO_ASSUMIU": {
+      "id": "HUMANO_ASSUMIU", "name": "Humano assumiu", "type": "BOUNDARY_INTERRUPTIVE_CATCH_EVENT",
+      "attachedToRef": "QUALIFICAR", "providerType": "STATIC", "staticKey": "humano-assumiu-1",
+      "commitBefore": false, "commitAfter": false,
+      "outgoing": [ { "id": "f4", "name": "", "targetNodeId": "FIM_HUMANO", "isDefault": false } ],
+      "extensionProperties": {}
+    },
+    "GW_RESULTADO": {
+      "id": "GW_RESULTADO", "name": "Resultado?", "type": "EXCLUSIVE_GATEWAY",
+      "providerType": "VARIABLE", "providerVariable": "resultado",
+      "commitBefore": false, "commitAfter": false,
+      "outgoing": [
+        { "id": "f5", "name": "", "targetNodeId": "FIM_AGENDADO", "isDefault": false, "expectedAnswer": "AGENDADO" },
+        { "id": "f6", "name": "", "targetNodeId": "FIM_PERDIDO", "isDefault": true, "handlesNull": true }
+      ],
+      "extensionProperties": {}
+    },
+    "FIM_AGENDADO": { "id": "FIM_AGENDADO", "name": "Agendado", "type": "DEFAULT_END_EVENT", "commitBefore": false, "commitAfter": false, "outgoing": [], "extensionProperties": {} },
+    "FIM_PERDIDO": { "id": "FIM_PERDIDO", "name": "Perdido", "type": "DEFAULT_END_EVENT", "commitBefore": false, "commitAfter": false, "outgoing": [], "extensionProperties": {} },
+    "FIM_OPT_OUT": { "id": "FIM_OPT_OUT", "name": "Opt-out", "type": "DEFAULT_END_EVENT", "commitBefore": false, "commitAfter": false, "outgoing": [], "extensionProperties": {} },
+    "FIM_HUMANO": { "id": "FIM_HUMANO", "name": "Com humano", "type": "DEFAULT_END_EVENT", "commitBefore": false, "commitAfter": false, "outgoing": [], "extensionProperties": {} }
+  },
+  "defaultStartPoint": "START_EVENT"
+}

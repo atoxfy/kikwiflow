@@ -24,6 +24,7 @@ import io.kikwiflow.mcp.ToolResult;
 import io.kikwiflow.mcp.support.DefinitionLookup;
 import io.kikwiflow.mcp.support.MonitorLinks;
 import io.kikwiflow.mcp.support.NodeDescriber;
+import io.kikwiflow.model.definition.process.ProcessContract;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.execution.form.FormDescriptor;
 import io.kikwiflow.model.stats.KKFMetrics;
@@ -137,6 +138,14 @@ public class ProcessDefinitionTools {
         putIfPresent(result, "documentation", definition.extensionProperties() != null
                 ? definition.extensionProperties().get(NodeDescriber.DOCUMENTATION_KEY) : null);
         result.put("startNode", definition.defaultStartPoint());
+        // O que o processo pede e devolve visto de fora (como ferramenta de um agente). O logo não vai inteiro:
+        // é um data URI grande que não ajuda o agente a entender o processo.
+        ProcessContract contract = ProcessContract.of(definition);
+        Map<String, Object> contractView = new LinkedHashMap<>();
+        contractView.put("inputs", contract.inputs().stream().map(ProcessDefinitionTools::contractField).toList());
+        contractView.put("returns", contract.outputs().stream().map(ProcessDefinitionTools::contractField).toList());
+        result.put("contract", contractView);
+        result.put("hasIcon", definition.icon().isPresent());
 
         List<Map<String, Object>> variables = definition.variableDeclarations() == null ? List.of()
                 : definition.variableDeclarations().stream().map(NodeDescriber::declaration).toList();
@@ -152,6 +161,13 @@ public class ProcessDefinitionTools {
 
         return ToolResult.of("Processo `" + definition.key() + "` v" + definition.version() + ": " + nodes.size()
                 + " nós, " + variables.size() + " variáveis declaradas.", result);
+    }
+
+    private static Map<String, Object> contractField(ProcessContract.Field field) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("variable", field.variable());
+        item.put("required", field.required());
+        return item;
     }
 
     private ToolResult getStartForm(ToolArgs args, McpCallContext context) {

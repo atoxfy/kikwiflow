@@ -20,6 +20,7 @@ import io.kikwiflow.config.KikwiflowConfig;
 import io.kikwiflow.event.AsynchronousEventPublisher;
 import io.kikwiflow.event.ExecutionEventListener;
 import io.kikwiflow.exception.ProcessInstanceNotFoundException;
+import io.kikwiflow.exception.ExternalTaskLockException;
 import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.execution.ContinuationService;
 import io.kikwiflow.execution.FailureHandler;
@@ -34,19 +35,26 @@ import io.kikwiflow.execution.dto.ExecutionOutcome;
 import io.kikwiflow.execution.dto.ExecutionResult;
 import io.kikwiflow.execution.mapper.ProcessInstanceMapper;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.AgentTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
+import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveCatchEventDefinition;
 import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
+import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
 import io.kikwiflow.model.definition.process.policies.RetryPolicy;
 import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.event.CriticalEventType;
 import io.kikwiflow.model.event.lightweight.SyncContinuationFailed;
 import io.kikwiflow.model.execution.Incident;
+import io.kikwiflow.model.execution.AgentActivityReport;
+import io.kikwiflow.model.execution.LockedExternalTask;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
+import io.kikwiflow.model.execution.enumerated.ExternalTaskType;
 import io.kikwiflow.model.execution.enumerated.IncidentStatus;
 import io.kikwiflow.model.execution.node.ExecutableTask;
 import io.kikwiflow.model.execution.node.ExternalTask;
@@ -61,13 +69,16 @@ import io.kikwiflow.variable.VariableContractValidator;
 import io.kikwiflow.variable.VariableValidationError;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -151,8 +162,15 @@ public class KikwiflowEngine {
             throw new IllegalStateException("Only OPEN incidents can be retried.");
         }
 
-        ExecutableTask failedTask = kikwiEngineRepository.findExecutableTaskById(incident.executionId())
-                .orElseThrow(() -> new TaskNotFoundException("Associated ExecutableTask not found: " + incident.executionId()));
+        Optional<ExecutableTask> failedExecutable = kikwiEngineRepository.findExecutableTaskById(incident.executionId());
+        if (failedExecutable.isEmpty()) {
+            // Incidente aberto por um worker com lease (docs/engine/31, E2): a tarefa externa volta a ser adquirível.
+            ExternalTask failedExternal = kikwiEngineRepository.findExternalTaskById(incident.executionId())
+                    .orElseThrow(() -> new TaskNotFoundException("Associated task not found: " + incident.executionId()));
+            retryExternalTaskIncident(incident, failedExternal, identityContext);
+            return;
+        }
+        ExecutableTask failedTask = failedExecutable.get();
 
         long retriesToRestore = failedTask.retryPolicy() != null
                 ? failedTask.retryPolicy().maxRetries()
@@ -282,6 +300,13 @@ public class KikwiflowEngine {
             );
         }
 
+        // Uma missão de agente só se conclui pelo dono do lease (completeExternalTask com workerId). Quem quiser
+        // tirá-la do agente modela isso no processo — ex.: um catch interruptivo "humano assumiu".
+        if (taskToComplete.type() == ExternalTaskType.AGENT) {
+            throw new ExternalTaskLockException("ExternalTask " + externalTaskId
+                    + " é uma missão de agente: conclua com o workerId do lease.");
+        }
+
         return completeExternalTask(taskToComplete, variables, identityContext.actorId());
     }
 
@@ -317,6 +342,15 @@ public class KikwiflowEngine {
     }
 
     ProcessInstance completeExternalTask(ExternalTask taskToComplete, Map<String, ProcessVariable> variables, String actorId) {
+        return completeExternalTask(taskToComplete, variables, actorId, List.of());
+    }
+
+    /**
+     * @param leadingEvents eventos que entram no mesmo commit da conclusão, logo depois do
+     *                      {@code EXTERNAL_TASK_COMPLETED} (ex.: {@code EVENT_CORRELATED}, {@code AGENT_MISSION_COMPLETED})
+     */
+    private ProcessInstance completeExternalTask(ExternalTask taskToComplete, Map<String, ProcessVariable> variables,
+                                                 String actorId, List<OutboxEventEntity> leadingEvents) {
         ProcessInstance processInstanceRecord = kikwiEngineRepository.findProcessInstanceById(taskToComplete.processInstanceId())
                 .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found with id: " + taskToComplete.processInstanceId()));
 
@@ -343,12 +377,14 @@ public class KikwiflowEngine {
         // outputs (fase 2): o que precisa existir depois desta etapa — validado no mesmo estado mesclado e com a
         // mesma semântica síncrona (422 na API, tarefa continua pendente), já que quem conclui está esperando a
         // resposta. Numa EXECUTABLE_TASK a falha de output vira retry/incidente (ProcessExecutionManager).
-        if (completedNode instanceof ExternalTaskDefinition externalTaskDefinition) {
+        // AGENT_TASK tem o mesmo contrato: é o ponto em que o motor não confia no LLM (docs/engine/31).
+        if ((completedNode instanceof ExternalTaskDefinition || completedNode instanceof AgentTaskDefinition)
+                && completedNode instanceof VariableBindingAware bindingAware) {
             Map<String, ProcessVariable> mergedState = new HashMap<>(processInstanceExecution.getVariables());
             List<VariableValidationError> errors = new ArrayList<>(variableContractValidator.validate(
-                    externalTaskDefinition.variableBindingsOrEmpty().inputs(), processDefinition, mergedState));
+                    bindingAware.variableBindingsOrEmpty().inputs(), processDefinition, mergedState));
             errors.addAll(variableContractValidator.validate(
-                    externalTaskDefinition.variableBindingsOrEmpty().outputs(), processDefinition, mergedState));
+                    bindingAware.variableBindingsOrEmpty().outputs(), processDefinition, mergedState));
             if (!errors.isEmpty()) {
                 throw new VariableValidationException(taskToComplete.taskDefinitionId(), errors);
             }
@@ -363,6 +399,20 @@ public class KikwiflowEngine {
         boolean isCommitAfter = Boolean.TRUE.equals(completedNode.commitAfter());
         Continuation continuation = navigator.determineNextContinuation(completedNode, processDefinition, processInstanceExecution.getVariables(), isCommitAfter);
 
+        return continueFromExternalTask(taskToComplete, completedNode, continuation, processInstanceExecution,
+                processDefinition, actorId, changedVariables, leadingEvents);
+    }
+
+    /**
+     * Executa a continuação já decidida a partir de uma tarefa externa e persiste tudo num commit — a saída
+     * normal ({@link #completeExternalTask}) ou a de um {@code BOUNDARY_ERROR_HANDLER} ({@link #throwBusinessError}).
+     */
+    private ProcessInstance continueFromExternalTask(ExternalTask taskToComplete, FlowNodeDefinition completedNode,
+                                                     Continuation continuation,
+                                                     ProcessInstanceExecution processInstanceExecution,
+                                                     ProcessDefinition processDefinition, String actorId,
+                                                     Map<String, ProcessVariable> changedVariables,
+                                                     List<OutboxEventEntity> leadingEvents) {
         ExecutionResult executionResult;
 
         if (continuation == null || continuation.nextNodes().isEmpty()) {
@@ -420,6 +470,13 @@ public class KikwiflowEngine {
             }
         }
 
+        if (leadingEvents != null && !leadingEvents.isEmpty()) {
+            List<OutboxEventEntity> events = new ArrayList<>(leadingEvents);
+            events.addAll(executionResult.outcome().events());
+            executionResult = new ExecutionResult(
+                    new ExecutionOutcome(executionResult.outcome().processInstance(), events), executionResult.continuation());
+        }
+
         return continuationService.handleContinuation(executionResult, taskToComplete, processDefinition, actorId, changedVariables);
     }
 
@@ -443,7 +500,7 @@ public class KikwiflowEngine {
                 .orElseThrow(() -> new TaskNotFoundException(
                         "Nenhum EVENT_CATCHER ativo aguardando a chave de correlação: " + correlationKey));
 
-        return resolveAndComplete(hit, variables, identityContext.actorId());
+        return resolveAndComplete(correlationKey, hit, variables, identityContext.actorId());
     }
 
     /**
@@ -460,13 +517,17 @@ public class KikwiflowEngine {
                 .orElseThrow(() -> new TaskNotFoundException(
                         "Kikwiflow Engine: nenhum EVENT_CATCHER ativo aguardando a chave de correlação lançada: " + correlationKey));
 
-        return resolveAndComplete(hit, variables, null);
+        return resolveAndComplete(correlationKey, hit, variables, null);
     }
 
-    private ProcessInstance resolveAndComplete(ExternalTask hit, Map<String, ProcessVariable> variables, String actorId) {
+    private ProcessInstance resolveAndComplete(String correlationKey, ExternalTask hit, Map<String, ProcessVariable> variables,
+                                               String actorId) {
+        List<OutboxEventEntity> correlatedEvents = new ArrayList<>();
+        criticalEventRecorder.recordEventCorrelated(correlatedEvents, correlationKey, hit, actorId, variables);
+
         if (hit.coordinatorTaskId() == null) {
             // STANDALONE — a própria tarefa encontrada é o ponto de espera
-            return completeExternalTask(hit, variables, actorId);
+            return completeExternalTask(hit, variables, actorId, correlatedEvents);
         }
 
         // GROUP: "hit" é uma tarefa-filha — resolve atomicamente contra a tarefa-mãe (coordinatorTaskId)
@@ -474,16 +535,380 @@ public class KikwiflowEngine {
 
         if (!satisfied) {
             // matchPolicy ainda não satisfeita (ex.: ALL restando outras chaves): persiste as variáveis
-            // recebidas, o fluxo principal não avança ainda.
-            return kikwiEngineRepository.addVariables(hit.processInstanceId(), variables, List.of());
+            // recebidas, o fluxo principal não avança ainda. O EVENT_CORRELATED é o único registro desta entrega.
+            return kikwiEngineRepository.addVariables(hit.processInstanceId(), variables, correlatedEvents);
         }
 
         // esta chamada foi a responsável por satisfazer a matchPolicy — completa a tarefa-mãe normalmente
         ExternalTask parent = kikwiEngineRepository.findExternalTaskById(hit.coordinatorTaskId())
                 .orElseThrow(() -> new TaskNotFoundException("Kikwiflow Engine: tarefa coordenadora não encontrada: " + hit.coordinatorTaskId()));
-        return completeExternalTask(parent, variables, actorId);
+        return completeExternalTask(parent, variables, actorId, correlatedEvents);
     }
 
+
+    // ===================================================================================================
+    // Protocolo de worker com lease (docs/engine/31, E2) e atividades de missão de agente (E3).
+    // Vale para toda ExternalTask com topicName (hoje: as de AGENT_TASK). As demais seguem o fluxo humano
+    // claim/complete, sem mudança.
+    // ===================================================================================================
+
+    /** Atividades que o runtime pode reportar. {@code AGENT_MISSION_COMPLETED} é do motor, no complete. */
+    private static final Set<String> REPORTABLE_ACTIVITY_TYPES = Set.of(
+            CriticalEventType.AGENT_MISSION_STARTED.name(),
+            CriticalEventType.AGENT_TOOL_INVOKED.name(),
+            CriticalEventType.AGENT_HANDOFF.name());
+    private static final int MAX_ACTIVITY_DATA_CHARS = 8 * 1024;
+    private static final int MAX_ACTIVITIES_PER_CALL = 100;
+    private static final int MAX_ERROR_MESSAGE_CHARS = 2000;
+
+    /**
+     * Adquire até {@code maxTasks} tarefas dos {@code topics} com lease de {@code lockDuration}. Um lease vencido
+     * devolve a tarefa à fila sem varredura nenhuma: a próxima chamada de qualquer worker a pega.
+     *
+     * @param identityContext o tenant da identidade restringe a aquisição; {@link IdentityContext#system()}
+     *                        adquire de qualquer tenant (runtime de agentes embutido, que atende todos)
+     */
+    public List<LockedExternalTask> fetchAndLock(String workerId, Collection<String> topics, int maxTasks,
+                                                 Duration lockDuration, IdentityContext identityContext) {
+        requireWorkerId(workerId);
+        if (topics == null || topics.isEmpty()) {
+            throw new IllegalArgumentException("fetchAndLock exige ao menos um tópico.");
+        }
+        if (maxTasks < 1) {
+            throw new IllegalArgumentException("maxTasks deve ser >= 1.");
+        }
+        requirePositive(lockDuration);
+
+        Instant now = Instant.now();
+        String tenantId = identityContext.isSystem() ? null : identityContext.tenantId();
+        List<ExternalTask> locked = kikwiEngineRepository.fetchAndLockExternalTasks(workerId, topics, tenantId, maxTasks,
+                now, now.plus(lockDuration), task -> {
+                    List<OutboxEventEntity> events = new ArrayList<>();
+                    criticalEventRecorder.recordExternalTaskLocked(events, task);
+                    return events;
+                });
+
+        List<LockedExternalTask> result = new ArrayList<>();
+        for (ExternalTask task : locked) {
+            toLockedExternalTask(task).ifPresent(result::add);
+        }
+        return result;
+    }
+
+    /** Renova o lease. Falha (409) se o lease não é mais de {@code workerId}; 404 se a tarefa sumiu. */
+    public ExternalTask extendLock(String externalTaskId, String workerId, Duration lockDuration,
+                                   IdentityContext identityContext) {
+        requirePositive(lockDuration);
+        ExternalTask task = findLeasedTask(externalTaskId, workerId, identityContext);
+        Instant now = Instant.now();
+        ExternalTask renewed = task.toBuilder().lockExpiresAt(now.plus(lockDuration)).build();
+        if (!kikwiEngineRepository.updateLockedExternalTask(renewed, workerId, now, null, null)) {
+            throw lockLost(externalTaskId, workerId);
+        }
+        return renewed;
+    }
+
+    /**
+     * Conclusão pelo dono do lease. Mesma validação de contrato do complete humano (422). Numa missão de agente
+     * emite também {@code AGENT_MISSION_COMPLETED} no mesmo commit, com o digest das saídas.
+     *
+     * @param missionReport resumo opcional do runtime (ex.: {@code turns}, {@code usage}); mesmas regras de
+     *                      conteúdo de {@link #reportActivities}
+     */
+    public ProcessInstance completeExternalTask(String externalTaskId, String workerId,
+                                                Map<String, ProcessVariable> variables,
+                                                Map<String, Object> missionReport,
+                                                IdentityContext identityContext) {
+        ExternalTask task = findLeasedTask(externalTaskId, workerId, identityContext);
+
+        List<OutboxEventEntity> leadingEvents = new ArrayList<>();
+        if (task.type() == ExternalTaskType.AGENT) {
+            validateActivityData(missionReport);
+            Map<String, Object> data = new java.util.LinkedHashMap<>();
+            List<String> outputKeys = outputKeysOf(task);
+            data.put("outputs", outputKeys);
+            data.put("outputsDigest", outputsDigest(outputKeys, variables));
+            if (missionReport != null && !missionReport.isEmpty()) {
+                data.put("report", missionReport);
+            }
+            criticalEventRecorder.recordAgentActivity(leadingEvents, CriticalEventType.AGENT_MISSION_COMPLETED, task,
+                    workerId, Instant.now(), data);
+        }
+
+        return completeExternalTask(task, variables, workerId, leadingEvents);
+    }
+
+    /**
+     * Falha técnica do worker. Com {@code retries > 0} a tarefa volta a ser adquirível depois de
+     * {@code retryTimeout}; com {@code 0} abre um incidente no próprio nó ({@code retryIncident} o resolve).
+     */
+    public void handleFailure(String externalTaskId, String workerId, String errorMessage, String errorDetails,
+                              int retries, Duration retryTimeout, IdentityContext identityContext) {
+        ExternalTask task = findLeasedTask(externalTaskId, workerId, identityContext);
+        Instant now = Instant.now();
+        int remaining = Math.max(0, retries);
+        String message = truncate(errorMessage != null ? errorMessage : "Falha reportada pelo worker " + workerId);
+
+        ExternalTask failed = task.toBuilder()
+                .lockOwner(null)
+                .lockExpiresAt(null)
+                .retries(remaining)
+                .availableAt(remaining > 0 && retryTimeout != null && !retryTimeout.isNegative() ? now.plus(retryTimeout) : null)
+                .errorMessage(message)
+                .build();
+
+        List<OutboxEventEntity> events = new ArrayList<>();
+        criticalEventRecorder.recordExternalTaskFailed(events, failed, workerId);
+
+        List<Incident> incidents = null;
+        if (remaining == 0) {
+            Incident incident = newExternalTaskIncident(task, "FAILED_EXTERNAL_TASK", message, errorDetails, now);
+            criticalEventRecorder.recordIncidentCreated(events, incident, task.tenantId());
+            incidents = List.of(incident);
+        }
+
+        if (!kikwiEngineRepository.updateLockedExternalTask(failed, workerId, now, incidents, events)) {
+            throw lockLost(externalTaskId, workerId);
+        }
+    }
+
+    /**
+     * Erro de negócio do worker (ex.: o lead pediu opt-out): segue pelo {@code BOUNDARY_ERROR_HANDLER} do nó com
+     * esse {@code errorCode} (ou o curinga). As saídas do nó não são exigidas nesse caminho. Sem tratador, abre
+     * um incidente {@code UNHANDLED_BUSINESS_ERROR} e a tarefa fica parada, como numa {@code EXECUTABLE_TASK}.
+     */
+    public ProcessInstance throwBusinessError(String externalTaskId, String workerId, String errorCode,
+                                              String errorMessage, Map<String, ProcessVariable> variables,
+                                              IdentityContext identityContext) {
+        if (errorCode == null || errorCode.isBlank()) {
+            throw new IllegalArgumentException("throwBusinessError exige errorCode.");
+        }
+        ExternalTask task = findLeasedTask(externalTaskId, workerId, identityContext);
+
+        ProcessInstance processInstanceRecord = kikwiEngineRepository.findProcessInstanceById(task.processInstanceId())
+                .orElseThrow(() -> new ProcessInstanceNotFoundException("Process Instance Not Found with id: " + task.processInstanceId()));
+        ProcessDefinition processDefinition = processDefinitionService.getById(processInstanceRecord.processDefinitionId())
+                .orElseThrow();
+        FlowNodeDefinition node = processDefinition.flowNodes().get(task.taskDefinitionId());
+
+        Optional<ErrorHandlerDefinition> handler = navigator.findMatchingErrorHandler(node, processDefinition, errorCode);
+        if (handler.isEmpty()) {
+            Instant now = Instant.now();
+            String message = truncate("Erro de negócio '" + errorCode + "' sem BOUNDARY_ERROR_HANDLER"
+                    + (errorMessage != null ? ": " + errorMessage : ""));
+            ExternalTask stuck = task.toBuilder().lockOwner(null).lockExpiresAt(null).retries(0).errorMessage(message).build();
+            List<OutboxEventEntity> events = new ArrayList<>();
+            Incident incident = newExternalTaskIncident(task, "UNHANDLED_BUSINESS_ERROR", message, null, now);
+            criticalEventRecorder.recordIncidentCreated(events, incident, task.tenantId());
+            if (!kikwiEngineRepository.updateLockedExternalTask(stuck, workerId, now, List.of(incident), events)) {
+                throw lockLost(externalTaskId, workerId);
+            }
+            return processInstanceRecord;
+        }
+
+        ProcessInstanceExecution processInstanceExecution = ProcessInstanceMapper.mapToInstanceExecution(processInstanceRecord);
+        Map<String, ProcessVariable> changedVariables = changedVariables(processInstanceRecord.variables(), variables);
+        if (variables != null) {
+            processInstanceExecution.addVariables(variables);
+        }
+
+        ErrorHandlerDefinition errorHandler = handler.get();
+        List<FlowNodeDefinition> nextNodes = errorHandler.outgoing().stream()
+                .map(flow -> processDefinition.flowNodes().get(flow.targetNodeId()))
+                .toList();
+        List<String> nextNodeKeys = errorHandler.outgoing().stream().map(flow -> flow.targetNodeId()).toList();
+        Continuation continuation = new Continuation(nextNodes, nextNodeKeys, Boolean.TRUE.equals(errorHandler.commitAfter()));
+
+        List<OutboxEventEntity> leadingEvents = new ArrayList<>();
+        criticalEventRecorder.recordInterruptedFlowNode(leadingEvents, processInstanceExecution, processDefinition,
+                task.taskDefinitionId(), errorHandler.id());
+
+        return continueFromExternalTask(task, node, continuation, processInstanceExecution, processDefinition,
+                workerId, changedVariables, leadingEvents);
+    }
+
+    /**
+     * Anexa atividades de missão ao histórico (append-only, só o dono do lease). {@code data} leva só hashes, ids
+     * e referências: no máximo {@value #MAX_ACTIVITY_DATA_CHARS} caracteres por atividade, valores
+     * {@code String}/{@code Number}/{@code Boolean}/listas/mapas.
+     */
+    public void reportActivities(String externalTaskId, String workerId, List<AgentActivityReport> activities,
+                                 IdentityContext identityContext) {
+        if (activities == null || activities.isEmpty()) {
+            return;
+        }
+        if (activities.size() > MAX_ACTIVITIES_PER_CALL) {
+            throw new IllegalArgumentException("No máximo " + MAX_ACTIVITIES_PER_CALL + " atividades por chamada.");
+        }
+        ExternalTask task = findLeasedTask(externalTaskId, workerId, identityContext);
+        if (task.type() != ExternalTaskType.AGENT) {
+            throw new IllegalArgumentException("Atividades AGENT_* só valem para missões de AGENT_TASK.");
+        }
+
+        List<OutboxEventEntity> events = new ArrayList<>();
+        for (AgentActivityReport activity : activities) {
+            if (activity == null || !REPORTABLE_ACTIVITY_TYPES.contains(activity.type())) {
+                throw new IllegalArgumentException("Tipo de atividade não aceito: "
+                        + (activity != null ? activity.type() : null) + ". Aceitos: " + REPORTABLE_ACTIVITY_TYPES);
+            }
+            validateActivityData(activity.data());
+            criticalEventRecorder.recordAgentActivity(events, CriticalEventType.valueOf(activity.type()), task, workerId,
+                    activity.at(), activity.data());
+        }
+
+        if (!kikwiEngineRepository.updateLockedExternalTask(task, workerId, Instant.now(), null, events)) {
+            throw lockLost(externalTaskId, workerId);
+        }
+    }
+
+    private ExternalTask findLeasedTask(String externalTaskId, String workerId, IdentityContext identityContext) {
+        requireWorkerId(workerId);
+        ExternalTask task = kikwiEngineRepository.findExternalTaskById(externalTaskId)
+                .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId
+                        + " (concluída, ou interrompida por um boundary event)"));
+        if (!identityContext.isSystem() && !Objects.equals(task.tenantId(), identityContext.tenantId())) {
+            throw new SecurityException("Tenant mismatch: Task " + externalTaskId + " does not belong to the provided tenant.");
+        }
+        if (!task.isLockedBy(workerId, Instant.now())) {
+            throw lockLost(externalTaskId, workerId);
+        }
+        return task;
+    }
+
+    private Optional<LockedExternalTask> toLockedExternalTask(ExternalTask task) {
+        Optional<ProcessInstance> instance = kikwiEngineRepository.findProcessInstanceById(task.processInstanceId());
+        Optional<ProcessDefinition> definition = processDefinitionService.getById(task.processDefinitionId());
+        if (instance.isEmpty() || definition.isEmpty()) {
+            return Optional.empty();
+        }
+        FlowNodeDefinition node = definition.get().flowNodes().get(task.taskDefinitionId());
+        Map<String, ProcessVariable> all = instance.get().variables() != null ? instance.get().variables() : Map.of();
+
+        Map<String, ProcessVariable> variables = all;
+        List<String> declarationKeys = new ArrayList<>();
+        if (node instanceof VariableBindingAware aware) {
+            List<String> inputKeys = aware.variableBindingsOrEmpty().inputs().stream().map(b -> b.variable()).toList();
+            if (!inputKeys.isEmpty()) {
+                Map<String, ProcessVariable> inputs = new java.util.LinkedHashMap<>();
+                inputKeys.forEach(key -> { if (all.containsKey(key)) inputs.put(key, all.get(key)); });
+                variables = inputs;
+            }
+            declarationKeys.addAll(inputKeys);
+            aware.variableBindingsOrEmpty().outputs().forEach(b -> declarationKeys.add(b.variable()));
+        }
+        List<VariableDeclaration> declarations = definition.get().variableDeclarations() == null ? List.of()
+                : definition.get().variableDeclarations().stream().filter(d -> declarationKeys.contains(d.key())).toList();
+
+        return Optional.of(new LockedExternalTask(task, instance.get().businessKey(), variables, node, declarations));
+    }
+
+    private List<String> outputKeysOf(ExternalTask task) {
+        return processDefinitionService.getById(task.processDefinitionId())
+                .map(definition -> definition.flowNodes().get(task.taskDefinitionId()))
+                .filter(node -> node instanceof VariableBindingAware)
+                .map(node -> ((VariableBindingAware) node).variableBindingsOrEmpty().outputs().stream()
+                        .map(b -> b.variable()).toList())
+                .orElse(List.of());
+    }
+
+    /** SHA-256 de {@code chave=valor} das saídas enviadas, em ordem de chave: prova o que foi entregue sem gravar o valor. */
+    private static String outputsDigest(List<String> outputKeys, Map<String, ProcessVariable> variables) {
+        StringBuilder canonical = new StringBuilder();
+        new java.util.TreeSet<>(outputKeys).forEach(key -> {
+            ProcessVariable variable = variables != null ? variables.get(key) : null;
+            canonical.append(key).append('=').append(variable != null ? String.valueOf(variable.value()) : "").append('\n');
+        });
+        try {
+            byte[] hash = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(hash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void validateActivityData(Map<String, Object> data) {
+        if (data == null) {
+            return;
+        }
+        if (activityDataSize(data) > MAX_ACTIVITY_DATA_CHARS) {
+            throw new IllegalArgumentException("data de atividade acima de " + MAX_ACTIVITY_DATA_CHARS
+                    + " caracteres: grave só hashes, ids e referências (claim check).");
+        }
+    }
+
+    private static int activityDataSize(Object value) {
+        if (value == null || value instanceof Boolean) {
+            return 5;
+        }
+        if (value instanceof Number number) {
+            return number.toString().length();
+        }
+        if (value instanceof String text) {
+            return text.length() + 2;
+        }
+        if (value instanceof Map<?, ?> map) {
+            int size = 2;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                size += String.valueOf(entry.getKey()).length() + 3 + activityDataSize(entry.getValue());
+            }
+            return size;
+        }
+        if (value instanceof Collection<?> list) {
+            int size = 2;
+            for (Object item : list) {
+                size += activityDataSize(item) + 1;
+            }
+            return size;
+        }
+        throw new IllegalArgumentException("Valor não aceito em data de atividade: " + value.getClass().getSimpleName()
+                + ". Use String, Number, Boolean, listas e mapas.");
+    }
+
+    private static Incident newExternalTaskIncident(ExternalTask task, String type, String message, String details,
+                                                    Instant now) {
+        return new Incident(UUID.randomUUID().toString(), type, message, details, task.processDefinitionId(),
+                task.processInstanceId(), task.id(), now, IncidentStatus.OPEN, task.taskDefinitionId());
+    }
+
+    private void retryExternalTaskIncident(Incident incident, ExternalTask failedTask, IdentityContext identityContext) {
+        ExternalTask restored = failedTask.toBuilder()
+                .retries(null)
+                .availableAt(null)
+                .errorMessage(null)
+                .lockOwner(null)
+                .lockExpiresAt(null)
+                .build();
+        Incident resolvedIncident = new Incident(incident.id(), incident.type(), incident.message(), incident.stackTrace(),
+                incident.processDefinitionId(), incident.processInstanceId(), incident.executionId(),
+                incident.createdAt(), IncidentStatus.RESOLVED, incident.taskDefinitionId());
+
+        List<OutboxEventEntity> events = new ArrayList<>();
+        criticalEventRecorder.recordIncidentResolved(events, resolvedIncident, failedTask.tenantId(), identityContext.actorId());
+        kikwiEngineRepository.saveExternalTask(restored, List.of(resolvedIncident), events);
+    }
+
+    private static ExternalTaskLockException lockLost(String externalTaskId, String workerId) {
+        return new ExternalTaskLockException("O worker " + workerId + " não tem o lease da ExternalTask "
+                + externalTaskId + " (outro worker a adquiriu ou o lease venceu).");
+    }
+
+    private static void requireWorkerId(String workerId) {
+        if (workerId == null || workerId.isBlank()) {
+            throw new IllegalArgumentException("workerId é obrigatório.");
+        }
+    }
+
+    private static void requirePositive(Duration duration) {
+        if (duration == null || duration.isZero() || duration.isNegative()) {
+            throw new IllegalArgumentException("lockDuration deve ser positiva.");
+        }
+    }
+
+    private static String truncate(String message) {
+        return message != null && message.length() > MAX_ERROR_MESSAGE_CHARS
+                ? message.substring(0, MAX_ERROR_MESSAGE_CHARS) : message;
+    }
 
     public ProcessInstance executeFromTask(ExecutableTask executableTask){
         ProcessInstance processInstanceRecord = kikwiEngineRepository.findProcessInstanceById(executableTask.processInstanceId())

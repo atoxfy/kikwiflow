@@ -35,7 +35,15 @@ public enum CriticalEventType {
     RETRY_SCHEDULED(RetryScheduled.class),
     PROCESS_VARIABLE_CHANGED(ProcessVariableChanged.class),
     TIMER_FIRED(TimerFired.class),
-    ORPHANED_CHILD_COMPLETION(OrphanedChildCompletion.class);
+    ORPHANED_CHILD_COMPLETION(OrphanedChildCompletion.class),
+    EXTERNAL_TASK_LOCKED(ExternalTaskLocked.class),
+    EXTERNAL_TASK_FAILED(ExternalTaskFailed.class),
+    EVENT_CORRELATED(EventCorrelated.class),
+    // Os quatro AGENT_* compartilham o payload: o que muda entre eles é o significado de data.
+    AGENT_MISSION_STARTED(AgentActivityRecorded.class),
+    AGENT_TOOL_INVOKED(AgentActivityRecorded.class),
+    AGENT_HANDOFF(AgentActivityRecorded.class),
+    AGENT_MISSION_COMPLETED(AgentActivityRecorded.class);
 
     private final Class<? extends CriticalEvent> payloadType;
 

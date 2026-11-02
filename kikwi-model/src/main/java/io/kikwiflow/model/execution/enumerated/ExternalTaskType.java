@@ -32,5 +32,10 @@ public enum ExternalTaskType {
      * correlacionada, cancela o nó pai ({@code attachedToRefId}/{@code attachedToRefType}) exatamente como um
      * {@code BOUNDARY_INTERRUPTIVE_TIMER}.
      */
-    BOUNDARY_INTERRUPTIVE_CATCH_EVENT
+    BOUNDARY_INTERRUPTIVE_CATCH_EVENT,
+    /**
+     * Missão de um {@code AGENT_TASK} (docs/engine/31, E1): sempre tem {@code topicName} e é trabalhada por um
+     * worker com lease ({@code fetchAndLock}), nunca pela caixa de entrada humana ({@code claim}).
+     */
+    AGENT
 }

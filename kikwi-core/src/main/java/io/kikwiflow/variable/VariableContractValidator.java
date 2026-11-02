@@ -20,6 +20,7 @@ import io.kikwiflow.exception.VariableValidationException;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.variable.VariableBinding;
 import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
+import io.kikwiflow.model.definition.process.variable.VariableFormat;
 import io.kikwiflow.model.definition.process.variable.VariableNumberFormat;
 import io.kikwiflow.model.definition.process.variable.VariableOption;
 import io.kikwiflow.model.execution.ProcessVariable;
@@ -153,7 +154,78 @@ public class VariableContractValidator {
                 }
                 yield null;
             }
+            case FILE -> checkFile(declaration, value);
         };
+    }
+
+    /**
+     * FILE (docs/engine/31, E4): referência {@code {uri, name, mimeType, size}}, ou lista delas com
+     * {@code kikwi:file.multiple}. Bytes nunca entram em variável; o esquema da {@code uri} é opaco.
+     */
+    private static VariableValidationError checkFile(VariableDeclaration declaration, Object value) {
+        String key = declaration.key();
+        Map<String, String> properties = declaration.extensionProperties() != null ? declaration.extensionProperties() : Map.of();
+        boolean multiple = Boolean.parseBoolean(properties.get(VariableFormat.FILE_MULTIPLE));
+        List<String> mimeTypes = parseMimeTypes(properties.get(VariableFormat.FILE_MIME_TYPES));
+
+        List<?> files;
+        if (multiple) {
+            if (!(value instanceof Collection<?> collection)) {
+                return invalidFormat(key, "a list of file references {uri, mimeType}");
+            }
+            files = new ArrayList<>(collection);
+            Integer maxCount = parsePositiveInt(properties.get(VariableFormat.FILE_MAX_COUNT));
+            if (maxCount != null && files.size() > maxCount) {
+                return new VariableValidationError(key, VariableValidationError.TOO_MANY_FILES,
+                        "Variable '" + declaration.label() + "' accepts at most " + maxCount + " files.");
+            }
+        } else {
+            files = List.of(value);
+        }
+
+        for (Object file : files) {
+            if (!(file instanceof Map<?, ?> reference) || isBlankString(reference.get("uri"))
+                    || isBlankString(reference.get("mimeType"))) {
+                return invalidFormat(key, multiple ? "a list of file references {uri, mimeType}"
+                        : "a file reference {uri, mimeType}");
+            }
+            String mimeType = reference.get("mimeType").toString();
+            if (!mimeTypes.isEmpty() && mimeTypes.stream().noneMatch(accepted -> mimeMatches(accepted, mimeType))) {
+                return new VariableValidationError(key, VariableValidationError.INVALID_FILE_TYPE,
+                        "Variable '" + declaration.label() + "' does not accept files of type '" + mimeType + "'.");
+            }
+        }
+        return null;
+    }
+
+    /** {@code image/*} casa com qualquer {@code image/...}; o resto é igualdade sem caixa. */
+    static boolean mimeMatches(String accepted, String mimeType) {
+        String a = accepted.toLowerCase(java.util.Locale.ROOT);
+        String m = mimeType.trim().toLowerCase(java.util.Locale.ROOT);
+        return a.endsWith("/*") ? m.startsWith(a.substring(0, a.length() - 1)) : a.equals(m);
+    }
+
+    static List<String> parseMimeTypes(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(raw.split(",")).map(String::trim).filter(t -> !t.isEmpty()).toList();
+    }
+
+    static Integer parsePositiveInt(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            int parsed = Integer.parseInt(raw.trim());
+            return parsed > 0 ? parsed : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static boolean isBlankString(Object value) {
+        return !(value instanceof CharSequence text) || text.toString().isBlank();
     }
 
     private static VariableNumberFormat numberFormatOf(VariableDeclaration declaration) {

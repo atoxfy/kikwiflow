@@ -20,6 +20,7 @@ package io.kikwiflow.management.dtos.elements;
 
 
 import io.kikwiflow.management.dtos.layout.KKFLayoutCoordinates;
+import io.kikwiflow.model.definition.process.variable.VariableBindings;
 
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,7 @@ public record KKFEndEventDefinition(String id,
                                     Boolean commitBefore,
                                     List<KKFSequenceFlowDefinition> outgoing,
                                     Map<String, String> extensionProperties,
-                                    KKFLayoutCoordinates layout) implements KKFFlowNodeDefinition {
+                                    KKFLayoutCoordinates layout,
+                                    VariableBindings variableBindings) implements KKFFlowNodeDefinition {
 
 }

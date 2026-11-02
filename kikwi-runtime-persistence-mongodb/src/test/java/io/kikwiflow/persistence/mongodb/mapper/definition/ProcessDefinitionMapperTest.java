@@ -18,6 +18,7 @@
 package io.kikwiflow.persistence.mongodb.mapper.definition;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.AgentTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.EventCatcherDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
@@ -264,5 +265,35 @@ class ProcessDefinitionMapperTest {
                 assertInstanceOf(CallActivityDefinition.class, restored.flowNodes().get("CALL_CHILD"));
         assertNull(restoredCallActivity.iterationMode(),
                 "iterationMode ausente deve sobreviver ao round-trip como null — tratado como PARALLEL em todo o motor.");
+    }
+    @Test
+    void roundTripsAgentTaskFields() {
+        AgentTaskDefinition agentTask = AgentTaskDefinition.builder()
+                .id("QUALIFICAR")
+                .name("Qualificar e agendar")
+                .topic("kikwi.agents")
+                .agentRef(new AgentTaskDefinition.AgentRef("pre-vendas", 3))
+                .tools(List.of("solicitar_midia", "agendar_visita"))
+                .limits(new AgentTaskDefinition.AgentLimits(80, "P7D"))
+                .boundaryEventIds(List.of("OPT_OUT"))
+                .variableBindings(new VariableBindings(List.of(), List.of(new VariableBinding("resultado", true))))
+                .extensionProperties(Map.of("kikwi:prompt", "Convença {{leadNome}}"))
+                .build();
+
+        ProcessDefinition definition = ProcessDefinition.builder()
+                .id("def-agent").key("agent").version(1)
+                .flowNodes(Map.of(agentTask.id(), agentTask))
+                .build();
+
+        ProcessDefinition restored = ProcessDefinitionMapper.fromDocument(ProcessDefinitionMapper.toDocument(definition));
+
+        AgentTaskDefinition restoredTask = assertInstanceOf(AgentTaskDefinition.class, restored.flowNodes().get("QUALIFICAR"));
+        assertEquals(agentTask.topic(), restoredTask.topic());
+        assertEquals(agentTask.agentRef(), restoredTask.agentRef());
+        assertEquals(agentTask.tools(), restoredTask.tools());
+        assertEquals(agentTask.limits(), restoredTask.limits());
+        assertEquals(agentTask.boundaryEventIds(), restoredTask.boundaryEventIds());
+        assertEquals(agentTask.variableBindings(), restoredTask.variableBindings());
+        assertEquals("AGENT_TASK", restoredTask.type());
     }
 }

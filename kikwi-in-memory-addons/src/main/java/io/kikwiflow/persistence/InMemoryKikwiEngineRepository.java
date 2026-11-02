@@ -55,6 +55,7 @@ import io.kikwiflow.persistence.api.history.HistoricInstancePage;
 import io.kikwiflow.persistence.api.history.HistoricInstanceSummary;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -65,6 +66,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -751,6 +753,52 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         externalTaskCollection.put(parentTaskId, updatedParent);
 
         return remaining.isEmpty();
+    }
+
+    @Override
+    public List<ExternalTask> fetchAndLockExternalTasks(String workerId, Collection<String> topics, String tenantId,
+                                                        int maxTasks, Instant now, Instant lockExpiresAt,
+                                                        Function<ExternalTask, List<OutboxEventEntity>> eventFactory) {
+        List<ExternalTask> candidates = externalTaskCollection.values().stream()
+                .filter(t -> t.topicName() != null && topics.contains(t.topicName()))
+                .filter(t -> tenantId == null || tenantId.equals(t.tenantId()))
+                .filter(t -> t.isFetchable(now))
+                .sorted(Comparator.comparing(ExternalTask::createdAt, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .limit(maxTasks)
+                .toList();
+
+        List<ExternalTask> locked = new ArrayList<>();
+        for (ExternalTask candidate : candidates) {
+            ExternalTask lockedTask = candidate.toBuilder().lockOwner(workerId).lockExpiresAt(lockExpiresAt).build();
+            externalTaskCollection.put(lockedTask.id(), lockedTask);
+            writeOutboxEvents(eventFactory.apply(lockedTask));
+            locked.add(lockedTask);
+        }
+        return locked;
+    }
+
+    @Override
+    public boolean updateLockedExternalTask(ExternalTask replacement, String workerId, Instant now,
+                                            List<Incident> incidentsToCreate, List<OutboxEventEntity> events) {
+        ExternalTask current = externalTaskCollection.get(replacement.id());
+        if (current == null || !current.isLockedBy(workerId, now)) {
+            return false;
+        }
+        externalTaskCollection.put(replacement.id(), replacement);
+        if (incidentsToCreate != null) {
+            incidentsToCreate.forEach(i -> incidentCollection.put(i.id(), i));
+        }
+        writeOutboxEvents(events);
+        return true;
+    }
+
+    @Override
+    public void saveExternalTask(ExternalTask task, List<Incident> incidentsToUpdate, List<OutboxEventEntity> events) {
+        externalTaskCollection.put(task.id(), task);
+        if (incidentsToUpdate != null) {
+            incidentsToUpdate.forEach(i -> incidentCollection.put(i.id(), i));
+        }
+        writeOutboxEvents(events);
     }
 
     /**

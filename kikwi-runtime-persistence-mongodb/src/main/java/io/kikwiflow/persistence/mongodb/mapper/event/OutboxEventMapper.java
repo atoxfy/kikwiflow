@@ -17,7 +17,11 @@
 
 package io.kikwiflow.persistence.mongodb.mapper.event;
 
+import io.kikwiflow.model.event.AgentActivityRecorded;
 import io.kikwiflow.model.event.CriticalEvent;
+import io.kikwiflow.model.event.EventCorrelated;
+import io.kikwiflow.model.event.ExternalTaskFailed;
+import io.kikwiflow.model.event.ExternalTaskLocked;
 import io.kikwiflow.model.event.CriticalEventType;
 import io.kikwiflow.model.event.ExternalTaskClaimed;
 import io.kikwiflow.model.event.ExternalTaskCompleted;
@@ -62,7 +66,14 @@ public final class OutboxEventMapper {
             Map.entry(CriticalEventType.RETRY_SCHEDULED.name(), RetryScheduledMapper::fromDocument),
             Map.entry(CriticalEventType.PROCESS_VARIABLE_CHANGED.name(), ProcessVariableChangedMapper::fromDocument),
             Map.entry(CriticalEventType.TIMER_FIRED.name(), TimerFiredMapper::fromDocument),
-            Map.entry(CriticalEventType.ORPHANED_CHILD_COMPLETION.name(), OrphanedChildCompletionMapper::fromDocument)
+            Map.entry(CriticalEventType.ORPHANED_CHILD_COMPLETION.name(), OrphanedChildCompletionMapper::fromDocument),
+            Map.entry(CriticalEventType.EXTERNAL_TASK_LOCKED.name(), ExternalTaskLockedMapper::fromDocument),
+            Map.entry(CriticalEventType.EXTERNAL_TASK_FAILED.name(), ExternalTaskFailedMapper::fromDocument),
+            Map.entry(CriticalEventType.EVENT_CORRELATED.name(), EventCorrelatedMapper::fromDocument),
+            Map.entry(CriticalEventType.AGENT_MISSION_STARTED.name(), AgentActivityRecordedMapper::fromDocument),
+            Map.entry(CriticalEventType.AGENT_TOOL_INVOKED.name(), AgentActivityRecordedMapper::fromDocument),
+            Map.entry(CriticalEventType.AGENT_HANDOFF.name(), AgentActivityRecordedMapper::fromDocument),
+            Map.entry(CriticalEventType.AGENT_MISSION_COMPLETED.name(), AgentActivityRecordedMapper::fromDocument)
     );
 
     private OutboxEventMapper() {}
@@ -82,6 +93,10 @@ public final class OutboxEventMapper {
             case ProcessVariableChanged e -> ProcessVariableChangedMapper.toDocument(e);
             case TimerFired e -> TimerFiredMapper.toDocument(e);
             case OrphanedChildCompletion e -> OrphanedChildCompletionMapper.toDocument(e);
+            case ExternalTaskLocked e -> ExternalTaskLockedMapper.toDocument(e);
+            case ExternalTaskFailed e -> ExternalTaskFailedMapper.toDocument(e);
+            case EventCorrelated e -> EventCorrelatedMapper.toDocument(e);
+            case AgentActivityRecorded e -> AgentActivityRecordedMapper.toDocument(e);
             default -> throw new IllegalArgumentException(
                     "Kikwiflow Outbox: payload de evento crítico desconhecido: " + entity.getPayload().getClass());
         };

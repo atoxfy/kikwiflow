@@ -92,6 +92,7 @@ import org.bson.conversions.Bson;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -101,6 +102,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
@@ -773,6 +775,104 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
      * passam por {@link UnitOfWork} ({@code claim}/{@code unclaim}/{@code addVariables}), para que o evento
      * seja gravado na mesma transação Mongo da mudança de estado.
      */
+    @Override
+    public List<ExternalTask> fetchAndLockExternalTasks(String workerId, Collection<String> topics, String tenantId,
+                                                        int maxTasks, Instant now, Instant lockExpiresAt,
+                                                        Function<ExternalTask, List<OutboxEventEntity>> eventFactory) {
+        MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+        java.util.Date nowDate = java.util.Date.from(now);
+
+        // Mesmo critério de ExternalTask.isFetchable. eq(campo, null) casa também com o campo ausente, o que cobre
+        // tarefas gravadas antes do lease existir.
+        List<Bson> conditions = new ArrayList<>(List.of(
+                eq("status", ExternalTaskStatus.CREATED.name()),
+                in("topicName", topics),
+                or(eq("lockExpiresAt", null), lte("lockExpiresAt", nowDate)),
+                or(eq("retries", null), Filters.gt("retries", 0)),
+                or(eq("availableAt", null), lte("availableAt", nowDate))));
+        if (tenantId != null) {
+            conditions.add(eq("tenantId", tenantId));
+        }
+        Bson filter = and(conditions);
+        Bson update = Updates.combine(
+                Updates.set("lockOwner", workerId),
+                Updates.set("lockExpiresAt", java.util.Date.from(lockExpiresAt)));
+        FindOneAndUpdateOptions options = new FindOneAndUpdateOptions()
+                .returnDocument(ReturnDocument.AFTER)
+                .sort(Sorts.ascending("createdAt"));
+
+        List<ExternalTask> locked = new ArrayList<>();
+        for (int i = 0; i < maxTasks; i++) {
+            ExternalTask lockedTask;
+            try (ClientSession clientSession = mongoClient.startSession()) {
+                lockedTask = clientSession.withTransaction(() -> {
+                    Document doc = collection.findOneAndUpdate(clientSession, filter, update, options);
+                    if (doc == null) {
+                        return null;
+                    }
+                    ExternalTask task = ExternalTaskMapper.fromDocument(doc);
+                    List<OutboxEventEntity> events = eventFactory.apply(task);
+                    if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {
+                        writeOutboxEvents(clientSession, events);
+                    }
+                    return task;
+                });
+            }
+            if (lockedTask == null) {
+                break;
+            }
+            locked.add(lockedTask);
+        }
+        return locked;
+    }
+
+    @Override
+    public boolean updateLockedExternalTask(ExternalTask replacement, String workerId, Instant now,
+                                            List<Incident> incidentsToCreate, List<OutboxEventEntity> events) {
+        MongoCollection<Document> externalTasks = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+        Bson leaseHeld = and(
+                eq("_id", replacement.id()),
+                eq("lockOwner", workerId),
+                Filters.gt("lockExpiresAt", java.util.Date.from(now)));
+
+        try (ClientSession clientSession = mongoClient.startSession()) {
+            return clientSession.withTransaction(() -> {
+                long matched = externalTasks.replaceOne(clientSession, leaseHeld, ExternalTaskMapper.toDocument(replacement))
+                        .getMatchedCount();
+                if (matched == 0) {
+                    return false;
+                }
+                if (incidentsToCreate != null && !incidentsToCreate.isEmpty()) {
+                    getDatabase().getCollection(INCIDENTS_COLLECTION).insertMany(clientSession,
+                            incidentsToCreate.stream().map(IncidentMapper::toDocument).toList());
+                }
+                if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {
+                    writeOutboxEvents(clientSession, events);
+                }
+                return true;
+            });
+        }
+    }
+
+    @Override
+    public void saveExternalTask(ExternalTask task, List<Incident> incidentsToUpdate, List<OutboxEventEntity> events) {
+        try (ClientSession clientSession = mongoClient.startSession()) {
+            clientSession.withTransaction(() -> {
+                getDatabase().getCollection(EXTERNAL_TASK_COLLECTION)
+                        .replaceOne(clientSession, eq("_id", task.id()), ExternalTaskMapper.toDocument(task));
+                if (incidentsToUpdate != null) {
+                    MongoCollection<Document> incidents = getDatabase().getCollection(INCIDENTS_COLLECTION);
+                    incidentsToUpdate.forEach(inc ->
+                            incidents.replaceOne(clientSession, eq("_id", inc.id()), IncidentMapper.toDocument(inc)));
+                }
+                if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {
+                    writeOutboxEvents(clientSession, events);
+                }
+                return "Transaction committed";
+            });
+        }
+    }
+
     private void writeOutboxEvents(ClientSession clientSession, List<OutboxEventEntity> events) {
         OutboxEventEntity.stampCommitOrder(events);
         MongoCollection<Document> outboxEvents = getDatabase().getCollection(OUTBOX_EVENTS_COLLECTION);
@@ -1114,6 +1214,12 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         externalTaskCollection.createIndex(
                 Indexes.compoundIndex(Indexes.ascending("correlationKey"), Indexes.ascending("tenantId")),
                 new IndexOptions().name("correlation_key_tenant_idx").sparse(true)
+        );
+
+        // Worker com lease (docs/engine/31, E2): fetchAndLock filtra por tópico + status e ordena por createdAt.
+        externalTaskCollection.createIndex(
+                Indexes.compoundIndex(Indexes.ascending("topicName"), Indexes.ascending("status"), Indexes.ascending("createdAt")),
+                new IndexOptions().name("topic_status_created_idx")
         );
 
         // EVENT_CATCHER GROUP: usado pela cascata de limpeza de filhas em commitWork (deleteMany por

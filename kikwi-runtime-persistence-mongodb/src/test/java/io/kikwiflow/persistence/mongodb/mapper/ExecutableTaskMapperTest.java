@@ -210,7 +210,7 @@ class ExecutableTaskMapperTest {
     }
 
     /**
-     * Documento regravado pelo driver Node (ex.: ops/kikwiflow/backups/restore.js do vaapty-bff): Int64 volta como
+     * Documento regravado pelo driver Node (ex.: um script de restore de backup): Int64 volta como
      * Int32 e Double inteiro (2.0) também. Antes, {@code getLong}/{@code getDouble} lançavam ClassCastException e o
      * poller girava sem pausa em produção.
      */

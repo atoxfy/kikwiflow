@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         child.project.url.inherit.append.path="false">
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.kikwiflow</groupId>
     <artifactId>kikwiflow-parent</artifactId>
-    <version>0.1.79</version>
+    <version>0.1.80</version>
     <packaging>pom</packaging>
     <name>kikwiflow :: Parent</name>
     <url>https://kikwiflow.io</url>
@@ -23,7 +24,9 @@
             <id>efagundes93</id>
             <name>Emiliano Fagundes</name> <email>emiliano@atoxfy.com</email> </developer>
     </developers>
-    <scm>
+    <scm child.scm.connection.inherit.append.path="false"
+         child.scm.developerConnection.inherit.append.path="false"
+         child.scm.url.inherit.append.path="false">
         <connection>scm:git:https://github.com/atoxfy/kikwiflow.git</connection>
         <developerConnection>scm:git:https://github.com/atoxfy/kikwiflow.git</developerConnection>
         <url>https://github.com/atoxfy/kikwiflow</url>
@@ -86,6 +89,7 @@
         <module>kikwi-mcp-server</module>
         <module>kikwi-mcp-server-spring-boot-autoconfigure</module>
         <module>kikwi-mcp-server-spring-boot-starter</module>
+        <module>kikwi-connector-http</module>
     </modules>
     <dependencyManagement>
         <dependencies>

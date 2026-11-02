@@ -63,7 +63,12 @@ public final class ExternalTaskMapper {
                 .append("pendingCorrelationKeys", task.pendingCorrelationKeys())
                 .append("matchPolicy", task.matchPolicy() != null ? task.matchPolicy().name() : null)
                 .append("coordinatorTaskId", task.coordinatorTaskId())
-                .append("totalCorrelationKeys", task.totalCorrelationKeys());
+                .append("totalCorrelationKeys", task.totalCorrelationKeys())
+                .append("lockOwner", task.lockOwner())
+                .append("lockExpiresAt", task.lockExpiresAt() != null ? java.util.Date.from(task.lockExpiresAt()) : null)
+                .append("retries", task.retries())
+                .append("availableAt", task.availableAt() != null ? java.util.Date.from(task.availableAt()) : null)
+                .append("errorMessage", task.errorMessage());
 
         if (task.attachedToRefDefinitionId() != null) {
             doc.append("attachedToRefDefinitionId", task.attachedToRefDefinitionId());
@@ -124,6 +129,11 @@ public final class ExternalTaskMapper {
                 .matchPolicy(matchPolicy)
                 .coordinatorTaskId(doc.getString("coordinatorTaskId"))
                 .totalCorrelationKeys(doc.getInteger("totalCorrelationKeys"))
+                .lockOwner(doc.getString("lockOwner"))
+                .lockExpiresAt(InstantMapper.mapToInstant("lockExpiresAt", doc))
+                .retries(doc.getInteger("retries"))
+                .availableAt(InstantMapper.mapToInstant("availableAt", doc))
+                .errorMessage(doc.getString("errorMessage"))
                 .build();
     }
 }

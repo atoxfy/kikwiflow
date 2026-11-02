@@ -17,6 +17,7 @@
 
 package io.kikwiflow.management.exception;
 
+import io.kikwiflow.exception.ExternalTaskLockException;
 import io.kikwiflow.exception.InvalidProcessDefinitionException;
 import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.exception.VariableValidationException;
@@ -45,6 +46,14 @@ public class KikwiflowExceptionHandler {
     public ResponseEntity<ErrorResponse> handleTaskNotFound(TaskNotFoundException ex) {
         var error = new ErrorResponse("NOT_FOUND", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    // Worker sem o lease da tarefa (docs/engine/31, E2): outro worker a adquiriu, o lease venceu, ou uma missão de
+    // agente foi concluída sem workerId. O worker deve abortar a missão, não tentar de novo.
+    @ExceptionHandler(ExternalTaskLockException.class)
+    public ResponseEntity<ErrorResponse> handleLockNotHeld(ExternalTaskLockException ex) {
+        var error = new ErrorResponse("LOCK_NOT_HELD", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     @ExceptionHandler(NotImplementedException.class)

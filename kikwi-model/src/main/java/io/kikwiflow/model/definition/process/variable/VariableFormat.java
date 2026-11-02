@@ -42,7 +42,19 @@ public enum VariableFormat {
     /** Uma opção entre {@link VariableDeclaration#options()}. Valor: {@code String} (o {@code value} da opção). */
     SINGLE_SELECT,
     /** Várias opções entre {@link VariableDeclaration#options()}. Valor: coleção de {@code String}. */
-    MULTI_SELECT;
+    MULTI_SELECT,
+    /**
+     * Referência a um arquivo guardado fora do motor (claim check, docs/engine/31 E4) — bytes nunca entram em
+     * variável. Valor: mapa {@code {uri, name, mimeType, size}}, ou lista desses mapas quando a declaração tem
+     * {@code kikwi:file.multiple = true}. Restrições em {@code extensionProperties}: {@code kikwi:file.multiple},
+     * {@code kikwi:file.mimeTypes} (ex.: {@code image/*,application/pdf}) e {@code kikwi:file.maxCount}. O esquema
+     * da {@code uri} (ex.: {@code dms://}) é opaco para o motor.
+     */
+    FILE;
+
+    public static final String FILE_MULTIPLE = "kikwi:file.multiple";
+    public static final String FILE_MIME_TYPES = "kikwi:file.mimeTypes";
+    public static final String FILE_MAX_COUNT = "kikwi:file.maxCount";
 
     public boolean isText() {
         return this == SHORT_TEXT || this == LONG_TEXT;

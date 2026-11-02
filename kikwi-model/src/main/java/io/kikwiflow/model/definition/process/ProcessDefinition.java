@@ -30,12 +30,25 @@ public record ProcessDefinition(
         Map<String, FlowNodeDefinition> flowNodes, String defaultStartPoint, String checksum, Map<String, String> extensionProperties,
         List<VariableDeclaration> variableDeclarations
 ) {
+
+    /**
+     * Logo do processo em {@code extensionProperties}: SVG em data URI ({@code data:image/svg+xml...}). Desenhado
+     * por quem lê a definição (Craft, ferramentas de agentes) sempre como {@code <img src>}. Validado no deploy
+     * (KIKWI-072).
+     */
+    public static final String ICON_PROPERTY = "kikwi:icon";
+
     public ProcessDefinition {
         Objects.requireNonNull(key, "key cannot be null");
         Objects.requireNonNull(flowNodes, "flowNodes cannot be null");
         flowNodes = Map.copyOf(flowNodes);
         extensionProperties = extensionProperties != null ? Map.copyOf(extensionProperties) : null;
         variableDeclarations = variableDeclarations != null ? List.copyOf(variableDeclarations) : List.of();
+    }
+
+    /** O logo do processo ({@link #ICON_PROPERTY}), quando declarado. */
+    public Optional<String> icon() {
+        return Optional.ofNullable(extensionProperties).map(props -> props.get(ICON_PROPERTY));
     }
 
     /** Busca uma entrada do catálogo de variáveis pela {@code key}. */

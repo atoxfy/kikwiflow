@@ -56,7 +56,7 @@ class InMemoryVariableAggregationTest {
     @BeforeEach
     void setUp() {
         repository = new InMemoryKikwiEngineRepository(new ArrayDeque<OutboxEventEntity>());
-        // Valores como o vaapty grava (texto decimal) misturados com números e lixo.
+        // Valores como um front grava (texto decimal) misturados com números e lixo.
         seed("pi-1", ProcessInstanceStatus.ACTIVE, Map.of("EM_ESTOQUE", 1), Map.of("compra.valor", "40000.00", "venda.valor", "45000.00", "loja", "A"));
         seed("pi-2", ProcessInstanceStatus.ACTIVE, Map.of("EM_ESTOQUE", 1), Map.of("compra.valor", 30000, "venda.valor", new BigDecimal("33500.50"), "loja", "B"));
         seed("pi-3", ProcessInstanceStatus.ACTIVE, Map.of("EM_ESTOQUE", 1), Map.of("compra.valor", "20.000,00", "loja", "A"));

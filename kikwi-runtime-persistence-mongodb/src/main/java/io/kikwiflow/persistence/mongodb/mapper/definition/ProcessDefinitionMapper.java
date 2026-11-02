@@ -24,6 +24,7 @@ import io.kikwiflow.model.definition.process.elements.EventCatcherDefinition;
 import io.kikwiflow.model.definition.process.elements.EventThrowerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.AgentTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveCatchEventDefinition;
@@ -34,6 +35,7 @@ import io.kikwiflow.model.definition.process.elements.ParallelGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.SequenceFlowDefinition;
 import io.kikwiflow.model.definition.process.elements.StartEventDefinition;
 import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
+import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.AgentTaskDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.CallActivityDefinitionMapper;
 import io.kikwiflow.persistence.mongodb.mapper.definition.nodes.DefaultEndEventDefinitionMapper;
 import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
@@ -71,6 +73,7 @@ public final class ProcessDefinitionMapper {
                 Map.entry(EndEventDefinition.class.getName(), DefaultEndEventDefinitionMapper::mapToDefinition),
                 Map.entry(ExecutableTaskDefinition.class.getName(), ExecutableTaskDefinitionMapper::mapToDefinition),
                 Map.entry(ExternalTaskDefinition.class.getName(), ExternalTaskDefinitionMapper::mapToDefinition),
+                Map.entry(AgentTaskDefinition.class.getName(), AgentTaskDefinitionMapper::mapToDefinition),
                 Map.entry(ExclusiveGatewayDefinition.class.getName(), ExclusiveGatewayDefinitionMapper::mapToDefinition),
                 Map.entry(JoinGatewayDefinition.class.getName(), JoinGatewayDefinitionMapper::mapToDefinition),
                 Map.entry(ParallelGatewayDefinition.class.getName(), ParallelGatewayDefinitionMapper::mapToDefinition),
@@ -161,6 +164,9 @@ public final class ProcessDefinitionMapper {
             }
             case ExternalTaskDefinition mt -> {
                 ExternalTaskDefinitionMapper.toDocument(doc, mt);
+            }
+            case AgentTaskDefinition at -> {
+                AgentTaskDefinitionMapper.toDocument(doc, at);
             }
             case InterruptiveTimerEventDefinition te -> {
                 InterruptiveTimerEventDefinitionMapper.mapToDocument(doc, te);
