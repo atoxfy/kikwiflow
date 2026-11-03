@@ -200,6 +200,22 @@ class HttpTaskHandlerTemplateAndAuthTest {
         }
 
         @Test
+        @DisplayName("com kikwi:http.auth=password, então obtém o token do usuário técnico (client público, sem secret)")
+        void passwordGrant() {
+            Map<String, String> props = props();
+            props.put(HttpTaskHandler.AUTH, HttpTaskHandler.PASSWORD);
+            props.remove(HttpTaskHandler.AUTH_CLIENT_SECRET);
+            props.put(HttpTaskHandler.AUTH_USERNAME, "agente-ia@loja.com");
+            props.put(HttpTaskHandler.AUTH_PASSWORD, "${crm.client-secret}");
+
+            handler.handle(context(node(props)));
+
+            assertEquals(List.of("grant_type=password&client_id=kikwi-agents&username=agente-ia%40loja.com"
+                    + "&password=s3gr3do"), tokenCalls);
+            assertEquals("POST /api/deals auth=Bearer tk-1 body={}", apiCalls.getFirst());
+        }
+
+        @Test
         @DisplayName("sem client-secret configurado, então é erro de configuração do nó")
         void requiresSecret() {
             Map<String, String> props = props();

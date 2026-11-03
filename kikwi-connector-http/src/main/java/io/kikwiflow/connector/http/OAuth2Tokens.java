@@ -34,19 +34,36 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tokens OAuth2 por <i>client credentials</i> para o {@link HttpTaskHandler}: um por (token URL, client id),
- * reaproveitado até {@value #SAFETY_SECONDS}s antes de expirar. Falha ao obter o token é técnica (o motor faz retry).
+ * Tokens OAuth2 para o {@link HttpTaskHandler}, por <i>client credentials</i> (a aplicação) ou <i>password</i> (um
+ * usuário técnico, para APIs que exigem um usuário de verdade): um por (token URL, client id, usuário), reaproveitado
+ * até {@value #SAFETY_SECONDS}s antes de expirar. Falha ao obter o token é técnica (o motor faz retry).
  */
-class ClientCredentialsTokens {
+class OAuth2Tokens {
 
     static final long SAFETY_SECONDS = 30;
     private static final long DEFAULT_EXPIRES_IN = 60;
 
-    /** @param scope opcional. */
-    record Client(String tokenUrl, String clientId, String clientSecret, String scope) {
+    enum Grant {
+        CLIENT_CREDENTIALS("client_credentials"),
+        PASSWORD("password");
+
+        private final String value;
+
+        Grant(String value) {
+            this.value = value;
+        }
+    }
+
+    /**
+     * @param clientSecret opcional no grant password (client público).
+     * @param username     e {@code password}: só no grant password.
+     * @param scope        opcional.
+     */
+    record Client(Grant grant, String tokenUrl, String clientId, String clientSecret, String username,
+                  String password, String scope) {
 
         String key() {
-            return tokenUrl + "|" + clientId;
+            return grant + "|" + tokenUrl + "|" + clientId + "|" + (username == null ? "" : username);
         }
     }
 
@@ -58,11 +75,11 @@ class ClientCredentialsTokens {
     private final Clock clock;
     private final Map<String, Token> cache = new ConcurrentHashMap<>();
 
-    ClientCredentialsTokens(HttpClient http, ObjectMapper mapper) {
+    OAuth2Tokens(HttpClient http, ObjectMapper mapper) {
         this(http, mapper, Clock.systemUTC());
     }
 
-    ClientCredentialsTokens(HttpClient http, ObjectMapper mapper, Clock clock) {
+    OAuth2Tokens(HttpClient http, ObjectMapper mapper, Clock clock) {
         this.http = http;
         this.mapper = mapper;
         this.clock = clock;
@@ -83,9 +100,15 @@ class ClientCredentialsTokens {
     }
 
     private Token request(Client client) {
-        StringBuilder form = new StringBuilder("grant_type=client_credentials")
-                .append("&client_id=").append(encode(client.clientId()))
-                .append("&client_secret=").append(encode(client.clientSecret()));
+        StringBuilder form = new StringBuilder("grant_type=").append(client.grant().value)
+                .append("&client_id=").append(encode(client.clientId()));
+        if (client.clientSecret() != null) {
+            form.append("&client_secret=").append(encode(client.clientSecret()));
+        }
+        if (client.grant() == Grant.PASSWORD) {
+            form.append("&username=").append(encode(client.username()))
+                    .append("&password=").append(encode(client.password()));
+        }
         if (client.scope() != null) {
             form.append("&scope=").append(encode(client.scope()));
         }
@@ -106,7 +129,8 @@ class ClientCredentialsTokens {
         if (response.statusCode() / 100 != 2) {
             // O corpo pode trazer detalhes do client; não ecoa segredos (o pedido é que os tem, não a resposta).
             throw new IllegalStateException("OAuth2 token endpoint " + client.tokenUrl() + " answered HTTP "
-                    + response.statusCode() + " for client '" + client.clientId() + "'");
+                    + response.statusCode() + " for client '" + client.clientId() + "'"
+                    + (client.username() == null ? "" : " and user '" + client.username() + "'"));
         }
         try {
             JsonNode json = mapper.readTree(response.body());

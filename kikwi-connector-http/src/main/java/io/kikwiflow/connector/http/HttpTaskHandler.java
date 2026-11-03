@@ -72,7 +72,10 @@ import java.util.regex.Pattern;
  *   <li>{@code kikwi:http.auth=client-credentials} — token OAuth2 (client credentials) obtido em
  *   {@code kikwi:http.auth.token-url} com {@code kikwi:http.auth.client-id}/{@code client-secret} (e
  *   {@code scope}, opcional), todos com {@code ${...}} do host. O token é reaproveitado até perto de expirar; um 401
- *   da API descarta o token e tenta uma vez de novo.</li>
+ *   da API descarta o token e tenta uma vez de novo;</li>
+ *   <li>{@code kikwi:http.auth=password} — o mesmo, com o token de um usuário técnico ({@code kikwi:http.auth.username}
+ *   e {@code password}, sempre de {@code ${...}}; {@code client-secret} opcional), para APIs que exigem um usuário de
+ *   verdade (permissões, auditoria, "responsável").</li>
  * </ul>
  *
  * Resposta 4xx é resultado de negócio: vira {@link ProcessErrorException} com código {@code HTTP_<status>}, que um
@@ -97,7 +100,10 @@ public class HttpTaskHandler implements TaskHandler {
     static final String AUTH_CLIENT_ID = PREFIX + "auth.client-id";
     static final String AUTH_CLIENT_SECRET = PREFIX + "auth.client-secret";
     static final String AUTH_SCOPE = PREFIX + "auth.scope";
+    static final String AUTH_USERNAME = PREFIX + "auth.username";
+    static final String AUTH_PASSWORD = PREFIX + "auth.password";
     static final String CLIENT_CREDENTIALS = "client-credentials";
+    static final String PASSWORD = "password";
 
     private static final Pattern VARIABLE = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*}}");
     private static final List<String> METHODS = List.of("GET", "POST", "PUT", "PATCH", "DELETE");
@@ -108,7 +114,7 @@ public class HttpTaskHandler implements TaskHandler {
     private final HttpClient client;
     private final ObjectMapper mapper;
     private final UnaryOperator<String> propertyResolver;
-    private final ClientCredentialsTokens tokens;
+    private final OAuth2Tokens tokens;
 
     /**
      * @param propertyResolver resolve {@code ${...}} com a configuração do host (no Spring, o {@code Environment}).
@@ -117,7 +123,7 @@ public class HttpTaskHandler implements TaskHandler {
         this.client = Objects.requireNonNull(client);
         this.mapper = Objects.requireNonNull(mapper);
         this.propertyResolver = propertyResolver == null ? UnaryOperator.identity() : propertyResolver;
-        this.tokens = new ClientCredentialsTokens(client, mapper);
+        this.tokens = new OAuth2Tokens(client, mapper);
     }
 
     @Override
@@ -154,7 +160,7 @@ public class HttpTaskHandler implements TaskHandler {
             request.method(method, HttpRequest.BodyPublishers.noBody());
         }
 
-        ClientCredentialsTokens.Client credentials = credentials(node, props);
+        OAuth2Tokens.Client credentials = credentials(node, props);
         HttpResponse<String> response = send(node, request, credentials, false);
         if (credentials != null && response.statusCode() == 401) {
             tokens.invalidate(credentials);
@@ -172,7 +178,7 @@ public class HttpTaskHandler implements TaskHandler {
     }
 
     private HttpResponse<String> send(FlowNodeDefinition node, HttpRequest.Builder request,
-                                      ClientCredentialsTokens.Client credentials, boolean retry) {
+                                      OAuth2Tokens.Client credentials, boolean retry) {
         try {
             if (credentials != null) {
                 request.setHeader("Authorization", "Bearer " + tokens.token(credentials));
@@ -187,18 +193,26 @@ public class HttpTaskHandler implements TaskHandler {
         }
     }
 
-    private ClientCredentialsTokens.Client credentials(FlowNodeDefinition node, Map<String, String> props) {
+    private OAuth2Tokens.Client credentials(FlowNodeDefinition node, Map<String, String> props) {
         String auth = props.get(AUTH);
         if (auth == null || auth.isBlank()) {
             return null;
         }
-        if (!CLIENT_CREDENTIALS.equals(auth.trim())) {
+        boolean password = PASSWORD.equals(auth.trim());
+        if (!password && !CLIENT_CREDENTIALS.equals(auth.trim())) {
             throw new IllegalArgumentException("Node '" + node.id() + "': unsupported " + AUTH + " '" + auth + "'.");
         }
-        String scope = props.get(AUTH_SCOPE);
-        return new ClientCredentialsTokens.Client(required(node, props, AUTH_TOKEN_URL),
-                required(node, props, AUTH_CLIENT_ID), required(node, props, AUTH_CLIENT_SECRET),
-                scope == null || scope.isBlank() ? null : propertyResolver.apply(scope));
+        return new OAuth2Tokens.Client(password ? OAuth2Tokens.Grant.PASSWORD : OAuth2Tokens.Grant.CLIENT_CREDENTIALS,
+                required(node, props, AUTH_TOKEN_URL), required(node, props, AUTH_CLIENT_ID),
+                password ? optional(props, AUTH_CLIENT_SECRET) : required(node, props, AUTH_CLIENT_SECRET),
+                password ? required(node, props, AUTH_USERNAME) : null,
+                password ? required(node, props, AUTH_PASSWORD) : null,
+                optional(props, AUTH_SCOPE));
+    }
+
+    private String optional(Map<String, String> props, String key) {
+        String value = props.get(key);
+        return value == null || value.isBlank() ? null : propertyResolver.apply(value);
     }
 
     private String required(FlowNodeDefinition node, Map<String, String> props, String key) {
