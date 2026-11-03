@@ -52,6 +52,7 @@ class HttpTaskHandlerTemplateAndAuthTest {
     private String baseUrl;
     private final List<String> apiCalls = new ArrayList<>();
     private final List<String> tokenCalls = new ArrayList<>();
+    private final List<String> loginCalls = new ArrayList<>();
     private final AtomicInteger tokenCounter = new AtomicInteger();
     private int unauthorizedResponses;
 
@@ -63,6 +64,10 @@ class HttpTaskHandlerTemplateAndAuthTest {
         server.createContext("/token", exchange -> {
             tokenCalls.add(read(exchange));
             respond(exchange, 200, "{\"access_token\":\"tk-" + tokenCounter.incrementAndGet() + "\",\"expires_in\":300}");
+        });
+        server.createContext("/login", exchange -> {
+            loginCalls.add(read(exchange));
+            respond(exchange, 200, "{\"token\":\"lg-" + loginCalls.size() + "\",\"tipo\":\"Bearer\"}");
         });
         server.createContext("/api", exchange -> {
             apiCalls.add(exchange.getRequestMethod() + " " + exchange.getRequestURI() + " auth="
@@ -213,6 +218,39 @@ class HttpTaskHandlerTemplateAndAuthTest {
             assertEquals(List.of("grant_type=password&client_id=kikwi-agents&username=agente-ia%40loja.com"
                     + "&password=s3gr3do"), tokenCalls);
             assertEquals("POST /api/deals auth=Bearer tk-1 body={}", apiCalls.getFirst());
+        }
+
+        @Test
+        @DisplayName("com kikwi:http.auth=login, então faz o login JSON da API, lê o token do campo e reaproveita")
+        void loginEndpoint() {
+            Map<String, String> props = props();
+            props.keySet().removeIf(k -> k.startsWith(HttpTaskHandler.PREFIX + "auth."));
+            props.put(HttpTaskHandler.AUTH, HttpTaskHandler.LOGIN);
+            props.put(HttpTaskHandler.AUTH_LOGIN_URL, "${crm.base}/login");
+            props.put(HttpTaskHandler.AUTH_LOGIN_BODY,
+                    "{\"email\": \"agente-ia@loja.com\", \"senha\": \"${crm.client-secret}\"}");
+
+            handler.handle(context(node(props)));
+            handler.handle(context(node(props)));
+
+            assertEquals(List.of("{\"email\": \"agente-ia@loja.com\", \"senha\": \"s3gr3do\"}"), loginCalls);
+            assertEquals("POST /api/deals auth=Bearer lg-1 body={}", apiCalls.get(0));
+            assertEquals("POST /api/deals auth=Bearer lg-1 body={}", apiCalls.get(1));
+        }
+
+        @Test
+        @DisplayName("com kikwi:http.auth=login e 401 da API, então faz login de novo e tenta uma vez")
+        void loginRenewsOn401() {
+            Map<String, String> props = props();
+            props.put(HttpTaskHandler.AUTH, HttpTaskHandler.LOGIN);
+            props.put(HttpTaskHandler.AUTH_LOGIN_URL, "${crm.base}/login");
+            props.put(HttpTaskHandler.AUTH_LOGIN_BODY, "{\"senha\": \"${crm.client-secret}\"}");
+            unauthorizedResponses = 1;
+
+            handler.handle(context(node(props)));
+
+            assertEquals(2, loginCalls.size());
+            assertEquals("POST /api/deals auth=Bearer lg-2 body={}", apiCalls.get(1));
         }
 
         @Test

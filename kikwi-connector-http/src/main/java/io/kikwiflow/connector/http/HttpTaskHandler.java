@@ -75,7 +75,12 @@ import java.util.regex.Pattern;
  *   da API descarta o token e tenta uma vez de novo;</li>
  *   <li>{@code kikwi:http.auth=password} — o mesmo, com o token de um usuário técnico ({@code kikwi:http.auth.username}
  *   e {@code password}, sempre de {@code ${...}}; {@code client-secret} opcional), para APIs que exigem um usuário de
- *   verdade (permissões, auditoria, "responsável").</li>
+ *   verdade (permissões, auditoria, "responsável");</li>
+ *   <li>{@code kikwi:http.auth=login} — para APIs com login próprio (não OAuth2): POST em
+ *   {@code kikwi:http.auth.login-url} com o corpo JSON {@code kikwi:http.auth.login-body} (só {@code ${...}} do host,
+ *   nunca variáveis do processo), token lido em {@code kikwi:http.auth.token-pointer} (padrão {@code /token}) e válido
+ *   por {@code expires_in} da resposta ou {@code kikwi:http.auth.ttl} (padrão PT10M). O token nunca vira variável do
+ *   processo; mesmo cache e renovação no 401.</li>
  * </ul>
  *
  * Resposta 4xx é resultado de negócio: vira {@link ProcessErrorException} com código {@code HTTP_<status>}, que um
@@ -102,8 +107,13 @@ public class HttpTaskHandler implements TaskHandler {
     static final String AUTH_SCOPE = PREFIX + "auth.scope";
     static final String AUTH_USERNAME = PREFIX + "auth.username";
     static final String AUTH_PASSWORD = PREFIX + "auth.password";
+    static final String AUTH_LOGIN_URL = PREFIX + "auth.login-url";
+    static final String AUTH_LOGIN_BODY = PREFIX + "auth.login-body";
+    static final String AUTH_TOKEN_POINTER = PREFIX + "auth.token-pointer";
+    static final String AUTH_TTL = PREFIX + "auth.ttl";
     static final String CLIENT_CREDENTIALS = "client-credentials";
     static final String PASSWORD = "password";
+    static final String LOGIN = "login";
 
     private static final Pattern VARIABLE = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*}}");
     private static final List<String> METHODS = List.of("GET", "POST", "PUT", "PATCH", "DELETE");
@@ -197,6 +207,12 @@ public class HttpTaskHandler implements TaskHandler {
         String auth = props.get(AUTH);
         if (auth == null || auth.isBlank()) {
             return null;
+        }
+        if (LOGIN.equals(auth.trim())) {
+            String tokenPointer = props.getOrDefault(AUTH_TOKEN_POINTER, "/token");
+            return OAuth2Tokens.Client.login(required(node, props, AUTH_LOGIN_URL),
+                    required(node, props, AUTH_LOGIN_BODY), tokenPointer.isBlank() ? "/token" : tokenPointer.trim(),
+                    Duration.parse(props.getOrDefault(AUTH_TTL, "PT10M")));
         }
         boolean password = PASSWORD.equals(auth.trim());
         if (!password && !CLIENT_CREDENTIALS.equals(auth.trim())) {
