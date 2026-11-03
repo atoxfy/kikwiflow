@@ -19,6 +19,8 @@ package io.kikwiflow.connector.http;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.kikwiflow.exception.ProcessErrorException;
 import io.kikwiflow.execution.api.context.ExecutionContext;
 import io.kikwiflow.execution.api.handler.TaskHandler;
@@ -37,6 +39,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,9 +61,18 @@ import java.util.regex.Pattern;
  *   {@code ${...}}, nunca do processo);</li>
  *   <li>{@code kikwi:http.body} — variáveis enviadas como objeto JSON, separadas por vírgula. Ausente em
  *   POST/PUT/PATCH = {@code {}};</li>
+ *   <li>{@code kikwi:http.body.template} — corpo JSON livre, para APIs com outro formato (ex.: lista
+ *   {@code [{"name": ..., "value": ...}]}). Um valor que é só {@code "{{variavel}}"} recebe o valor da instância com o
+ *   tipo dele (texto, número, booleano, lista); dentro de um texto maior, vira texto. {@code ${...}} vem do host. Tem
+ *   precedência sobre {@code kikwi:http.body}. Com {@code kikwi:http.body.omit-empty=true}, campos sem valor somem e
+ *   itens de lista que ficariam com algum campo sem valor não são enviados (um item incompleto não vai);</li>
  *   <li>{@code kikwi:http.response.<variavel>} — JSON Pointer na resposta (padrão {@code /<variavel>}) para cada
  *   variável dos {@code outputs} do nó;</li>
- *   <li>{@code kikwi:http.timeout} — duração ISO-8601 (padrão PT30S).</li>
+ *   <li>{@code kikwi:http.timeout} — duração ISO-8601 (padrão PT30S);</li>
+ *   <li>{@code kikwi:http.auth=client-credentials} — token OAuth2 (client credentials) obtido em
+ *   {@code kikwi:http.auth.token-url} com {@code kikwi:http.auth.client-id}/{@code client-secret} (e
+ *   {@code scope}, opcional), todos com {@code ${...}} do host. O token é reaproveitado até perto de expirar; um 401
+ *   da API descarta o token e tenta uma vez de novo.</li>
  * </ul>
  *
  * Resposta 4xx é resultado de negócio: vira {@link ProcessErrorException} com código {@code HTTP_<status>}, que um
@@ -78,14 +90,25 @@ public class HttpTaskHandler implements TaskHandler {
     static final String BODY = PREFIX + "body";
     static final String RESPONSE_PREFIX = PREFIX + "response.";
     static final String TIMEOUT = PREFIX + "timeout";
+    static final String BODY_TEMPLATE = PREFIX + "body.template";
+    static final String BODY_OMIT_EMPTY = PREFIX + "body.omit-empty";
+    static final String AUTH = PREFIX + "auth";
+    static final String AUTH_TOKEN_URL = PREFIX + "auth.token-url";
+    static final String AUTH_CLIENT_ID = PREFIX + "auth.client-id";
+    static final String AUTH_CLIENT_SECRET = PREFIX + "auth.client-secret";
+    static final String AUTH_SCOPE = PREFIX + "auth.scope";
+    static final String CLIENT_CREDENTIALS = "client-credentials";
 
     private static final Pattern VARIABLE = Pattern.compile("\\{\\{\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*}}");
     private static final List<String> METHODS = List.of("GET", "POST", "PUT", "PATCH", "DELETE");
     private static final int MAX_ERROR_BODY = 500;
+    /** Marca interna de objeto que perdeu um campo por falta de valor (omit-empty); nunca é enviada. */
+    private static final String INCOMPLETE = "__kikwiIncomplete";
 
     private final HttpClient client;
     private final ObjectMapper mapper;
     private final UnaryOperator<String> propertyResolver;
+    private final ClientCredentialsTokens tokens;
 
     /**
      * @param propertyResolver resolve {@code ${...}} com a configuração do host (no Spring, o {@code Environment}).
@@ -94,6 +117,7 @@ public class HttpTaskHandler implements TaskHandler {
         this.client = Objects.requireNonNull(client);
         this.mapper = Objects.requireNonNull(mapper);
         this.propertyResolver = propertyResolver == null ? UnaryOperator.identity() : propertyResolver;
+        this.tokens = new ClientCredentialsTokens(client, mapper);
     }
 
     @Override
@@ -122,19 +146,19 @@ public class HttpTaskHandler implements TaskHandler {
         boolean sendsBody = !method.equals("GET") && !method.equals("DELETE");
         if (sendsBody) {
             request.header("Content-Type", "application/json");
-            request.method(method, HttpRequest.BodyPublishers.ofString(body(props.get(BODY), execution)));
+            String body = props.containsKey(BODY_TEMPLATE)
+                    ? templateBody(props.get(BODY_TEMPLATE), Boolean.parseBoolean(props.get(BODY_OMIT_EMPTY)), execution)
+                    : body(props.get(BODY), execution);
+            request.method(method, HttpRequest.BodyPublishers.ofString(body));
         } else {
             request.method(method, HttpRequest.BodyPublishers.noBody());
         }
 
-        HttpResponse<String> response;
-        try {
-            response = client.send(request.build(), HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            throw new UncheckedIOException("HTTP call failed for node '" + node.id() + "'", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("HTTP call interrupted for node '" + node.id() + "'", e);
+        ClientCredentialsTokens.Client credentials = credentials(node, props);
+        HttpResponse<String> response = send(node, request, credentials, false);
+        if (credentials != null && response.statusCode() == 401) {
+            tokens.invalidate(credentials);
+            response = send(node, request, credentials, true);
         }
 
         int status = response.statusCode();
@@ -145,6 +169,112 @@ public class HttpTaskHandler implements TaskHandler {
             throw new IllegalStateException("HTTP " + status + " from node '" + node.id() + "': " + truncate(response.body()));
         }
         mapResponse(node, props, response.body(), execution);
+    }
+
+    private HttpResponse<String> send(FlowNodeDefinition node, HttpRequest.Builder request,
+                                      ClientCredentialsTokens.Client credentials, boolean retry) {
+        try {
+            if (credentials != null) {
+                request.setHeader("Authorization", "Bearer " + tokens.token(credentials));
+            }
+            return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
+        } catch (IOException e) {
+            throw new UncheckedIOException("HTTP call failed for node '" + node.id() + "'"
+                    + (retry ? " (after renewing the token)" : ""), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("HTTP call interrupted for node '" + node.id() + "'", e);
+        }
+    }
+
+    private ClientCredentialsTokens.Client credentials(FlowNodeDefinition node, Map<String, String> props) {
+        String auth = props.get(AUTH);
+        if (auth == null || auth.isBlank()) {
+            return null;
+        }
+        if (!CLIENT_CREDENTIALS.equals(auth.trim())) {
+            throw new IllegalArgumentException("Node '" + node.id() + "': unsupported " + AUTH + " '" + auth + "'.");
+        }
+        String scope = props.get(AUTH_SCOPE);
+        return new ClientCredentialsTokens.Client(required(node, props, AUTH_TOKEN_URL),
+                required(node, props, AUTH_CLIENT_ID), required(node, props, AUTH_CLIENT_SECRET),
+                scope == null || scope.isBlank() ? null : propertyResolver.apply(scope));
+    }
+
+    private String required(FlowNodeDefinition node, Map<String, String> props, String key) {
+        String value = props.get(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Node '" + node.id() + "': " + key + " is required.");
+        }
+        return propertyResolver.apply(value);
+    }
+
+    /** Corpo livre: ver {@code kikwi:http.body.template} na documentação da classe. */
+    private String templateBody(String template, boolean omitEmpty, ExecutionContext execution) {
+        JsonNode json;
+        try {
+            json = mapper.readTree(propertyResolver.apply(template));
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException(BODY_TEMPLATE + " is not valid JSON", e);
+        }
+        JsonNode rendered = renderJson(json, execution, omitEmpty);
+        if (rendered != null) {
+            stripIncompleteMarks(rendered);
+        }
+        try {
+            return mapper.writeValueAsString(rendered == null ? mapper.nullNode() : rendered);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Could not serialize the request body", e);
+        }
+    }
+
+    /** @return o nó com os placeholders resolvidos; {@code null} = sem valor (só com omit-empty). */
+    private JsonNode renderJson(JsonNode node, ExecutionContext execution, boolean omitEmpty) {
+        if (node.isTextual()) {
+            Matcher exact = VARIABLE.matcher(node.asText());
+            if (exact.matches()) {
+                ProcessVariable variable = execution.getVariable(exact.group(1));
+                Object value = variable == null ? null : variable.value();
+                if (value == null || (value instanceof String text && text.isBlank())) {
+                    return omitEmpty ? null : mapper.nullNode();
+                }
+                return mapper.valueToTree(value);
+            }
+            return mapper.getNodeFactory().textNode(render(node.asText(), execution, false));
+        }
+        if (node.isObject()) {
+            ObjectNode result = mapper.createObjectNode();
+            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> field = fields.next();
+                JsonNode value = renderJson(field.getValue(), execution, omitEmpty);
+                if (value != null) {
+                    result.set(field.getKey(), value);
+                } else {
+                    result.put(INCOMPLETE, true);
+                }
+            }
+            return result;
+        }
+        if (node.isArray()) {
+            ArrayNode result = mapper.createArrayNode();
+            for (JsonNode item : node) {
+                JsonNode value = renderJson(item, execution, omitEmpty);
+                if (value != null && !(value.isObject() && value.has(INCOMPLETE))) {
+                    result.add(value);
+                }
+            }
+            return result;
+        }
+        return node;
+    }
+
+    /** Fora de listas, um objeto incompleto continua (só sem os campos vazios): a marca interna sai. */
+    private static void stripIncompleteMarks(JsonNode node) {
+        if (node instanceof ObjectNode object) {
+            object.remove(INCOMPLETE);
+        }
+        node.forEach(HttpTaskHandler::stripIncompleteMarks);
     }
 
     private String body(String bodyVariables, ExecutionContext execution) {

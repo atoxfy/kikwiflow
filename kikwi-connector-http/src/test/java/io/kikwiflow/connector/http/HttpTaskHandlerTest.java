@@ -142,7 +142,7 @@ class HttpTaskHandlerTest {
         assertEquals("GET /leads?tel=%2B55%2051%209 auth=null body=", lastRequest.get());
     }
 
-    private static final class FakeContext implements ExecutionContext {
+    static final class FakeContext implements ExecutionContext {
         private final FlowNodeDefinition node;
         private final Map<String, ProcessVariable> variables = new HashMap<>();
 
