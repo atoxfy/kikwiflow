@@ -295,29 +295,29 @@ deploy succeeded" as proof the model is correct.
 
 ---
 
-## Step 5 — Layout: real node sizes and spacing (avoids overlap)
+## Step 5 — Layout: real canvas geometry, then route and check
 
-The official Kikwiflow visual editor renders every node type at a real, predictable size — use these to compute
-`x`/`y` (top-left of the node) so the model opens without overlapping cards:
+Don't compute final coordinates by reasoning alone — on real processes that produced edges through cards and
+labels on top of each other. Use the `beautify-kikwi-diagram` skill from the `kikwiflow-skills` repo
+(`../ui/kikwiflow-skills/skills/beautify-kikwi-diagram`): you decide a grid (main path on row 0, excursions above,
+interrupt handling below, ends next to whoever reaches them) and its `scripts/kikwi-layout.mjs` converts it with
+the canvas's measured geometry, routes every edge (`positionHandlers`), places gateway labels (`labelPosition`,
+`sourceHandle`) and checks the result. Until then, leave `layout` at `{ "x": 0, "y": 0 }` — Craft lays out a file
+with no coordinates on import.
 
-| Node family | Types | Width | Base height | What increases height |
-|---|---|---|---|---|
-| Event (circle) | `DEFAULT_START_EVENT`, `DEFAULT_END_EVENT` | ~140px | ~70px | Nothing — fixed |
-| Gateway (diamond) | `EXCLUSIVE_GATEWAY`, `PARALLEL_GATEWAY`, `JOIN_GATEWAY` | ~140px | ~80px | Nothing — fixed |
-| Task (rectangle) | `EXECUTABLE_TASK`, `EXTERNAL_TASK`, `TIMER_TASK`, `EVENT_CATCHER`, `CALL_ACTIVITY_COORDINATOR` | **300px, always** | `EXECUTABLE_TASK`: ~150px (retry footer always renders). Others: ~120px | Each boundary event listed inside the card adds **+~35px**. An interruptive timer (SLA) adds **+~30px**, except on `EXECUTABLE_TASK` (already counted). `EVENT_CATCHER` with `catchType: GROUP` or `CALL_ACTIVITY_COORDINATOR` with `collectionVariable` add **+~28px** (progress bar). |
+Measured geometry, for reference (`x`/`y` = top-left; full rules in that skill's `reference/canvas-geometry.md`):
 
-**Boundary events don't get their own box.** The editor draws them *inside* the parent card as a row/badge —
-don't reserve `x`/`y` space for them; their only layout effect is growing the parent's height (table above),
-which pushes down whatever sits below it in the same column. `EVENT_THROWER` has no dedicated editor component
-yet — treat it as a 300px/~120px task-family node for layout purposes.
+| Node | Size | Handles |
+|---|---|---|
+| Start / end event | 40 × 40; name drawn **below** (from y+52, up to 140px wide, 1–3 lines) | in (−2, 20), out (46, 20) |
+| Gateway | 56 × 56; name **below** (from y+56) | in (−2, 28); out `right` (56, 28), `right-2` (49, 21), `right-3` (49, 35) |
+| Task card | 300 wide; height 104, + 11 + 42 per boundary row (if any), + 32 timeout/retry footer; call activity + 44 | in (−2, 32), out (302, 32), boundary row *i* (302, 129 + 42·i) |
 
-**Spacing rules:**
-- Two task-family nodes in sequence: increment `x` by **at least 480–500px** (300px card + margin).
-- Compact (event/gateway) → task, either order: **at least 300–350px**.
-- Two compact nodes in sequence: **~250px** is safe.
-- Parallel/alternative branches (different rows): separate `y` by **at least 220–260px** when task cards are
-  involved (120–140px if the row is only compact nodes) — use the tallest node in a row (base height + any
-  boundary-event/progress-bar increments) to decide how far below it the next row needs to start.
+Boundary events are rows inside their host card, each with its own handle — never a separate box.
+
+**Readability starts in the model.** If several waits carry the same interrupts (customer wrote, status changed,
+date changed…), model a loop with a single wait instead: a planning task decides the next step and when, one
+`TIMER_TASK` carries each interrupt once, a gateway runs the step, every step returns to planning.
 
 ---
 

@@ -134,42 +134,26 @@ Every node, regardless of type, carries these common fields:
   diagram**. See the table below before computing `x`/`y`, or you'll end up with exactly the "pile of
   overlapping nodes" this guide exists to prevent.
 
-### Real node sizes (extracted from the Kikwiflow visual editor — avoids overlap)
+### Real canvas geometry (measured in the Kikwiflow editor at zoom 1)
 
-The official Kikwiflow editor/monitor (`packages/flow-nodes`, React components) renders every node type at a
-real, predictable size. Use these values to compute `x`/`y` — they are not a guess, they were read straight
-from each component's CSS (Tailwind):
+`x`/`y` is the node's top-left corner. Full rules in `../ui/kikwiflow-skills/skills/beautify-kikwi-diagram/reference/canvas-geometry.md`.
 
-| Node family | Types | Width | Base height (no extras) | What increases the height |
-|---|---|---|---|---|
-| Event (circle) | `DEFAULT_START_EVENT`, `DEFAULT_END_EVENT` | ~140px (the circle itself is 40px, but the label below it is what defines the occupied width) | ~70px (circle + label) | Nothing — fixed size |
-| Gateway (diamond) | `EXCLUSIVE_GATEWAY`, `PARALLEL_GATEWAY`, `JOIN_GATEWAY` | ~140px (same reasoning as events) | ~80px (56px diamond + label) | Nothing — fixed size |
-| Task (rectangle) | `EXECUTABLE_TASK`, `EXTERNAL_TASK`, `TIMER_TASK`, `EVENT_CATCHER`, `CALL_ACTIVITY_COORDINATOR` | **300px, always fixed** | `EXECUTABLE_TASK`: ~150px (the retry footer always renders). All others: ~120px | Each boundary event **listed inside the card** (non-interruptive timer, error handler, catch event) adds **+~35px**. An **interruptive** timer attached (SLA) adds **+~30px** (timeout footer), except on `EXECUTABLE_TASK`, which already counts that footer in its base. `EVENT_CATCHER` with `catchType: GROUP` or `CALL_ACTIVITY_COORDINATOR` with `collectionVariable` add **+~28px** (progress bar) |
+| Node | Size | Handles |
+|---|---|---|
+| Start / end event | 40 × 40; name drawn **below** (from y+52, up to 140px wide, 1–3 lines) | in (−2, 20), out (46, 20) |
+| Gateway | 56 × 56; name **below** (from y+56) | in (−2, 28); out `right` (56, 28), `right-2` (49, 21), `right-3` (49, 35) |
+| Task card | 300 wide; height 104, + 11 + 42 per boundary row (if any), + 32 timeout/retry footer; call activity + 44 | in (−2, 32), out (302, 32), boundary row *i* (302, 129 + 42·i) |
 
-:::tip The single most important finding for avoiding overlap
-**Boundary events (`BOUNDARY_INTERRUPTIVE_TIMER`, `BOUNDARY_NON_INTERRUPTIVE_TIMER`, `BOUNDARY_ERROR_HANDLER`,
-`BOUNDARY_INTERRUPTIVE_CATCH_EVENT`) do not get their own box in the diagram.** The editor draws them
-**inside** the parent node's card (as a row/badge), not as a separate node floating next to it. In practice
-this means: you don't need to reserve `x`/`y` real estate for them — you can even leave them at the same
-`x`/`y` as the parent. Their only real layout effect is **increasing the parent card's height** (see the table
-above), which pushes down whatever node is placed right below it in the same column.
+:::tip Boundary events are rows inside their host card
+Each boundary event is a row inside the parent card, with its own handle — never a separate box. Its only
+layout effect is the parent's height.
 :::
 
-**Practical spacing rules (`x`/`y`) to avoid overlap:**
-
-- **Between two "task"-family nodes in sequence** (the most common case): increment `x` by **at least
-  480–500px** — 300px of card width + 180–200px of margin so the connecting line isn't crammed.
-- **Between a (compact) event/gateway and a task**, in either order: incrementing `x` by **at least
-  300–350px** is enough (the combined width of the two is already well under 480, but keep that margin for
-  the event/gateway's label, which is usually wider than the circle/diamond itself).
-- **Between two compact events/gateways in sequence**: **~250px** is already safe.
-- **Parallel/alternative branches (different rows of the same flow)**: separate `y` by **at least 220–260px**
-  per row when task cards are involved — this leaves room for a card to grow (boundary events, timeout footer)
-  without invading the neighboring row. For rows with only compact events/gateways, 120–140px is enough.
-- When deciding a specific row's height, use the **largest estimated height among that row's nodes** (base
-  from the table + boundary-event/progress-bar increments) as the reference for how far below it the next row
-  needs to be.
-:::
+**Don't compute the final layout by reasoning alone** — on real processes that produced edges through cards
+and labels on top of each other. Use the `beautify-kikwi-diagram` skill from the `kikwiflow-skills` repo: you
+decide a grid (main path on row 0, branches above/below, ends next to whoever reaches them) and its
+`scripts/kikwi-layout.mjs` converts it with this geometry, routes every edge and checks the result. Rows must be
+aligned by the handle line (`y = row − 32` for a card, `− 20` for an event, `− 28` for a gateway), not by the top.
 
 :::info `EVENT_THROWER` has no dedicated component in the visual editor yet
 Same finding as the one from the `docs/engine` sweep (see
