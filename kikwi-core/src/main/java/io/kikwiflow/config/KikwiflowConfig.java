@@ -50,11 +50,15 @@ public class KikwiflowConfig {
 
     private long taskAcquisitionIntervalMillis = 5000L;
     private int taskAcquisitionMaxTasks = 10;
+    // false = nó passivo: atende API/Monitor/MCP sobre o banco, mas nunca adquire nem executa tarefas.
+    private boolean taskAcquisitionEnabled = true;
     private int maxConcurrentTasks = 200;
     private int shutdownGracePeriodSeconds = 20;
     private long lockTimeoutMillis = 5000L;
     private String defaultRetryInterval = "PT3M";
     private int defaultMaxRetries = 3;
+    // Jitter no EXPONENTIAL_BACKOFF (ver DefaultRetryPolicyEvaluator.equalJitter). Ligado por padrão.
+    private boolean retryJitterEnabled = true;
     private String instanceName;
     private List<String> fatalExceptions = new ArrayList<>();
     private boolean isProcessDefinitionDeployEnabled = true;
@@ -84,6 +88,14 @@ public class KikwiflowConfig {
 
     public void setProcessDefinitionDeployEnabled(boolean processDefinitionDeployEnabled) {
         isProcessDefinitionDeployEnabled = processDefinitionDeployEnabled;
+    }
+
+    public boolean isRetryJitterEnabled() {
+        return retryJitterEnabled;
+    }
+
+    public void setRetryJitterEnabled(boolean retryJitterEnabled) {
+        this.retryJitterEnabled = retryJitterEnabled;
     }
 
     public int getDefaultMaxRetries() {
@@ -136,6 +148,14 @@ public class KikwiflowConfig {
         this.taskAcquisitionIntervalMillis = taskAcquisitionIntervalMillis;
     }
 
+    public boolean isTaskAcquisitionEnabled() {
+        return taskAcquisitionEnabled;
+    }
+
+    public void setTaskAcquisitionEnabled(boolean taskAcquisitionEnabled) {
+        this.taskAcquisitionEnabled = taskAcquisitionEnabled;
+    }
+
     public int getTaskAcquisitionMaxTasks() {
         return taskAcquisitionMaxTasks;
     }
@@ -178,6 +198,7 @@ public class KikwiflowConfig {
         sb.append(", isOutboxEventsEnabled=").append(isOutboxEventsEnabled);
         sb.append(", taskAcquisitionIntervalMillis=").append(taskAcquisitionIntervalMillis);
         sb.append(", taskAcquisitionMaxTasks=").append(taskAcquisitionMaxTasks);
+        sb.append(", taskAcquisitionEnabled=").append(taskAcquisitionEnabled);
         sb.append(", maxConcurrentTasks=").append(maxConcurrentTasks);
         sb.append(", shutdownGracePeriodSeconds=").append(shutdownGracePeriodSeconds);
         sb.append(", lockTimeoutMillis=").append(lockTimeoutMillis);

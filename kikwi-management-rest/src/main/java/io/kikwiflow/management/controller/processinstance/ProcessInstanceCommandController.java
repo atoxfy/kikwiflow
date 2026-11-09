@@ -22,6 +22,7 @@ import io.kikwiflow.api.dto.ProcessInstanceStartRequest;
 import io.kikwiflow.api.dto.SetVariablesRequest;
 import io.kikwiflow.api.dto.UnsetVariablesRequest;
 import io.kikwiflow.management.annotation.KikwiRestController;
+import io.kikwiflow.management.service.ProcessStartService;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.spring.rest.api.command.ProcessInstanceOperationsRestApi;
@@ -32,23 +33,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 public class ProcessInstanceCommandController implements ProcessInstanceOperationsRestApi {
 
     private final KikwiflowEngine engine;
+    private final ProcessStartService processStartService;
 
     public ProcessInstanceCommandController(KikwiflowEngine engine) {
         this.engine = engine;
+        this.processStartService = new ProcessStartService(engine);
     }
 
 
     @Override
     public ProcessInstance start(ProcessInstanceStartRequest processInstanceStartRequest, IdentityContext identityContext) {
-        //Identity context injetado para implementação futura/logs.
-        return engine.startProcess()
-                .byKey(processInstanceStartRequest.processDefinitionKey())
-                .from(processInstanceStartRequest.origin())
-                .onTenant(processInstanceStartRequest.tenant())
-                .withBusinessKey(processInstanceStartRequest.businessKey())
-                .withVariables(processInstanceStartRequest.variables())
-                .withBusinessValue(processInstanceStartRequest.businessValue())
-                .execute();
+        return processStartService.start(processInstanceStartRequest, identityContext, null);
     }
 
     @Override

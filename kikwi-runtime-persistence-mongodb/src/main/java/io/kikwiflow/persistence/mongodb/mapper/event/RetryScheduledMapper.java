@@ -19,6 +19,7 @@ package io.kikwiflow.persistence.mongodb.mapper.event;
 
 import io.kikwiflow.model.event.RetryScheduled;
 import io.kikwiflow.persistence.mongodb.mapper.InstantMapper;
+import io.kikwiflow.persistence.mongodb.mapper.NumberMapper;
 import org.bson.Document;
 
 public final class RetryScheduledMapper {
@@ -46,8 +47,8 @@ public final class RetryScheduledMapper {
                 doc.getString("processInstanceId"),
                 doc.getString("tenantId"),
                 doc.getString("taskDefinitionId"),
-                doc.getLong("executionsSoFar"),
-                doc.getLong("retriesLeft"),
+                NumberMapper.getLong(doc, "executionsSoFar"),
+                NumberMapper.getLong(doc, "retriesLeft"),
                 InstantMapper.mapToInstant("nextDueDate", doc),
                 doc.getString("errorMessage"),
                 doc.getString("actorId"),

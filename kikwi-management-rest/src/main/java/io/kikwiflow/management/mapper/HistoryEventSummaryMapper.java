@@ -19,6 +19,7 @@ package io.kikwiflow.management.mapper;
 
 import io.kikwiflow.model.event.CriticalEvent;
 import io.kikwiflow.model.event.CriticalEventType;
+import io.kikwiflow.model.event.EventCorrelated;
 import io.kikwiflow.model.event.ExternalTaskCompleted;
 import io.kikwiflow.model.event.HistoryEventSummary;
 import io.kikwiflow.model.event.OutboxEventEntity;
@@ -35,7 +36,7 @@ import java.util.Map;
  * Mapeia {@link OutboxEventEntity} para {@link HistoryEventSummary}, aplicando
  * {@link VariableSecurityPolicyManager#applyReadPoliciesAndMasking} a todo evento que carrega dado de variável de
  * negócio antes de expor o payload: {@link ProcessVariableChanged}, as variáveis de início/fim da instância e as
- * variáveis enviadas em {@link ExternalTaskCompleted}. O outbox grava tudo sem máscara; a máscara é na leitura.
+ * variáveis enviadas em {@link ExternalTaskCompleted} e {@link EventCorrelated}. O outbox grava tudo sem máscara; a máscara é na leitura.
  */
 public final class HistoryEventSummaryMapper {
 
@@ -65,6 +66,9 @@ public final class HistoryEventSummaryMapper {
             case ExternalTaskCompleted completed:
                 return completed.withSubmittedVariables(
                         mask(completed.submittedVariables(), definitionId, securityPolicyManager, identityContext));
+            case EventCorrelated correlated:
+                return correlated.withSubmittedVariables(
+                        mask(correlated.submittedVariables(), definitionId, securityPolicyManager, identityContext));
             case ProcessInstanceStarted started:
                 return started.withVariables(mask(started.variables(), definitionId, securityPolicyManager, identityContext));
             case ProcessInstanceFinished finished:

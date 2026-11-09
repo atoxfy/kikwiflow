@@ -47,6 +47,11 @@ public class ExternalTaskCommandController implements ExternalTaskOperationsRest
 
     @Override
     public ProcessInstance completeExternalTask(String id, CompleteExternalTaskRequest completeExternalTaskRequest, IdentityContext identityContext) {
+        // Com workerId é a conclusão de um worker com lease (docs/engine/31, E2); sem, o complete humano de sempre.
+        if (completeExternalTaskRequest.workerId() != null) {
+            return engine.completeExternalTask(id, completeExternalTaskRequest.workerId(),
+                    completeExternalTaskRequest.variables(), completeExternalTaskRequest.missionReport(), identityContext);
+        }
         return engine.completeExternalTask(id,
                 completeExternalTaskRequest.variables(),
                 identityContext);

@@ -58,4 +58,17 @@ public interface ProcessInstanceQuery {
     ProcessInstanceQuery size(int size);
 
     PageResult<ProcessInstanceSummary> listSummary();
+
+    /**
+     * Terminal alternativa a {@link #listSummary()}: soma/mede variáveis numéricas sobre <b>todas</b> as instâncias
+     * que casam com os filtros (ignora {@code orderBy}/{@code page}/{@code size}). Ver {@link VariableAggregation}.
+     */
+    VariableAggregationResult aggregate(VariableAggregation aggregation);
+
+    /**
+     * Terminal de descoberta: quais chaves de variável as instâncias filtradas gravam de fato, com que tipo e se leem
+     * como número — examinando as {@code sampleSize} mais recentes (máx. {@link VariableProfile#MAX_SAMPLE}). Ignora
+     * {@code orderBy}/{@code page}/{@code size}.
+     */
+    VariableProfile profileVariables(int sampleSize);
 }

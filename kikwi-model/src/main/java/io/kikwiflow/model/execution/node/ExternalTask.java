@@ -53,7 +53,31 @@ public record ExternalTask (
          List<String> pendingCorrelationKeys,
          MatchPolicy matchPolicy,
          String coordinatorTaskId,
-         Integer totalCorrelationKeys){
+         Integer totalCorrelationKeys,
+         String lockOwner,
+         Instant lockExpiresAt,
+         Integer retries,
+         Instant availableAt,
+         String errorMessage){
+
+    /**
+     * Lease de worker (docs/engine/31, E2): a tarefa está em posse de {@code lockOwner} até {@code lockExpiresAt}.
+     * Vencido o prazo, a posse cai sozinha — volta a ser adquirível sem nenhuma varredura.
+     */
+    public boolean isLockedBy(String workerId, Instant now) {
+        return lockOwner != null && lockOwner.equals(workerId) && lockExpiresAt != null && lockExpiresAt.isAfter(now);
+    }
+
+    /**
+     * Tarefa com tópico pode ser adquirida agora: sem lease vigente, não está em incidente ({@code retries == 0})
+     * e já passou o {@code retryTimeout} de uma falha anterior.
+     */
+    public boolean isFetchable(Instant now) {
+        return status == ExternalTaskStatus.CREATED
+                && (lockExpiresAt == null || !lockExpiresAt.isAfter(now))
+                && (retries == null || retries > 0)
+                && (availableAt == null || !availableAt.isAfter(now));
+    }
 
     public static Builder builder() {
         return new Builder();
@@ -85,7 +109,12 @@ public record ExternalTask (
                 .pendingCorrelationKeys(this.pendingCorrelationKeys)
                 .matchPolicy(this.matchPolicy)
                 .coordinatorTaskId(this.coordinatorTaskId)
-                .totalCorrelationKeys(this.totalCorrelationKeys);
+                .totalCorrelationKeys(this.totalCorrelationKeys)
+                .lockOwner(this.lockOwner)
+                .lockExpiresAt(this.lockExpiresAt)
+                .retries(this.retries)
+                .availableAt(this.availableAt)
+                .errorMessage(this.errorMessage);
     }
 
     public static class Builder {
@@ -114,6 +143,11 @@ public record ExternalTask (
         private MatchPolicy matchPolicy;
         private String coordinatorTaskId;
         private Integer totalCorrelationKeys;
+        private String lockOwner;
+        private Instant lockExpiresAt;
+        private Integer retries;
+        private Instant availableAt;
+        private String errorMessage;
 
         private Builder() {}
 
@@ -142,6 +176,11 @@ public record ExternalTask (
         public Builder matchPolicy(MatchPolicy matchPolicy) { this.matchPolicy = matchPolicy; return this; }
         public Builder coordinatorTaskId(String coordinatorTaskId) { this.coordinatorTaskId = coordinatorTaskId; return this; }
         public Builder totalCorrelationKeys(Integer totalCorrelationKeys) { this.totalCorrelationKeys = totalCorrelationKeys; return this; }
+        public Builder lockOwner(String lockOwner) { this.lockOwner = lockOwner; return this; }
+        public Builder lockExpiresAt(Instant lockExpiresAt) { this.lockExpiresAt = lockExpiresAt; return this; }
+        public Builder retries(Integer retries) { this.retries = retries; return this; }
+        public Builder availableAt(Instant availableAt) { this.availableAt = availableAt; return this; }
+        public Builder errorMessage(String errorMessage) { this.errorMessage = errorMessage; return this; }
 
         public ExternalTask build() {
             return new ExternalTask(
@@ -169,7 +208,12 @@ public record ExternalTask (
                 this.pendingCorrelationKeys,
                 this.matchPolicy,
                 this.coordinatorTaskId,
-                this.totalCorrelationKeys
+                this.totalCorrelationKeys,
+                this.lockOwner,
+                this.lockExpiresAt,
+                this.retries,
+                this.availableAt,
+                this.errorMessage
             );
         }
     }

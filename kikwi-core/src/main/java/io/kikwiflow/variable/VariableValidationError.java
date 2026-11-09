@@ -30,6 +30,10 @@ public record VariableValidationError(String variable, String code, String messa
     public static final String INVALID_FORMAT = "INVALID_FORMAT";
     public static final String INVALID_OPTION = "INVALID_OPTION";
     public static final String PATTERN_MISMATCH = "PATTERN_MISMATCH";
+    /** FILE com {@code mimeType} fora de {@code kikwi:file.mimeTypes}. */
+    public static final String INVALID_FILE_TYPE = "INVALID_FILE_TYPE";
+    /** FILE múltiplo com mais itens que {@code kikwi:file.maxCount}. */
+    public static final String TOO_MANY_FILES = "TOO_MANY_FILES";
     /** Vínculo aponta para uma variável fora do catálogo — só alcançável se o deploy não validou a definição. */
     public static final String UNDECLARED = "UNDECLARED";
 }

@@ -1,0 +1,51 @@
+{
+  "key": "agendar-avaliacao",
+  "name": "Agendar avaliação",
+  "description": "Fixture de teste (docs/engine/26, retorno do processo): processo chamado como ferramenta; cada fim declara o que retorna.",
+  "extensionProperties": {
+    "kikwi:icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4="
+  },
+  "variableDeclarations": [
+    { "key": "dataHora", "label": "Data e hora", "format": "DATETIME" },
+    { "key": "loja", "label": "Loja", "format": "SHORT_TEXT" },
+    { "key": "decisao", "label": "Decisão", "format": "SHORT_TEXT" },
+    { "key": "protocolo", "label": "Protocolo", "format": "SHORT_TEXT" },
+    { "key": "agendamentoId", "label": "Id do agendamento", "format": "SHORT_TEXT" },
+    { "key": "motivo", "label": "Motivo", "format": "LONG_TEXT" },
+    { "key": "rascunhoInterno", "label": "Rascunho interno", "format": "LONG_TEXT" }
+  ],
+  "flowNodes": {
+    "START": {
+      "id": "START", "name": "Pedido de agendamento", "type": "DEFAULT_START_EVENT",
+      "outgoing": [ { "id": "f-start", "targetNodeId": "DECIDIR" } ],
+      "extensionProperties": {},
+      "variableBindings": { "inputs": [ { "variable": "dataHora", "required": true }, { "variable": "loja" } ] }
+    },
+    "DECIDIR": {
+      "id": "DECIDIR", "name": "Horário disponível?", "type": "EXCLUSIVE_GATEWAY",
+      "providerType": "VARIABLE", "providerVariable": "decisao",
+      "outgoing": [
+        { "id": "f-ok", "targetNodeId": "AGENDADO", "expectedAnswer": "OK", "isDefault": true },
+        { "id": "f-recusa", "targetNodeId": "RECUSADO", "expectedAnswer": "RECUSA" }
+      ],
+      "extensionProperties": {}
+    },
+    "AGENDADO": {
+      "id": "AGENDADO", "name": "Agendado", "type": "DEFAULT_END_EVENT", "outgoing": [], "extensionProperties": {},
+      "variableBindings": { "outputs": [
+        { "variable": "protocolo", "required": true },
+        { "variable": "agendamentoId", "required": true },
+        { "variable": "dataHora", "required": true }
+      ] }
+    },
+    "RECUSADO": {
+      "id": "RECUSADO", "name": "Recusado", "type": "DEFAULT_END_EVENT", "outgoing": [], "extensionProperties": {},
+      "variableBindings": { "outputs": [
+        { "variable": "protocolo", "required": true },
+        { "variable": "motivo", "required": true },
+        { "variable": "dataHora" }
+      ] }
+    }
+  },
+  "defaultStartPoint": "START"
+}

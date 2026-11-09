@@ -127,4 +127,32 @@ class ExternalTaskMapperTest {
         assertNull(restored.correlationKey());
         assertNull(restored.coordinatorTaskId());
     }
+    @Test
+    void roundTripsAgentMissionLeaseFields() {
+        Instant expiresAt = Instant.now().plusSeconds(300).truncatedTo(ChronoUnit.MILLIS);
+        Instant availableAt = Instant.now().plusSeconds(60).truncatedTo(ChronoUnit.MILLIS);
+        ExternalTask original = ExternalTask.builder()
+                .id("task-agent")
+                .taskDefinitionId("QUALIFICAR")
+                .processInstanceId("proc-9")
+                .processDefinitionId("def-9")
+                .type(ExternalTaskType.AGENT)
+                .topicName("kikwi.agents")
+                .lockOwner("worker-1")
+                .lockExpiresAt(expiresAt)
+                .retries(2)
+                .availableAt(availableAt)
+                .errorMessage("LLM indisponível")
+                .build();
+
+        ExternalTask restored = ExternalTaskMapper.fromDocument(ExternalTaskMapper.toDocument(original));
+
+        assertEquals(ExternalTaskType.AGENT, restored.type());
+        assertEquals("kikwi.agents", restored.topicName());
+        assertEquals("worker-1", restored.lockOwner());
+        assertEquals(expiresAt, restored.lockExpiresAt());
+        assertEquals(2, restored.retries());
+        assertEquals(availableAt, restored.availableAt());
+        assertEquals("LLM indisponível", restored.errorMessage());
+    }
 }

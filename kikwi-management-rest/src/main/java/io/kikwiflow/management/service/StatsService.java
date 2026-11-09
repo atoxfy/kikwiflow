@@ -24,6 +24,7 @@ import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.EventCatcherDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.AgentTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
 import io.kikwiflow.model.stats.KKFMetrics;
@@ -65,7 +66,7 @@ public class StatsService {
                         // CALL_ACTIVITY_COORDINATOR aparecia em flowNodes sem o campo metrics, mesmo com dados
                         // reais disponíveis em nodeMetrics.
                         if (node instanceof ExecutableTaskDefinition || node instanceof ExternalTaskDefinition
-                                || node instanceof EventCatcherDefinition || node instanceof CallActivityDefinition
+                                || node instanceof AgentTaskDefinition || node instanceof EventCatcherDefinition || node instanceof CallActivityDefinition
                                 || node instanceof TimerTaskDefinition) {
                             flowNodes.put(nodeKey, ProcessMapper.mapNode(node, metrics));
                         } else {

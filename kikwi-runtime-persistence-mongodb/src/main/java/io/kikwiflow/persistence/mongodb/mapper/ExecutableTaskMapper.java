@@ -109,9 +109,9 @@ public final class ExecutableTaskMapper {
         if (policyDoc != null) {
             retryPolicy = new RetryPolicy(
                     RetryStrategy.valueOf(policyDoc.getString("strategy")),
-                    policyDoc.getInteger("maxRetries"),
+                    NumberMapper.getInteger(policyDoc, "maxRetries"),
                     policyDoc.getString("initialInterval"),
-                    policyDoc.getDouble("multiplier"),
+                    NumberMapper.getDouble(policyDoc, "multiplier"),
                     policyDoc.getString("maxInterval"),
                     policyDoc.getList("intervals", String.class)
             );
@@ -126,15 +126,15 @@ public final class ExecutableTaskMapper {
                 .description(doc.getString("description"))
                 .processDefinitionId(doc.getString("processDefinitionId"))
                 .createdAt(InstantMapper.mapToInstant("createdAt", doc))
-                .executions(doc.getLong("executions"))
-                .retries(doc.getLong("retries"))
+                .executions(NumberMapper.getLong(doc, "executions"))
+                .retries(NumberMapper.getLong(doc, "retries"))
                 .processInstanceId(doc.getString("processInstanceId"))
                 .error(doc.getString("error"))
                 .status(status)
                 .type(ExecutableTaskType.valueOf(doc.getString("type")))
                 .pendingBranchIds(pendingBranches)
-                .loopIndex(doc.getInteger("loopIndex"))
-                .occurrence(doc.getInteger("occurrence"))
+                .loopIndex(NumberMapper.getInteger(doc, "loopIndex"))
+                .occurrence(NumberMapper.getInteger(doc, "occurrence"))
                 .loopElement(ProcessVariableMapper.fromDocumentToVariable(doc.get("loopElement", Document.class)))
                 .pendingLoopElements(pendingLoopElements)
                 .branchId(doc.getString("branchId"))

@@ -26,6 +26,8 @@ import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.definition.process.elements.BoundaryEventDefinition;
 import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.CorrelationKeySource;
+import io.kikwiflow.model.definition.process.elements.AgentTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.EventCatcherDefinition;
 import io.kikwiflow.model.definition.process.elements.EventThrowerDefinition;
@@ -47,6 +49,7 @@ import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
 import io.kikwiflow.model.definition.process.variable.VariableBindings;
 import io.kikwiflow.model.definition.process.variable.VariableDeclaration;
 import io.kikwiflow.model.definition.process.variable.VariableFormat;
+import io.kikwiflow.model.definition.process.variable.VariableNumberFormat;
 import io.kikwiflow.model.definition.process.variable.VariableOption;
 import io.kikwiflow.model.definition.process.policies.SchedulePolicy;
 import io.kikwiflow.model.execution.enumerated.AnswerProviderType;
@@ -59,7 +62,9 @@ import io.kikwiflow.model.execution.enumerated.TimeProviderType;
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -78,6 +83,8 @@ import java.util.regex.PatternSyntaxException;
 public class DeployValidator {
 
     static final int MAX_VALIDATION_REGEX_LENGTH = 512;
+    static final String PROCESS_ICON_PROPERTY = ProcessDefinition.ICON_PROPERTY;
+    static final int MAX_PROCESS_ICON_LENGTH = 48_000;
 
     private final TaskHandlerResolver taskHandlerResolver;
     private final AnswerProviderResolver answerProviderResolver;
@@ -94,6 +101,7 @@ public class DeployValidator {
         validateDefaultStartPoint(definition);
         validateSequenceFlowTargetsExist(definition);
         validateVariableCatalog(definition);
+        validateProcessIcon(definition);
 
         definition.flowNodes().values().forEach(node -> {
             if (node instanceof StartEventDefinition startEvent) {
@@ -177,6 +185,9 @@ public class DeployValidator {
                 validateBoundaryEvents(definition, externalTask, "External Task", externalTask.boundaryEventIds(),
                         Set.of(InterruptiveTimerEventDefinition.class, NonInterruptiveTimerEventDefinition.class,
                                 InterruptiveCatchEventDefinition.class));
+
+            } else if (node instanceof AgentTaskDefinition agentTask) {
+                validateAgentTask(definition, agentTask);
 
             } else if (node instanceof ExclusiveGatewayDefinition gateway) {
                 // Validação do Provedor de Resposta
@@ -303,9 +314,10 @@ public class DeployValidator {
                 // bloqueado pelo branch acima (na perspectiva do próprio EXECUTABLE_TASK); EVENT_CATCHER ainda
                 // não é suportado (ver docs/engine/17-boundary-interruptive-catch-event.md).
                 FlowNodeDefinition attachedTo = definition.flowNodes().get(catchEvent.attachedToRef());
-                if (!(attachedTo instanceof ExternalTaskDefinition) && !(attachedTo instanceof TimerTaskDefinition)) {
+                if (!(attachedTo instanceof ExternalTaskDefinition) && !(attachedTo instanceof TimerTaskDefinition)
+                        && !(attachedTo instanceof AgentTaskDefinition)) {
                     throw new InvalidProcessDefinitionException(
-                            String.format("Validation failed for BOUNDARY_INTERRUPTIVE_CATCH_EVENT '%s' (id: %s): 'attachedToRef' must point to an EXTERNAL_TASK or a TIMER_TASK — got %s.",
+                            String.format("Validation failed for BOUNDARY_INTERRUPTIVE_CATCH_EVENT '%s' (id: %s): 'attachedToRef' must point to an EXTERNAL_TASK, an AGENT_TASK or a TIMER_TASK — got %s.",
                                     catchEvent.name(), catchEvent.id(),
                                     attachedTo != null ? attachedTo.type() : "an unknown node ('" + catchEvent.attachedToRef() + "')"));
                 }
@@ -448,6 +460,25 @@ public class DeployValidator {
                             "Validation failed for variable '%s': 'validationRegex' does not compile: %s", key, e.getDescription()), e);
                 }
             }
+
+            validateFileProperties(declaration);
+
+            // KIKWI-066: kikwi:numberFormat diz como um número é gravado como texto; só faz sentido em DECIMAL/MONEY
+            // e com um valor conhecido — um formato que ninguém lê viraria validação e soma silenciosamente erradas.
+            String numberFormat = declaration.extensionProperties() == null ? null
+                    : declaration.extensionProperties().get(VariableNumberFormat.CATALOG_PROPERTY);
+            if (numberFormat != null) {
+                if (format != VariableFormat.DECIMAL && format != VariableFormat.MONEY) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': '%s' is only allowed for DECIMAL/MONEY (format is %s).",
+                            key, VariableNumberFormat.CATALOG_PROPERTY, format));
+                }
+                if (Arrays.stream(VariableNumberFormat.values()).noneMatch(f -> f.name().equals(numberFormat))) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': '%s' must be one of %s (found '%s').",
+                            key, VariableNumberFormat.CATALOG_PROPERTY, List.of(VariableNumberFormat.values()), numberFormat));
+                }
+            }
         }
 
         definition.flowNodes().forEach((nodeKey, node) -> {
@@ -463,10 +494,41 @@ public class DeployValidator {
                         node.name(), node.id()));
             }
 
+            // KIKWI-065: no fim, outputs = contrato de retorno do processo; não há ator entregando inputs ali.
+            if (node instanceof EndEventDefinition && !bindings.inputs().isEmpty()) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for End Event '%s' (id: %s): 'variableBindings.inputs' is not supported — use 'outputs' (what the process returns).",
+                        node.name(), node.id()));
+            }
+
             // KIKWI-064: todo vínculo referencia uma key do catálogo, sem duplicatas na mesma lista.
             validateBindingList(node, "inputs", bindings.inputs(), declaredKeys);
             validateBindingList(node, "outputs", bindings.outputs(), declaredKeys);
         });
+    }
+
+    /**
+     * KIKWI-072 (Bloqueante): {@code kikwi:icon} é o logo do processo (aparece nas ferramentas de agentes e no
+     * diagrama). Só SVG em data URI e com tamanho limitado: o valor viaja em toda leitura da definição, e quem
+     * desenha usa {@code <img src>} — que não executa script do SVG —, então o formato fica estável quando a
+     * sanitização chegar.
+     */
+    private void validateProcessIcon(ProcessDefinition definition) {
+        String icon = definition.extensionProperties() == null ? null
+                : definition.extensionProperties().get(PROCESS_ICON_PROPERTY);
+        if (icon == null) {
+            return;
+        }
+        if (!icon.startsWith("data:image/svg+xml")) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed for process '%s': '%s' must be an SVG data URI (data:image/svg+xml...).",
+                    definition.key(), PROCESS_ICON_PROPERTY));
+        }
+        if (icon.length() > MAX_PROCESS_ICON_LENGTH) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed for process '%s': '%s' exceeds %d characters (about 32 KB of SVG).",
+                    definition.key(), PROCESS_ICON_PROPERTY, MAX_PROCESS_ICON_LENGTH));
+        }
     }
 
     private void validateBindingList(FlowNodeDefinition node, String listName, List<VariableBinding> bindings,
@@ -492,6 +554,134 @@ public class DeployValidator {
      * alguém tenta INICIAR uma instância ({@code KikwiflowEngine.ProcessStarter.execute()} lança
      * {@code NullPointerException}), não no deploy — o processo fica implantado, mas nunca é iniciável.
      */
+    /**
+     * KIKWI-067..070 (Bloqueante): {@code AGENT_TASK} (docs/engine/31, E1). O motor não resolve {@code agentRef}
+     * nem {@code tools} — são da plataforma de agentes —, mas exige o mínimo para a missão ser adquirível e
+     * auditável.
+     */
+    private void validateAgentTask(ProcessDefinition definition, AgentTaskDefinition agentTask) {
+        // KIKWI-067: sem tópico ninguém adquire a missão; sem agente o runtime não sabe quem a trabalha.
+        if (agentTask.topic() == null || agentTask.topic().isBlank()) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed for AGENT_TASK '%s' (id: %s): 'topic' is empty.", agentTask.name(), agentTask.id()));
+        }
+        if (agentTask.agentRef() == null || agentTask.agentRef().key() == null || agentTask.agentRef().key().isBlank()) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed for AGENT_TASK '%s' (id: %s): 'agentRef.key' is empty.", agentTask.name(), agentTask.id()));
+        }
+        if (agentTask.agentRef().version() != null && agentTask.agentRef().version() < 1) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed for AGENT_TASK '%s' (id: %s): 'agentRef.version' must be >= 1 or null (current published version).",
+                    agentTask.name(), agentTask.id()));
+        }
+
+        // KIKWI-068: uma missão sem contrato de saída não é auditável — o processo não teria o que validar nem
+        // sobre o que decidir depois dela.
+        if (agentTask.variableBindingsOrEmpty().outputs().isEmpty()) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed for AGENT_TASK '%s' (id: %s): 'variableBindings.outputs' must declare at least one variable — the mission contract.",
+                    agentTask.name(), agentTask.id()));
+        }
+
+        // KIKWI-069: mesmos boundaries de uma EXTERNAL_TASK, mais o error handler — o erro de negócio chega pelo
+        // worker (throwBusinessError), não por um handler síncrono.
+        validateBoundaryEvents(definition, agentTask, "AGENT_TASK", agentTask.boundaryEventIds(),
+                Set.of(InterruptiveTimerEventDefinition.class, NonInterruptiveTimerEventDefinition.class,
+                        InterruptiveCatchEventDefinition.class, ErrorHandlerDefinition.class));
+        validateNoDuplicateErrorCodes(definition, agentTask, "AGENT_TASK", agentTask.boundaryEventIds());
+
+        // KIKWI-070: tools sem ids vazios ou repetidos; ttl, quando presente, é uma duração ISO-8601 positiva.
+        Set<String> toolIds = new HashSet<>();
+        for (String tool : agentTask.tools()) {
+            if (tool == null || tool.isBlank()) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for AGENT_TASK '%s' (id: %s): 'tools' contains an empty id.", agentTask.name(), agentTask.id()));
+            }
+            if (!toolIds.add(tool)) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for AGENT_TASK '%s' (id: %s): tool '%s' is listed more than once.",
+                        agentTask.name(), agentTask.id(), tool));
+            }
+        }
+        AgentTaskDefinition.AgentLimits limits = agentTask.limits();
+        if (limits != null) {
+            if (limits.maxTurns() != null && limits.maxTurns() < 1) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for AGENT_TASK '%s' (id: %s): 'limits.maxTurns' must be >= 1.", agentTask.name(), agentTask.id()));
+            }
+            if (limits.ttl() != null) {
+                java.time.Duration ttl;
+                try {
+                    ttl = java.time.Duration.parse(limits.ttl());
+                } catch (java.time.format.DateTimeParseException e) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for AGENT_TASK '%s' (id: %s): 'limits.ttl' must be an ISO-8601 duration such as P7D or PT24H (found '%s').",
+                            agentTask.name(), agentTask.id(), limits.ttl()), e);
+                }
+                if (ttl.isZero() || ttl.isNegative()) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for AGENT_TASK '%s' (id: %s): 'limits.ttl' must be positive.", agentTask.name(), agentTask.id()));
+                }
+            }
+        }
+    }
+
+    /**
+     * KIKWI-071 (Bloqueante): {@code kikwi:file.*} só em {@code FILE} e com valores que o validador sabe ler — uma
+     * restrição que ninguém lê viraria um contrato silenciosamente mais frouxo que o modelado.
+     */
+    private void validateFileProperties(VariableDeclaration declaration) {
+        Map<String, String> properties = declaration.extensionProperties();
+        if (properties == null) {
+            return;
+        }
+        String key = declaration.key();
+        String multiple = properties.get(VariableFormat.FILE_MULTIPLE);
+        String mimeTypes = properties.get(VariableFormat.FILE_MIME_TYPES);
+        String maxCount = properties.get(VariableFormat.FILE_MAX_COUNT);
+        if (multiple == null && mimeTypes == null && maxCount == null) {
+            return;
+        }
+        if (declaration.format() != VariableFormat.FILE) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed for variable '%s': 'kikwi:file.*' properties are only allowed for FILE (format is %s).",
+                    key, declaration.format()));
+        }
+        if (multiple != null && !multiple.equals("true") && !multiple.equals("false")) {
+            throw new InvalidProcessDefinitionException(String.format(
+                    "Validation failed for variable '%s': '%s' must be 'true' or 'false' (found '%s').",
+                    key, VariableFormat.FILE_MULTIPLE, multiple));
+        }
+        if (mimeTypes != null) {
+            List<String> types = Arrays.stream(mimeTypes.split(",")).map(String::trim).toList();
+            for (String type : types) {
+                if (!type.matches("[A-Za-z0-9.+-]+/(\\*|[A-Za-z0-9.+-]+)")) {
+                    throw new InvalidProcessDefinitionException(String.format(
+                            "Validation failed for variable '%s': '%s' must be a comma-separated list such as 'image/*,application/pdf' (invalid entry '%s').",
+                            key, VariableFormat.FILE_MIME_TYPES, type));
+                }
+            }
+        }
+        if (maxCount != null) {
+            if (!"true".equals(multiple)) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for variable '%s': '%s' requires '%s' = true.",
+                        key, VariableFormat.FILE_MAX_COUNT, VariableFormat.FILE_MULTIPLE));
+            }
+            int parsed;
+            try {
+                parsed = Integer.parseInt(maxCount.trim());
+            } catch (NumberFormatException e) {
+                parsed = 0;
+            }
+            if (parsed < 1) {
+                throw new InvalidProcessDefinitionException(String.format(
+                        "Validation failed for variable '%s': '%s' must be an integer >= 1 (found '%s').",
+                        key, VariableFormat.FILE_MAX_COUNT, maxCount));
+            }
+        }
+    }
+
     private void validateDefaultStartPoint(ProcessDefinition definition) {
         String defaultStartPoint = definition.defaultStartPoint();
         if (defaultStartPoint == null || defaultStartPoint.isBlank()) {

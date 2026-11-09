@@ -21,6 +21,7 @@ import io.kikwiflow.execution.api.provider.AnswerProvider;
 import io.kikwiflow.execution.api.resolver.AnswerProviderResolver;
 import io.kikwiflow.execution.dto.Continuation;
 import io.kikwiflow.model.definition.process.ProcessDefinition;
+import io.kikwiflow.model.definition.process.elements.AgentTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
@@ -170,6 +171,8 @@ public class Navigator {
             boundaryIds = taskDef.boundaryEventIds();
         } else if (currentNode instanceof ExternalTaskDefinition extDef) {
             boundaryIds = extDef.boundaryEventIds();
+        } else if (currentNode instanceof AgentTaskDefinition agentTask) {
+            boundaryIds = agentTask.boundaryEventIds();
         }
 
         if (boundaryIds == null || boundaryIds.isEmpty()) {

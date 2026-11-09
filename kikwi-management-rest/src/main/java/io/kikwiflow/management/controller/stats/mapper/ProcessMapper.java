@@ -8,6 +8,7 @@ import io.kikwiflow.management.dtos.elements.KKFEventCatcherDefinition;
 import io.kikwiflow.management.dtos.elements.KKFEventThrowerDefinition;
 import io.kikwiflow.management.dtos.elements.KKFExclusiveGatewayDefinition;
 import io.kikwiflow.management.dtos.elements.KKFExecutableTaskDefinition;
+import io.kikwiflow.management.dtos.elements.KKFAgentTaskDefinition;
 import io.kikwiflow.management.dtos.elements.KKFExternalTaskDefinition;
 import io.kikwiflow.management.dtos.elements.KKFFlowNodeDefinition;
 import io.kikwiflow.management.dtos.elements.KKFInterruptiveCatchEventDefinition;
@@ -27,6 +28,7 @@ import io.kikwiflow.model.definition.process.elements.EventCatcherDefinition;
 import io.kikwiflow.model.definition.process.elements.EventThrowerDefinition;
 import io.kikwiflow.model.definition.process.elements.ExclusiveGatewayDefinition;
 import io.kikwiflow.model.definition.process.elements.ExecutableTaskDefinition;
+import io.kikwiflow.model.definition.process.elements.AgentTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.ExternalTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.FlowNodeDefinition;
 import io.kikwiflow.model.definition.process.elements.InterruptiveCatchEventDefinition;
@@ -277,7 +279,8 @@ public class ProcessMapper {
                     e.commitBefore(),
                     null,
                     e.extensionProperties(),
-                    mapLayout(e.layout())
+                    mapLayout(e.layout()),
+                    e.variableBindings()
             );
 
             case ExclusiveGatewayDefinition g -> new KKFExclusiveGatewayDefinition(
@@ -335,6 +338,25 @@ public class ProcessMapper {
                     t.extensionProperties(),
                     mapLayout(t.layout()),
                     t.variableBindings()
+            );
+
+            case AgentTaskDefinition t -> new KKFAgentTaskDefinition(
+                    t.id(),
+                    t.name(),
+                    t.type(),
+                    t.description(),
+                    t.commitAfter(),
+                    t.commitBefore(),
+                    metrics,
+                    mapOutgoingK(t.outgoing()),
+                    t.boundaryEventIds(),
+                    t.extensionProperties(),
+                    mapLayout(t.layout()),
+                    t.variableBindings(),
+                    t.topic(),
+                    t.agentRef(),
+                    t.tools(),
+                    t.limits()
             );
 
             case InterruptiveTimerEventDefinition interruptiveTimerEventDefinition ->

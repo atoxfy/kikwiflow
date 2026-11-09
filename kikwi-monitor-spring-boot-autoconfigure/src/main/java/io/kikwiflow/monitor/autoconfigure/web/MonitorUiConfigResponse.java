@@ -31,8 +31,16 @@ public record MonitorUiConfigResponse(
         String oidcRedirectUri,
         boolean requireAuth,
         boolean readOnly,
-        ActingAs actingAs
+        ActingAs actingAs,
+        Mcp mcp
 ) {
+
+    /**
+     * Servidor MCP do host ({@code kikwi-mcp-server}), para o diálogo "Conectar agente" e o botão "Investigar com IA".
+     * {@code enabled=false} esconde os dois. {@code writeTools} diz se o agente pode iniciar processos e reprocessar.
+     */
+    public record Mcp(boolean enabled, String url, boolean writeTools) {
+    }
 
     /** Seletor "Atuando como"; {@code actors} vazio = seletor escondido. */
     public record ActingAs(List<String> actors, String header) {

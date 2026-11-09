@@ -17,15 +17,8 @@
 package io.kikwiflow.management.controller.history;
 
 import io.kikwiflow.management.annotation.KikwiRestController;
-import io.kikwiflow.management.exception.NotFoundException;
 import io.kikwiflow.management.history.InstanceTrace;
-import io.kikwiflow.management.history.InstanceTraceAssembler;
-import io.kikwiflow.management.mapper.HistoryEventSummaryMapper;
-import io.kikwiflow.model.definition.process.ProcessDefinition;
-import io.kikwiflow.model.event.HistoryEventSummary;
-import io.kikwiflow.model.event.OutboxEventEntity;
-import io.kikwiflow.model.execution.ProcessInstance;
-import io.kikwiflow.model.execution.ProcessVariable;
+import io.kikwiflow.management.service.InstanceTraceService;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.security.IdentityContext;
 import io.kikwiflow.persistence.api.history.HistoricInstanceCriteria;
@@ -41,9 +34,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Explorador de histórico (docs/engine/29): consumidor de leitura do outbox, grátis e in-process — lista
@@ -61,11 +51,11 @@ public class HistoryExplorerController {
     static final int MAX_PAGE_SIZE = 100;
 
     private final QueryRepository queryRepository;
-    private final VariableSecurityPolicyManager variableSecurityPolicyManager;
+    private final InstanceTraceService instanceTraceService;
 
     public HistoryExplorerController(QueryRepository queryRepository, VariableSecurityPolicyManager variableSecurityPolicyManager) {
         this.queryRepository = queryRepository;
-        this.variableSecurityPolicyManager = variableSecurityPolicyManager;
+        this.instanceTraceService = new InstanceTraceService(queryRepository, variableSecurityPolicyManager);
     }
 
     @GetMapping("/instances")
@@ -93,28 +83,7 @@ public class HistoryExplorerController {
     @GetMapping("/instances/{id}/trace")
     @ResponseStatus(HttpStatus.OK)
     public InstanceTrace getTrace(@PathVariable("id") String id, IdentityContext identityContext) {
-        List<OutboxEventEntity> rawEvents = queryRepository.findEventHistoryByProcessInstanceId(id);
-        Optional<ProcessInstance> live = queryRepository.findProcessInstanceById(id);
-        if (rawEvents.isEmpty() && live.isEmpty()) {
-            throw new NotFoundException("Process instance not found with id: " + id);
-        }
-
-        List<HistoryEventSummary> events = rawEvents.stream()
-                .map(entity -> HistoryEventSummaryMapper.from(entity, variableSecurityPolicyManager, identityContext))
-                .toList();
-
-        String definitionId = live.map(ProcessInstance::processDefinitionId)
-                .orElseGet(() -> rawEvents.get(0).getPayload().processDefinitionId());
-        ProcessDefinition definition = definitionId != null
-                ? queryRepository.findProcessDefinitionById(definitionId).orElse(null) : null;
-
-        Map<String, ProcessVariable> liveVariables = live
-                .map(instance -> instance.variables() == null ? Map.<String, ProcessVariable>of()
-                        : variableSecurityPolicyManager.applyReadPoliciesAndMasking(definitionId, identityContext, instance.variables()))
-                .orElse(null);
-
-        return InstanceTraceAssembler.assemble(events, definition,
-                live.map(ProcessInstance::activeNodes).orElse(Map.of()), liveVariables);
+        return instanceTraceService.getTrace(id, identityContext);
     }
 
     private static String blankToNull(String value) {

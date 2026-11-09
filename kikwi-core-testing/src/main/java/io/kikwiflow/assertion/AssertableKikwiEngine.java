@@ -38,12 +38,14 @@ import io.kikwiflow.persistence.api.query.ProcessInstanceQuery;
 import io.kikwiflow.persistence.api.repository.KikwiEngineRepository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -182,6 +184,25 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     @Override
     public boolean resolveCorrelationChild(String childTaskId, String parentTaskId, MatchPolicy matchPolicy) {
         return inMemoryKikwiEngineRepository.resolveCorrelationChild(childTaskId, parentTaskId, matchPolicy);
+    }
+
+    @Override
+    public List<ExternalTask> fetchAndLockExternalTasks(String workerId, Collection<String> topics, String tenantId,
+                                                        int maxTasks, Instant now, Instant lockExpiresAt,
+                                                        Function<ExternalTask, List<OutboxEventEntity>> eventFactory) {
+        return inMemoryKikwiEngineRepository.fetchAndLockExternalTasks(workerId, topics, tenantId, maxTasks, now,
+                lockExpiresAt, eventFactory);
+    }
+
+    @Override
+    public boolean updateLockedExternalTask(ExternalTask replacement, String workerId, Instant now,
+                                            List<Incident> incidentsToCreate, List<OutboxEventEntity> events) {
+        return inMemoryKikwiEngineRepository.updateLockedExternalTask(replacement, workerId, now, incidentsToCreate, events);
+    }
+
+    @Override
+    public void saveExternalTask(ExternalTask task, List<Incident> incidentsToUpdate, List<OutboxEventEntity> events) {
+        inMemoryKikwiEngineRepository.saveExternalTask(task, incidentsToUpdate, events);
     }
 
     @Override

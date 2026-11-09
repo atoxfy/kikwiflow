@@ -18,11 +18,19 @@
 package io.kikwiflow.model.definition.process.elements;
 
 import io.kikwiflow.model.definition.process.layout.LayoutCoordinates;
+import io.kikwiflow.model.definition.process.variable.VariableBindingAware;
+import io.kikwiflow.model.definition.process.variable.VariableBindings;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @param variableBindings {@code outputs} = o que o processo <b>retorna</b> quando termina neste fim, espelho dos
+ *                         {@code inputs} do start. É o contrato de retorno usado quando o processo é chamado como
+ *                         ferramenta (ver {@code ProcessContract}): quem chama enxerga só essas variáveis, nunca o
+ *                         estado inteiro da instância. Fins diferentes podem retornar coisas diferentes.
+ */
 public record EndEventDefinition(String id,
                                  String name,
                                  String type,
@@ -31,7 +39,8 @@ public record EndEventDefinition(String id,
                                  Boolean commitBefore,
                                  List<SequenceFlowDefinition> outgoing,
                                  Map<String, String> extensionProperties,
-                                 LayoutCoordinates layout) implements FlowNodeDefinition {
+                                 LayoutCoordinates layout,
+                                 VariableBindings variableBindings) implements FlowNodeDefinition, VariableBindingAware {
 
     public static Builder builder() {
         return new Builder();
@@ -46,8 +55,14 @@ public record EndEventDefinition(String id,
         private List<SequenceFlowDefinition> outgoing = Collections.emptyList();
         private Map<String, String> extensionProperties;
         private LayoutCoordinates layout;
+        private VariableBindings variableBindings;
 
         private Builder() {}
+
+        public Builder variableBindings(VariableBindings variableBindings) {
+            this.variableBindings = variableBindings;
+            return this;
+        }
 
         public Builder id(String id) {
             this.id = id;
@@ -93,7 +108,7 @@ public record EndEventDefinition(String id,
         }
 
         public EndEventDefinition build() {
-            return new EndEventDefinition(id, name, "DEFAULT_END_EVENT", description, commitAfter, commitBefore, outgoing,extensionProperties, layout);
+            return new EndEventDefinition(id, name, "DEFAULT_END_EVENT", description, commitAfter, commitBefore, outgoing, extensionProperties, layout, variableBindings);
         }
     }
 }

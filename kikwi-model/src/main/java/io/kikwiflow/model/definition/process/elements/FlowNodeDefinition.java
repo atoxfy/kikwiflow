@@ -24,6 +24,7 @@ import java.util.Map;
 
 public sealed interface FlowNodeDefinition permits StartEventDefinition,
         ExternalTaskDefinition,
+        AgentTaskDefinition,
         ExecutableTaskDefinition,
         EndEventDefinition,
         ExclusiveGatewayDefinition,

@@ -19,6 +19,7 @@ package io.kikwiflow.parser.jackson;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.kikwiflow.model.definition.process.elements.AgentTaskDefinition;
 import io.kikwiflow.model.definition.process.elements.CallActivityDefinition;
 import io.kikwiflow.model.definition.process.elements.EndEventDefinition;
 import io.kikwiflow.model.definition.process.elements.ErrorHandlerDefinition;
@@ -48,6 +49,7 @@ import io.kikwiflow.model.definition.process.elements.TimerTaskDefinition;
         @JsonSubTypes.Type(value = ParallelGatewayDefinition.class, name = "PARALLEL_GATEWAY"),
         @JsonSubTypes.Type(value = JoinGatewayDefinition.class, name = "JOIN_GATEWAY"),
         @JsonSubTypes.Type(value = ExternalTaskDefinition.class, name = "EXTERNAL_TASK"),
+        @JsonSubTypes.Type(value = AgentTaskDefinition.class, name = "AGENT_TASK"),
         @JsonSubTypes.Type(value = ExclusiveGatewayDefinition.class, name = "EXCLUSIVE_GATEWAY"),
         @JsonSubTypes.Type(value = InterruptiveTimerEventDefinition.class, name = "BOUNDARY_INTERRUPTIVE_TIMER"),
         @JsonSubTypes.Type(value = NonInterruptiveTimerEventDefinition.class, name = "BOUNDARY_NON_INTERRUPTIVE_TIMER"),

@@ -2,6 +2,7 @@ package io.kikwiflow.persistence.api.repository;
 
 import io.kikwiflow.model.definition.process.ProcessDefinition;
 import io.kikwiflow.model.event.OutboxEventEntity;
+import io.kikwiflow.model.execution.Incident;
 import io.kikwiflow.model.execution.ProcessInstance;
 import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.MatchPolicy;
@@ -10,10 +11,12 @@ import io.kikwiflow.model.execution.node.ExternalTask;
 import io.kikwiflow.persistence.api.data.UnitOfWork;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 public interface CommandRepository {
 
@@ -65,4 +68,35 @@ public interface CommandRepository {
      *         seguida, completar a tarefa-mãe normalmente (ex.: via {@code completeExternalTask}).
      */
     boolean resolveCorrelationChild(String childTaskId, String parentTaskId, MatchPolicy matchPolicy);
+
+    /**
+     * Protocolo de worker com lease (docs/engine/31, E2). Adquire até {@code maxTasks} tarefas com
+     * {@code topicName} em {@code topics} que estejam adquiríveis em {@code now} (ver
+     * {@code ExternalTask.isFetchable}), gravando {@code lockOwner = workerId} e {@code lockExpiresAt}. Cada
+     * tarefa é travada atomicamente (uma de cada vez, como {@code findAndLockDueTasks}); dois workers nunca
+     * recebem a mesma tarefa.
+     *
+     * @param tenantId     {@code null} = qualquer tenant
+     * @param eventFactory recebe a tarefa já travada e devolve os eventos gravados junto com o lock
+     * @return as tarefas travadas, no estado gravado
+     */
+    List<ExternalTask> fetchAndLockExternalTasks(String workerId, Collection<String> topics, String tenantId,
+                                                 int maxTasks, Instant now, Instant lockExpiresAt,
+                                                 Function<ExternalTask, List<OutboxEventEntity>> eventFactory);
+
+    /**
+     * Substitui a tarefa por {@code replacement} só se ela ainda estiver em posse de {@code workerId} em
+     * {@code now} (lease vigente). Usado para renovar o lease, registrar falha (com o incidente quando os
+     * retries acabam) e anexar atividades — tudo no mesmo commit dos eventos.
+     *
+     * @return {@code false} se a tarefa não existe mais ou o lease não é de {@code workerId}; nada é gravado
+     */
+    boolean updateLockedExternalTask(ExternalTask replacement, String workerId, Instant now,
+                                     List<Incident> incidentsToCreate, List<OutboxEventEntity> events);
+
+    /**
+     * Grava a tarefa como está, sem condição de lease, resolvendo incidentes no mesmo commit. Usado por
+     * {@code retryIncident} de uma tarefa externa que esgotou os retries.
+     */
+    void saveExternalTask(ExternalTask task, List<Incident> incidentsToUpdate, List<OutboxEventEntity> events);
 }

@@ -90,6 +90,7 @@ public class KikwiflowAutoConfiguration {
             config.setMaxConcurrentTasks(properties.getExecution().getMaxConcurrentTasks());
             config.setShutdownGracePeriodSeconds(properties.getExecution().getShutdownGracePeriodSeconds());
             config.setLockTimeoutMillis(properties.getExecution().getLockTimeoutMillis());
+            config.setTaskAcquisitionEnabled(properties.getExecution().isTaskAcquisitionEnabled());
         }
 
         if (properties.getRetry() != null ){
@@ -100,6 +101,10 @@ public class KikwiflowAutoConfiguration {
 
             if(properties.getRetry().getFatalExceptions() != null) {
                 config.setFatalExceptions(properties.getRetry().getFatalExceptions());
+            }
+
+            if(properties.getRetry().getJitterEnabled() != null) {
+                config.setRetryJitterEnabled(properties.getRetry().getJitterEnabled());
             }
         }
 
