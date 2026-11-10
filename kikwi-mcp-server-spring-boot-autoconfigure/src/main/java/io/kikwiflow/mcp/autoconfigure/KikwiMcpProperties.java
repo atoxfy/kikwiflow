@@ -52,6 +52,7 @@ public class KikwiMcpProperties {
 
     private final Variables variables = new Variables();
     private final WriteTools writeTools = new WriteTools();
+    private final WorkerTools workerTools = new WorkerTools();
     private final Confirmation confirmation = new Confirmation();
 
     public static class Variables {
@@ -76,6 +77,25 @@ public class KikwiMcpProperties {
         public void setAllowAnonymous(boolean allowAnonymous) { this.allowAnonymous = allowAnonymous; }
         public int getMaxBatchRetry() { return maxBatchRetry; }
         public void setMaxBatchRetry(int maxBatchRetry) { this.maxBatchRetry = maxBatchRetry; }
+    }
+
+    public static class WorkerTools {
+        /**
+         * Registra as ferramentas de worker (list_available_missions, claim_mission, complete_mission…): um agente fora
+         * do host pega missões de AGENT_TASK pelo MCP. Exige identidade não anônima, sempre.
+         */
+        private boolean enabled = false;
+        /** Tópicos de AGENT_TASK que workers MCP podem pegar. Vazio = nenhum (a flag sozinha não libera nada). */
+        private List<String> topics = new ArrayList<>();
+        /** Lease de cada assumir/renovar. */
+        private Duration leaseDuration = Duration.ofMinutes(30);
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public List<String> getTopics() { return topics; }
+        public void setTopics(List<String> topics) { this.topics = topics; }
+        public Duration getLeaseDuration() { return leaseDuration; }
+        public void setLeaseDuration(Duration leaseDuration) { this.leaseDuration = leaseDuration; }
     }
 
     public static class Confirmation {
@@ -105,5 +125,6 @@ public class KikwiMcpProperties {
     public void setAllowedOrigins(List<String> allowedOrigins) { this.allowedOrigins = allowedOrigins; }
     public Variables getVariables() { return variables; }
     public WriteTools getWriteTools() { return writeTools; }
+    public WorkerTools getWorkerTools() { return workerTools; }
     public Confirmation getConfirmation() { return confirmation; }
 }

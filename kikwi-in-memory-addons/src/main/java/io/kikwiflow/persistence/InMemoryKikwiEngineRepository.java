@@ -30,6 +30,7 @@ import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
 import io.kikwiflow.model.execution.enumerated.ExternalTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ExternalTaskType;
 import io.kikwiflow.model.execution.enumerated.IncidentStatus;
 import io.kikwiflow.model.execution.enumerated.MatchPolicy;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
@@ -778,6 +779,20 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
     }
 
     @Override
+    public Optional<ExternalTask> lockExternalTask(String taskId, String workerId, String tenantId, Instant now,
+                                                   Instant lockExpiresAt,
+                                                   Function<ExternalTask, List<OutboxEventEntity>> eventFactory) {
+        ExternalTask current = externalTaskCollection.get(taskId);
+        if (current == null || (tenantId != null && !tenantId.equals(current.tenantId())) || !current.isFetchable(now)) {
+            return Optional.empty();
+        }
+        ExternalTask locked = current.toBuilder().lockOwner(workerId).lockExpiresAt(lockExpiresAt).build();
+        externalTaskCollection.put(taskId, locked);
+        writeOutboxEvents(eventFactory.apply(locked));
+        return Optional.of(locked);
+    }
+
+    @Override
     public boolean updateLockedExternalTask(ExternalTask replacement, String workerId, Instant now,
                                             List<Incident> incidentsToCreate, List<OutboxEventEntity> events) {
         ExternalTask current = externalTaskCollection.get(replacement.id());
@@ -1048,6 +1063,30 @@ public class InMemoryKikwiEngineRepository implements KikwiEngineRepository {
         public ExternalTaskQuery assignee(String assignee) {
             if (assignee != null) {
                 predicates.add(t -> assignee.equals(t.assignee()));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery topicName(String topicName) {
+            if (topicName != null) {
+                predicates.add(t -> topicName.equals(t.topicName()));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery type(ExternalTaskType type) {
+            if (type != null) {
+                predicates.add(t -> type == t.type());
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery fetchableAt(Instant now) {
+            if (now != null) {
+                predicates.add(t -> t.isFetchable(now));
             }
             return this;
         }

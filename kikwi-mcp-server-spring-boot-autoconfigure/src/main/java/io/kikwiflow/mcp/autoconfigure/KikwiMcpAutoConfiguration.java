@@ -25,6 +25,7 @@ import io.kikwiflow.mcp.KikwiMcpResources;
 import io.kikwiflow.mcp.KikwiMcpServerFactory;
 import io.kikwiflow.mcp.KikwiTool;
 import io.kikwiflow.mcp.support.ConfirmationTokenService;
+import io.kikwiflow.mcp.tools.WorkerTools;
 import io.kikwiflow.persistence.api.repository.QueryRepository;
 import io.kikwiflow.rest.autoconfigure.properties.KikwiflowRestProperties;
 import io.kikwiflow.security.HttpIdentityResolver;
@@ -131,9 +132,17 @@ public class KikwiMcpAutoConfiguration {
                                                  ObjectProvider<KikwiflowEngine> engine,
                                                  ObjectProvider<ObjectMapper> objectMapper) {
         boolean writeTools = properties.getWriteTools().isEnabled();
+        KikwiMcpProperties.WorkerTools worker = properties.getWorkerTools();
         KikwiflowEngine kikwiflowEngine = engine.getIfAvailable();
         if (writeTools && kikwiflowEngine == null) {
             throw new IllegalStateException("kikwiflow.mcp.write-tools.enabled=true exige um KikwiflowEngine no contexto.");
+        }
+        if (worker.isEnabled() && kikwiflowEngine == null) {
+            throw new IllegalStateException("kikwiflow.mcp.worker-tools.enabled=true exige um KikwiflowEngine no contexto.");
+        }
+        if (worker.isEnabled() && (worker.getTopics() == null || worker.getTopics().isEmpty())) {
+            LOGGER.warn("kikwiflow.mcp.worker-tools.enabled=true sem kikwiflow.mcp.worker-tools.topics: nenhum worker MCP "
+                    + "consegue pegar missões até algum tópico ser liberado.");
         }
         boolean monitorPresent = properties.isMonitorLinks()
                 && ClassUtils.isPresent(MONITOR_MARKER_CLASS, getClass().getClassLoader());
@@ -142,14 +151,16 @@ public class KikwiMcpAutoConfiguration {
                 variableSecurityPolicyManager, confirmationTokens,
                 new KikwiMcpCatalog.Options(writeTools, properties.getWriteTools().getMaxBatchRetry(),
                         properties.getVariables().getMaxValueChars(), monitorPresent ? MONITOR_PATH : null),
+                new WorkerTools.Options(worker.isEnabled(), worker.getTopics(), worker.getLeaseDuration()),
                 Clock.systemUTC());
 
         ObjectMapper mapper = objectMapper.getIfAvailable(() -> new ObjectMapper().findAndRegisterModules());
         KikwiMcpServerFactory factory = new KikwiMcpServerFactory(mapper, properties.getWriteTools().isAllowAnonymous());
         String version = KikwiMcpServerFactory.class.getPackage().getImplementationVersion();
 
-        LOGGER.info("Kikwiflow MCP server ativo: {} ferramentas ({}).", tools.size(),
-                writeTools ? "leitura e escrita" : "somente leitura");
+        LOGGER.info("Kikwiflow MCP server ativo: {} ferramentas ({}{}).", tools.size(),
+                writeTools ? "leitura e escrita" : "somente leitura",
+                worker.isEnabled() ? "; worker nos tópicos " + worker.getTopics() : "");
         return factory.build(transport, version != null ? version : "dev", KikwiMcpCatalog.INSTRUCTIONS, tools,
                 new KikwiMcpResources(queryRepository, mapper));
     }

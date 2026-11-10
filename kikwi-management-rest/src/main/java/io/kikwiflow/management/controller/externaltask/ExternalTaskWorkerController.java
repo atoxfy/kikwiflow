@@ -49,6 +49,12 @@ public class ExternalTaskWorkerController implements ExternalTaskWorkerRestApi {
     }
 
     @Override
+    public LockedExternalTask lock(String id, ExternalTaskWorkerRequests.Lock request, IdentityContext identityContext) {
+        return engine.lockExternalTask(id, request.workerId(), parseDuration("lockDuration", request.lockDuration()),
+                identityContext);
+    }
+
+    @Override
     public ExternalTask extendLock(String id, ExternalTaskWorkerRequests.ExtendLock request, IdentityContext identityContext) {
         return engine.extendLock(id, request.workerId(), parseDuration("lockDuration", request.lockDuration()), identityContext);
     }

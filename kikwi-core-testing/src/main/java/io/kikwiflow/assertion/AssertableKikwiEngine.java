@@ -195,6 +195,14 @@ public class AssertableKikwiEngine implements KikwiEngineRepository {
     }
 
     @Override
+    public Optional<ExternalTask> lockExternalTask(String taskId, String workerId, String tenantId, Instant now,
+                                                   Instant lockExpiresAt,
+                                                   Function<ExternalTask, List<OutboxEventEntity>> eventFactory) {
+        return inMemoryKikwiEngineRepository.lockExternalTask(taskId, workerId, tenantId, now, lockExpiresAt,
+                eventFactory);
+    }
+
+    @Override
     public boolean updateLockedExternalTask(ExternalTask replacement, String workerId, Instant now,
                                             List<Incident> incidentsToCreate, List<OutboxEventEntity> events) {
         return inMemoryKikwiEngineRepository.updateLockedExternalTask(replacement, workerId, now, incidentsToCreate, events);

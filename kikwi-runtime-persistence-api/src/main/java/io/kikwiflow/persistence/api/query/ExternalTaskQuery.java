@@ -17,8 +17,10 @@
 
 package io.kikwiflow.persistence.api.query;
 
+import io.kikwiflow.model.execution.enumerated.ExternalTaskType;
 import io.kikwiflow.model.execution.node.ExternalTask;
 
+import java.time.Instant;
 import java.util.List;
 
 public interface ExternalTaskQuery {
@@ -34,6 +36,15 @@ public interface ExternalTaskQuery {
 
     ExternalTaskQuery assignee(String assignee);
 
+    ExternalTaskQuery topicName(String topicName);
+
+    ExternalTaskQuery type(ExternalTaskType type);
+
+    /**
+     * Só tarefas que um worker pode adquirir em {@code now} (mesmo critério de {@code ExternalTask.isFetchable}):
+     * a lista de missões disponíveis, sem travar nada.
+     */
+    ExternalTaskQuery fetchableAt(Instant now);
 
     List<ExternalTask> list();
 

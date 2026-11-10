@@ -43,6 +43,11 @@ public interface ExternalTaskWorkerRestApi {
     List<LockedExternalTask> fetchAndLock(@RequestBody ExternalTaskWorkerRequests.FetchAndLock request,
                                           IdentityContext identityContext);
 
+    /** Trava esta tarefa (o worker a escolheu de uma lista); com o lease já dele, renova. Indisponível: 409. */
+    @PostMapping("{id}/lock")
+    LockedExternalTask lock(@PathVariable("id") String id, @RequestBody ExternalTaskWorkerRequests.Lock request,
+                            IdentityContext identityContext);
+
     @PostMapping("{id}/extend-lock")
     ExternalTask extendLock(@PathVariable("id") String id, @RequestBody ExternalTaskWorkerRequests.ExtendLock request,
                             IdentityContext identityContext);

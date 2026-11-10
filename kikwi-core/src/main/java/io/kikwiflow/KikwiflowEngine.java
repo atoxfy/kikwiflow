@@ -595,6 +595,42 @@ public class KikwiflowEngine {
         return result;
     }
 
+    /**
+     * Trava uma tarefa escolhida pelo worker (ex.: de uma lista de missões disponíveis), com as mesmas regras do
+     * {@link #fetchAndLock}. Com o lease já deste worker, só renova.
+     *
+     * @throws TaskNotFoundException      a tarefa não existe (concluída, ou interrompida por um boundary event)
+     * @throws ExternalTaskLockException  outro worker tem o lease, ou a tarefa não está adquirível (retries
+     *                                    esgotados, aguardando o retry, concluída) — REST: 409
+     */
+    public LockedExternalTask lockExternalTask(String externalTaskId, String workerId, Duration lockDuration,
+                                               IdentityContext identityContext) {
+        requireWorkerId(workerId);
+        requirePositive(lockDuration);
+        ExternalTask task = kikwiEngineRepository.findExternalTaskById(externalTaskId)
+                .orElseThrow(() -> new TaskNotFoundException("ExternalTask not found with id: " + externalTaskId
+                        + " (concluída, ou interrompida por um boundary event)"));
+        if (!identityContext.isSystem() && !Objects.equals(task.tenantId(), identityContext.tenantId())) {
+            throw new SecurityException("Tenant mismatch: Task " + externalTaskId + " does not belong to the provided tenant.");
+        }
+        Instant now = Instant.now();
+        ExternalTask locked;
+        if (task.isLockedBy(workerId, now)) {
+            locked = extendLock(externalTaskId, workerId, lockDuration, identityContext);
+        } else {
+            locked = kikwiEngineRepository.lockExternalTask(externalTaskId, workerId,
+                    identityContext.isSystem() ? null : identityContext.tenantId(), now, now.plus(lockDuration), t -> {
+                        List<OutboxEventEntity> events = new ArrayList<>();
+                        criticalEventRecorder.recordExternalTaskLocked(events, t);
+                        return events;
+                    }).orElseThrow(() -> new ExternalTaskLockException("A ExternalTask " + externalTaskId
+                    + " não está disponível para o worker " + workerId
+                    + " (outro worker tem o lease, os retries acabaram ou ela espera o próximo retry)."));
+        }
+        return toLockedExternalTask(locked).orElseThrow(() -> new TaskNotFoundException(
+                "A instância ou a definição da ExternalTask " + externalTaskId + " não existe mais."));
+    }
+
     /** Renova o lease. Falha (409) se o lease não é mais de {@code workerId}; 404 se a tarefa sumiu. */
     public ExternalTask extendLock(String externalTaskId, String workerId, Duration lockDuration,
                                    IdentityContext identityContext) {

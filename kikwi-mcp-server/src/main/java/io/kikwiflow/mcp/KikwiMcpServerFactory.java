@@ -19,6 +19,7 @@ package io.kikwiflow.mcp;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.kikwiflow.exception.ExternalTaskLockException;
 import io.kikwiflow.exception.TaskNotFoundException;
 import io.kikwiflow.exception.VariableValidationException;
 import io.kikwiflow.management.exception.NotFoundException;
@@ -176,6 +177,10 @@ public class KikwiMcpServerFactory {
         if (e instanceof VariableValidationException validation) {
             return new ToolException(ToolException.CONTRACT_VIOLATION,
                     "Variáveis fora do contrato do nó " + validation.getNodeId() + ".", validation.getErrors());
+        }
+        if (e instanceof ExternalTaskLockException) {
+            // Outro worker tem a missão, ou o lease deste venceu: o worker deixa a missão.
+            return new ToolException(ToolException.CONFLICT, e.getMessage());
         }
         if (e instanceof IllegalArgumentException) {
             return ToolException.invalidArgument(e.getMessage());

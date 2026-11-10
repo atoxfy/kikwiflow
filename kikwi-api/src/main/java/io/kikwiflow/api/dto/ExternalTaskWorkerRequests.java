@@ -37,6 +37,10 @@ public final class ExternalTaskWorkerRequests {
     public record ExtendLock(String workerId, String lockDuration) {
     }
 
+    /** Trava uma tarefa escolhida pelo worker (ex.: de uma lista de missões disponíveis). */
+    public record Lock(String workerId, String lockDuration) {
+    }
+
     /**
      * @param retries      tentativas que restam: {@code 0} abre incidente
      * @param retryTimeout quando a tarefa volta a ser adquirível; {@code null} = já

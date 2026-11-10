@@ -185,6 +185,85 @@ class AgentTaskWorkerProtocolTest {
     }
 
     @Nested
+    @DisplayName("Quando o worker escolhe a missão pelo id (ex.: de uma lista de missões disponíveis)")
+    class WhenTheWorkerLocksById {
+
+        @Test
+        @DisplayName("então a lista mostra a missão sem travar, e o lock por id entrega a mesma missão do fetchAndLock")
+        void listsAndLocksTheChosenMission() {
+            ProcessInstance instance = start("BK-AG-ID-1");
+            ExternalTask task = mission(instance.id());
+
+            List<ExternalTask> available = testEngine.repository().createExternalTaskQuery()
+                    .topicName(TOPIC).type(ExternalTaskType.AGENT).fetchableAt(Instant.now()).list();
+            assertEquals(List.of(task.id()), available.stream().map(ExternalTask::id).toList());
+            assertNull(mission(instance.id()).lockOwner(), "Listar não trava.");
+
+            LockedExternalTask locked = testEngine.engine().lockExternalTask(task.id(), "worker-1", LEASE, WORKER_IDENTITY);
+
+            assertEquals("worker-1", locked.task().lockOwner());
+            assertEquals("BK-AG-ID-1", locked.businessKey());
+            assertEquals(List.of("conversationId"), List.copyOf(locked.variables().keySet()));
+            assertInstanceOf(AgentTaskDefinition.class, locked.node());
+            assertEquals(1, events(instance.id(), CriticalEventType.EXTERNAL_TASK_LOCKED).size());
+            assertTrue(testEngine.repository().createExternalTaskQuery()
+                    .topicName(TOPIC).fetchableAt(Instant.now()).list().isEmpty(), "Travada, sai da lista.");
+        }
+
+        @Test
+        @DisplayName("e outro worker já tem o lease, então recebe 409; vencido o lease, trava")
+        void otherWorkersLeaseIsRespected() throws InterruptedException {
+            ExternalTask task = mission(start("BK-AG-ID-2").id());
+            testEngine.engine().lockExternalTask(task.id(), "worker-1", Duration.ofMillis(30), WORKER_IDENTITY);
+
+            assertThrows(ExternalTaskLockException.class,
+                    () -> testEngine.engine().lockExternalTask(task.id(), "worker-2", LEASE, WORKER_IDENTITY));
+
+            Thread.sleep(60);
+            assertEquals("worker-2", testEngine.engine()
+                    .lockExternalTask(task.id(), "worker-2", LEASE, WORKER_IDENTITY).task().lockOwner());
+        }
+
+        @Test
+        @DisplayName("e o mesmo worker trava de novo, então só renova o lease, sem outro evento de lock")
+        void sameWorkerRenews() {
+            ProcessInstance instance = start("BK-AG-ID-3");
+            ExternalTask task = mission(instance.id());
+            Instant first = testEngine.engine().lockExternalTask(task.id(), "worker-1", Duration.ofMinutes(1),
+                    WORKER_IDENTITY).task().lockExpiresAt();
+
+            Instant renewed = testEngine.engine().lockExternalTask(task.id(), "worker-1", LEASE, WORKER_IDENTITY)
+                    .task().lockExpiresAt();
+
+            assertTrue(renewed.isAfter(first));
+            assertEquals(1, events(instance.id(), CriticalEventType.EXTERNAL_TASK_LOCKED).size());
+        }
+
+        @Test
+        @DisplayName("e a missão é de outro tenant, ou não existe, então é recusada")
+        void otherTenantOrMissing() {
+            ExternalTask task = mission(start("BK-AG-ID-4").id());
+
+            assertThrows(SecurityException.class, () -> testEngine.engine().lockExternalTask(task.id(), "worker-1",
+                    LEASE, new IdentityContext("worker", "outro-tenant")));
+            assertThrows(TaskNotFoundException.class,
+                    () -> testEngine.engine().lockExternalTask("nao-existe", "worker-1", LEASE, WORKER_IDENTITY));
+            assertNull(mission(task.processInstanceId()).lockOwner());
+        }
+
+        @Test
+        @DisplayName("e a missão já esgotou as tentativas, então não está disponível (409)")
+        void exhaustedRetriesAreNotAvailable() {
+            ExternalTask task = mission(start("BK-AG-ID-5").id());
+            testEngine.engine().lockExternalTask(task.id(), "worker-1", LEASE, WORKER_IDENTITY);
+            testEngine.engine().handleFailure(task.id(), "worker-1", "fora do ar", null, 0, null, WORKER_IDENTITY);
+
+            assertThrows(ExternalTaskLockException.class,
+                    () -> testEngine.engine().lockExternalTask(task.id(), "worker-2", LEASE, WORKER_IDENTITY));
+        }
+    }
+
+    @Nested
     @DisplayName("Quando o worker conclui a missão")
     class WhenTheWorkerCompletes {
 

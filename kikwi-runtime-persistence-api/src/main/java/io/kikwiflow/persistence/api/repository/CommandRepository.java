@@ -85,6 +85,19 @@ public interface CommandRepository {
                                                  Function<ExternalTask, List<OutboxEventEntity>> eventFactory);
 
     /**
+     * Trava a tarefa {@code taskId} para {@code workerId}, se ela estiver adquirível em {@code now} (mesmo critério
+     * de {@code ExternalTask.isFetchable}): o worker escolheu esta tarefa, ex.: a partir de uma lista. Atômico, como
+     * {@link #fetchAndLockExternalTasks}: dois workers nunca travam a mesma tarefa.
+     *
+     * @param tenantId     {@code null} = qualquer tenant
+     * @param eventFactory recebe a tarefa já travada e devolve os eventos gravados junto com o lock
+     * @return a tarefa travada, ou vazio se ela não existe, é de outro tenant ou não está adquirível
+     */
+    Optional<ExternalTask> lockExternalTask(String taskId, String workerId, String tenantId, Instant now,
+                                            Instant lockExpiresAt,
+                                            Function<ExternalTask, List<OutboxEventEntity>> eventFactory);
+
+    /**
      * Substitui a tarefa por {@code replacement} só se ela ainda estiver em posse de {@code workerId} em
      * {@code now} (lease vigente). Usado para renovar o lease, registrar falha (com o incidente quando os
      * retries acabam) e anexar atividades — tudo no mesmo commit dos eventos.

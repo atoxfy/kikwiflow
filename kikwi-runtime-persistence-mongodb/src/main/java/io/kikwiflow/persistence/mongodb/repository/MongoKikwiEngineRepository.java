@@ -58,6 +58,7 @@ import io.kikwiflow.model.execution.ProcessVariable;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskStatus;
 import io.kikwiflow.model.execution.enumerated.ExecutableTaskType;
 import io.kikwiflow.model.execution.enumerated.ExternalTaskStatus;
+import io.kikwiflow.model.execution.enumerated.ExternalTaskType;
 import io.kikwiflow.model.execution.enumerated.MatchPolicy;
 import io.kikwiflow.model.execution.enumerated.ProcessInstanceStatus;
 import io.kikwiflow.model.execution.node.AttachedTaskType;
@@ -780,19 +781,8 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
                                                         int maxTasks, Instant now, Instant lockExpiresAt,
                                                         Function<ExternalTask, List<OutboxEventEntity>> eventFactory) {
         MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
-        java.util.Date nowDate = java.util.Date.from(now);
-
-        // Mesmo critério de ExternalTask.isFetchable. eq(campo, null) casa também com o campo ausente, o que cobre
-        // tarefas gravadas antes do lease existir.
-        List<Bson> conditions = new ArrayList<>(List.of(
-                eq("status", ExternalTaskStatus.CREATED.name()),
-                in("topicName", topics),
-                or(eq("lockExpiresAt", null), lte("lockExpiresAt", nowDate)),
-                or(eq("retries", null), Filters.gt("retries", 0)),
-                or(eq("availableAt", null), lte("availableAt", nowDate))));
-        if (tenantId != null) {
-            conditions.add(eq("tenantId", tenantId));
-        }
+        List<Bson> conditions = fetchableConditions(java.util.Date.from(now), tenantId);
+        conditions.add(in("topicName", topics));
         Bson filter = and(conditions);
         Bson update = Updates.combine(
                 Updates.set("lockOwner", workerId),
@@ -824,6 +814,49 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
             locked.add(lockedTask);
         }
         return locked;
+    }
+
+    @Override
+    public Optional<ExternalTask> lockExternalTask(String taskId, String workerId, String tenantId, Instant now,
+                                                   Instant lockExpiresAt,
+                                                   Function<ExternalTask, List<OutboxEventEntity>> eventFactory) {
+        MongoCollection<Document> collection = getDatabase().getCollection(EXTERNAL_TASK_COLLECTION);
+        List<Bson> conditions = fetchableConditions(java.util.Date.from(now), tenantId);
+        conditions.add(eq("_id", taskId));
+        Bson update = Updates.combine(
+                Updates.set("lockOwner", workerId),
+                Updates.set("lockExpiresAt", java.util.Date.from(lockExpiresAt)));
+        FindOneAndUpdateOptions options = new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER);
+        try (ClientSession clientSession = mongoClient.startSession()) {
+            return Optional.ofNullable(clientSession.withTransaction(() -> {
+                Document doc = collection.findOneAndUpdate(clientSession, and(conditions), update, options);
+                if (doc == null) {
+                    return null;
+                }
+                ExternalTask task = ExternalTaskMapper.fromDocument(doc);
+                List<OutboxEventEntity> events = eventFactory.apply(task);
+                if (outboxPersistenceEnabled && events != null && !events.isEmpty()) {
+                    writeOutboxEvents(clientSession, events);
+                }
+                return task;
+            }));
+        }
+    }
+
+    /**
+     * Mesmo critério de ExternalTask.isFetchable. eq(campo, null) casa também com o campo ausente, o que cobre
+     * tarefas gravadas antes do lease existir.
+     */
+    private static List<Bson> fetchableConditions(java.util.Date nowDate, String tenantId) {
+        List<Bson> conditions = new ArrayList<>(List.of(
+                eq("status", ExternalTaskStatus.CREATED.name()),
+                or(eq("lockExpiresAt", null), lte("lockExpiresAt", nowDate)),
+                or(eq("retries", null), Filters.gt("retries", 0)),
+                or(eq("availableAt", null), lte("availableAt", nowDate))));
+        if (tenantId != null) {
+            conditions.add(eq("tenantId", tenantId));
+        }
+        return conditions;
     }
 
     @Override
@@ -2193,6 +2226,30 @@ public class MongoKikwiEngineRepository implements KikwiEngineRepository {
         public ExternalTaskQuery assignee(String assignee) {
             if (assignee != null) {
                 filters.add(eq("assignee", assignee));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery topicName(String topicName) {
+            if (topicName != null) {
+                filters.add(eq("topicName", topicName));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery type(ExternalTaskType type) {
+            if (type != null) {
+                filters.add(eq("type", type.name()));
+            }
+            return this;
+        }
+
+        @Override
+        public ExternalTaskQuery fetchableAt(Instant now) {
+            if (now != null) {
+                filters.addAll(fetchableConditions(java.util.Date.from(now), null));
             }
             return this;
         }
